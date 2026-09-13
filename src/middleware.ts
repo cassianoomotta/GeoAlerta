@@ -1,35 +1,59 @@
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs';
+import { createServerClient } from '@supabase/ssr';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-export async function middleware(req: NextRequest) {
-  const res = NextResponse.next();
-  const supabase = createMiddlewareClient({ req, res });
+export async function middleware(request: NextRequest) {
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  });
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+          response = NextResponse.next({
+            request,
+          });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          );
+        },
+      },
+    }
+  );
 
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  // If the user is trying to access a protected route without a session
-  if (req.nextUrl.pathname.startsWith('/painel')) {
-    if (!session) {
-      // Redirect to login page
-      const redirectUrl = req.nextUrl.clone();
+  // If trying to access /painel without being logged in
+  if (request.nextUrl.pathname.startsWith('/painel')) {
+    if (!user) {
+      const redirectUrl = request.nextUrl.clone();
       redirectUrl.pathname = '/login';
       return NextResponse.redirect(redirectUrl);
     }
   }
 
-  // If the user is on the login page and ALREADY authenticated, send them to the painel
-  if (req.nextUrl.pathname === '/login' && session) {
-    const redirectUrl = req.nextUrl.clone();
+  // If on /login and already logged in
+  if (request.nextUrl.pathname === '/login' && user) {
+    const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = '/painel';
     return NextResponse.redirect(redirectUrl);
   }
 
-  return res;
+  return response;
 }
 
 export const config = {
   matcher: ['/painel/:path*', '/login'],
 };
+
