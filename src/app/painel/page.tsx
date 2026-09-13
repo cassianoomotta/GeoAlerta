@@ -1,9 +1,11 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { ShieldAlert, Flame, HardHat, HeartHandshake, X, MapPin, ExternalLink, RefreshCw, CheckCircle2, Layers } from "lucide-react";
+import { parseCoordinates, getGoogleMapsUrl, formatCoordinates } from "@/lib/geoUtils";
 
 // Leaflet precisa ser carregado dinamicamente para evitar erro de 'window is not defined' no SSR
 const MapComponent = dynamic(() => import("@/components/MapComponent"), {
@@ -15,7 +17,10 @@ const MapComponent = dynamic(() => import("@/components/MapComponent"), {
   )
 });
 
-export default function PainelPage() {
+function PainelContent() {
+  const searchParams = useSearchParams();
+  const focusId = searchParams.get('focus');
+
   const [occurrences, setOccurrences] = useState<any[]>([]);
   const [selectedFilter, setSelectedFilter] = useState<string>("TODOS");
   const [loading, setLoading] = useState(false);
@@ -54,6 +59,18 @@ export default function PainelPage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (focusId && occurrences.length > 0) {
+      const target = occurrences.find(o => o.id === focusId);
+      if (target) {
+        setSelectedOccurrence(target);
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('flyToMarker', { detail: focusId }));
+        }, 500);
+      }
+    }
+  }, [focusId, occurrences]);
+
   const [showOccurrences, setShowOccurrences] = useState(true);
   const [showFloodZones, setShowFloodZones] = useState(true);
   const [showShelters, setShowShelters] = useState(true);
@@ -91,29 +108,8 @@ export default function PainelPage() {
   };
 
   const getGoogleMapsLink = (location: any) => {
-    if (!location) return "";
-    let lat = 0, lng = 0;
-    try {
-      if (typeof location === 'string') {
-        if (location.length === 50 && location.startsWith('0101')) {
-          const bytes = new Uint8Array(location.match(/.{1,2}/g)!.map((byte: string) => parseInt(byte, 16)));
-          const view = new DataView(bytes.buffer);
-          const isLittleEndian = bytes[0] === 1;
-          lng = view.getFloat64(9, isLittleEndian);
-          lat = view.getFloat64(17, isLittleEndian);
-        } else {
-          const match = location.match(/POINT\(([-\d.]+) ([-\d.]+)\)/);
-          if (match) {
-            lng = parseFloat(match[1]);
-            lat = parseFloat(match[2]);
-          }
-        }
-      } else if (location.coordinates) {
-         lng = location.coordinates[0];
-         lat = location.coordinates[1];
-      }
-      return `https://www.google.com/maps?q=${lat},${lng}`;
-    } catch(e) { return ""; }
+    const coords = parseCoordinates(location);
+    return getGoogleMapsUrl(coords);
   };
 
   return (
@@ -314,3 +310,12 @@ export default function PainelPage() {
     </div>
   );
 }
+
+export default function PainelPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-slate-400">Carregando painel...</div>}>
+      <PainelContent />
+    </Suspense>
+  );
+}
+

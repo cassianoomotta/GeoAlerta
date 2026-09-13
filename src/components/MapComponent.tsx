@@ -8,6 +8,7 @@ import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import { floodZonesGeoJSON, shelters } from '@/data/geo';
+import { parseCoordinates } from '@/lib/geoUtils';
 
 // Pino Vermelho (Ocorrências)
 const icon = L.icon({
@@ -134,40 +135,9 @@ export default function MapComponent({
           spiderfyOnMaxZoom={true} // Spreads markers out in a spider leg shape when fully zoomed in
         >
           {occurrences.map((occ) => {
-            // Extrair Lat/Long do formato "POINT(lon lat)" do PostGIS
-          if (!occ.location) return null;
-          
-          let lat = 0;
-          let lng = 0;
-          
-          try {
-            if (typeof occ.location === 'string') {
-              // Verifica se é uma string Hex do PostGIS (WKB) (geralmente 50 chars para POINT)
-              if (occ.location.length === 50 && occ.location.startsWith('0101')) {
-                // Hex para Uint8Array
-                const bytes = new Uint8Array(occ.location.match(/.{1,2}/g)!.map((byte: string) => parseInt(byte, 16)));
-                const view = new DataView(bytes.buffer);
-                const isLittleEndian = bytes[0] === 1;
-                lng = view.getFloat64(9, isLittleEndian);
-                lat = view.getFloat64(17, isLittleEndian);
-              } else {
-                // Verifica se é string WKT "POINT(lon lat)"
-                const match = occ.location.match(/POINT\(([-\d.]+) ([-\d.]+)\)/);
-                if (match) {
-                  lng = parseFloat(match[1]);
-                  lat = parseFloat(match[2]);
-                }
-              }
-            } else if (occ.location && occ.location.coordinates) {
-               lng = occ.location.coordinates[0];
-               lat = occ.location.coordinates[1];
-            }
-          } catch(e) { 
-            console.error("Erro ao ler location:", e);
-            return null; 
-          }
-
-          if (!lat || !lng) return null;
+            const coords = parseCoordinates(occ.location);
+            if (!coords) return null;
+            const { lat, lng } = coords;
 
           return (
             <Marker 
