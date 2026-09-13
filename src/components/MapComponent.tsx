@@ -68,7 +68,8 @@ export default function MapComponent({ occurrences }: { occurrences: any[] }) {
           if (typeof occ.location === 'string') {
             // Verifica se é uma string Hex do PostGIS (WKB) (geralmente 50 chars para POINT)
             if (occ.location.length === 50 && occ.location.startsWith('0101')) {
-              const bytes = new Uint8Array(occ.location.match(/.{1,2}/g)!.map(byte => parseInt(byte, 16)));
+              // Hex para Uint8Array
+              const bytes = new Uint8Array(occ.location.match(/.{1,2}/g)!.map((byte: string) => parseInt(byte, 16)));
               const view = new DataView(bytes.buffer);
               const isLittleEndian = bytes[0] === 1;
               lng = view.getFloat64(9, isLittleEndian);
