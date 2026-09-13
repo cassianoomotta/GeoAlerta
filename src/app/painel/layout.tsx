@@ -59,16 +59,25 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
             Santo Antônio da Patrulha - RS
           </span>
 
-          {/* Selos de Órgãos Integrados */}
-          <div style={{ marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', gap: '0.35rem', fontSize: '0.7rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', opacity: 0.85 }}>
-              <ShieldAlert size={13} color="#f59e0b" /> Defesa Civil Municipal
+          {/* Selos de Órgãos Integrados e Telefones */}
+          <div style={{ marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', gap: '0.45rem', fontSize: '0.72rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', opacity: 0.85 }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <ShieldAlert size={13} color="#f59e0b" /> Defesa Civil
+              </span>
+              <strong style={{ color: '#f59e0b' }}>199</strong>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', opacity: 0.85 }}>
-              <Flame size={13} color="#ef4444" /> Bombeiros Militar (CBMRS)
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', opacity: 0.85 }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <Flame size={13} color="#ef4444" /> Bombeiros (CBMRS)
+              </span>
+              <strong style={{ color: '#ef4444' }}>193</strong>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', opacity: 0.85 }}>
-              <HardHat size={13} color="#3b82f6" /> Obras e Infraestrutura
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', opacity: 0.85 }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <HardHat size={13} color="#3b82f6" /> Sec. de Obras
+              </span>
+              <strong style={{ color: 'var(--primary)' }}>3662-8400</strong>
             </div>
           </div>
         </div>

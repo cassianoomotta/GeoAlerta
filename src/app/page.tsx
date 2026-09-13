@@ -15,6 +15,17 @@ export default function Home() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!name.trim()) {
+      alert("Por favor, preencha o seu nome antes de enviar.");
+      return;
+    }
+
+    if (!type.trim()) {
+      alert("Por favor, selecione o tipo de ocorrência.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -54,7 +65,7 @@ export default function Home() {
           {
             type,
             description,
-            reporter_name: name || "Anônimo",
+            reporter_name: name.trim(),
             photo_url,
             location: `POINT(${longitude} ${latitude})`
           }
@@ -119,7 +130,7 @@ export default function Home() {
           Canal Oficial de Emergências e Alertas Climáticos
         </p>
 
-        {/* Órgãos Integrados */}
+        {/* Órgãos Integrados com Links de Contato */}
         <div style={{
           display: 'flex',
           flexWrap: 'wrap',
@@ -127,35 +138,41 @@ export default function Home() {
           gap: '0.4rem',
           marginTop: '0.85rem'
         }}>
-          <span style={{ fontSize: '0.7rem', padding: '0.2rem 0.6rem', borderRadius: '1rem', background: 'rgba(255,255,255,0.06)', border: '1px solid var(--card-border)', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
-            <ShieldAlert size={12} color="#f59e0b" /> Defesa Civil
-          </span>
-          <span style={{ fontSize: '0.7rem', padding: '0.2rem 0.6rem', borderRadius: '1rem', background: 'rgba(255,255,255,0.06)', border: '1px solid var(--card-border)', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+          <a href="tel:199" style={{ fontSize: '0.72rem', padding: '0.25rem 0.65rem', borderRadius: '1rem', background: 'rgba(255,255,255,0.06)', border: '1px solid var(--card-border)', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', color: 'inherit', textDecoration: 'none' }}>
+            <ShieldAlert size={12} color="#f59e0b" /> Defesa Civil (199)
+          </a>
+          <a href="tel:193" style={{ fontSize: '0.72rem', padding: '0.25rem 0.65rem', borderRadius: '1rem', background: 'rgba(255,255,255,0.06)', border: '1px solid var(--card-border)', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', color: 'inherit', textDecoration: 'none' }}>
             <Flame size={12} color="#ef4444" /> Bombeiros Militar (193)
-          </span>
-          <span style={{ fontSize: '0.7rem', padding: '0.2rem 0.6rem', borderRadius: '1rem', background: 'rgba(255,255,255,0.06)', border: '1px solid var(--card-border)', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
-            <HardHat size={12} color="#3b82f6" /> Obras e Infraestrutura
-          </span>
+          </a>
+          <a href="tel:5136628400" style={{ fontSize: '0.72rem', padding: '0.25rem 0.65rem', borderRadius: '1rem', background: 'rgba(255,255,255,0.06)', border: '1px solid var(--card-border)', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', color: 'inherit', textDecoration: 'none' }}>
+            <HardHat size={12} color="#3b82f6" /> Obras (51) 3662-8400
+          </a>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="glass-card" style={{ padding: '2rem' }}>
         
         <div className="form-group">
-          <label className="form-label">Seu Nome (Opcional)</label>
+          <label className="form-label">
+            Seu Nome <span style={{ color: 'var(--danger)', fontWeight: 'bold' }}>*</span>
+          </label>
           <input 
             type="text" 
             className="form-input" 
-            placeholder="Como podemos te chamar?"
+            placeholder="Digite seu nome completo"
+            required
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
         </div>
 
         <div className="form-group">
-          <label className="form-label">Tipo de Ocorrência</label>
+          <label className="form-label">
+            Tipo de Ocorrência <span style={{ color: 'var(--danger)', fontWeight: 'bold' }}>*</span>
+          </label>
           <select 
             className="form-select" 
+            required
             value={type} 
             onChange={(e) => setType(e.target.value)}
           >
@@ -171,7 +188,7 @@ export default function Home() {
           <label className="form-label">Descrição (Opcional)</label>
           <textarea 
             className="form-textarea" 
-            placeholder="Detalhes adicionais..."
+            placeholder="Ex: Água subindo rápido na esquina, altura da calçada..."
             rows={3}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
@@ -216,14 +233,34 @@ export default function Home() {
 
       </form>
 
-      {/* Contatos Emergenciais */}
-      <div style={{ marginTop: '1.75rem', textAlign: 'center', padding: '1.25rem', background: 'rgba(239, 68, 68, 0.08)', borderRadius: '1.25rem', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', color: 'var(--danger)', fontWeight: 700, fontSize: '0.9rem', marginBottom: '0.35rem' }}>
-          <PhoneCall size={18} /> Risco Iminente à Vida?
+      {/* Contatos Emergenciais dos Órgãos */}
+      <div style={{ marginTop: '1.75rem', padding: '1.25rem', background: 'rgba(239, 68, 68, 0.06)', borderRadius: '1.25rem', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', color: 'var(--danger)', fontWeight: 700, fontSize: '0.9rem', marginBottom: '0.85rem' }}>
+          <PhoneCall size={18} /> Telefones Úteis e Emergências
         </div>
-        <p style={{ fontSize: '0.8rem', opacity: 0.85 }}>
-          Ligue imediatamente: <strong>193</strong> (Bombeiros Militar) ou <strong>199</strong> (Defesa Civil).
-        </p>
+        
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          <a href="tel:193" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.6rem 0.85rem', background: 'rgba(255,255,255,0.06)', borderRadius: '0.75rem', textDecoration: 'none', color: 'var(--foreground)', border: '1px solid var(--card-border)' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.82rem', fontWeight: 600 }}>
+              <Flame size={15} color="#ef4444" /> Bombeiros Militar
+            </span>
+            <span style={{ color: 'var(--danger)', fontWeight: 700, fontSize: '0.88rem' }}>193</span>
+          </a>
+
+          <a href="tel:199" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.6rem 0.85rem', background: 'rgba(255,255,255,0.06)', borderRadius: '0.75rem', textDecoration: 'none', color: 'var(--foreground)', border: '1px solid var(--card-border)' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.82rem', fontWeight: 600 }}>
+              <ShieldAlert size={15} color="#f59e0b" /> Defesa Civil
+            </span>
+            <span style={{ color: '#f59e0b', fontWeight: 700, fontSize: '0.88rem' }}>199 / (51) 99767-4224</span>
+          </a>
+
+          <a href="tel:5136628400" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.6rem 0.85rem', background: 'rgba(255,255,255,0.06)', borderRadius: '0.75rem', textDecoration: 'none', color: 'var(--foreground)', border: '1px solid var(--card-border)' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.82rem', fontWeight: 600 }}>
+              <HardHat size={15} color="#3b82f6" /> Sec. de Obras / Infraestrutura
+            </span>
+            <span style={{ color: 'var(--primary)', fontWeight: 700, fontSize: '0.88rem' }}>(51) 3662-8400</span>
+          </a>
+        </div>
       </div>
 
       <footer style={{ textAlign: 'center', marginTop: '2rem', fontSize: '0.72rem', opacity: 0.55, lineHeight: 1.5 }}>
