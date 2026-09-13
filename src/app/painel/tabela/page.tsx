@@ -79,119 +79,121 @@ export default function TabelaPage() {
   };
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', gap: '1.5rem', position: 'relative' }}>
+    <div className="flex flex-col h-full gap-6">
       
       {/* Topo */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+      <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
-          <h1 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em', marginBottom: '0.15rem' }}>
+          <h1 className="text-2xl font-extrabold text-white tracking-tight mb-1 drop-shadow-[0_0_10px_rgba(255,255,255,0.1)]">
             Tabela Operacional de Desastres
           </h1>
-          <p style={{ color: '#64748b', fontSize: '0.85rem' }}>
+          <p className="text-slate-400 text-xs font-medium">
             Visão em lista e exportação de dados para relatórios gerenciais
           </p>
         </div>
 
         <button 
           onClick={exportToCSV}
-          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#10b981', color: '#ffffff', border: 'none', padding: '0.6rem 1.25rem', borderRadius: '0.75rem', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 4px 6px -1px rgba(16, 185, 129, 0.2)' }}
+          className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all shadow-[0_0_15px_rgba(5,150,105,0.4)] border border-emerald-500/50"
         >
           <FileSpreadsheet size={16} /> Exportar CSV
         </button>
       </div>
 
-      {/* Barra de Filtros */}
-      <div className="glass-card" style={{ display: 'flex', gap: '1rem', padding: '1rem', background: '#ffffff', borderRadius: '1rem', border: '1px solid #e2e8f0', boxShadow: 'var(--shadow-sm)', flexWrap: 'wrap' }}>
+      {/* Barra de Filtros (Glassmorphism) */}
+      <div className="glass-card flex flex-wrap gap-4 p-4 items-center relative z-20">
         
-        <div style={{ flex: '1 1 250px', position: 'relative' }}>
-          <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+        <div className="flex-1 min-w-[250px] relative">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input 
             type="text" 
             placeholder="Buscar por tipo, relator, descrição..." 
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            style={{ width: '100%', padding: '0.6rem 0.6rem 0.6rem 2.2rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', color: '#334155', background: '#f8fafc' }}
+            className="w-full bg-white/5 border border-white/10 rounded-xl py-2 pl-10 pr-4 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
           />
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', borderLeft: '1px solid #e2e8f0', paddingLeft: '1rem' }}>
-          <Filter size={16} color="#64748b" />
+        <div className="flex items-center gap-2 border-l border-white/10 pl-4">
+          <Filter size={16} className="text-slate-400" />
           <select 
             value={statusFilter}
             onChange={e => setStatusFilter(e.target.value)}
-            style={{ padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', color: '#334155', background: '#f8fafc', cursor: 'pointer' }}
+            className="bg-white/5 border border-white/10 text-slate-300 text-sm rounded-xl py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all appearance-none cursor-pointer"
           >
-            <option value="TODOS">Qualquer Status</option>
-            <option value="Novo">Novo</option>
-            <option value="Em Atendimento">Em Atendimento</option>
-            <option value="Resolvido">Resolvido</option>
+            <option value="TODOS" className="bg-slate-900 text-white">Qualquer Status</option>
+            <option value="Novo" className="bg-slate-900 text-white">Novo</option>
+            <option value="Em Atendimento" className="bg-slate-900 text-white">Em Atendimento</option>
+            <option value="Resolvido" className="bg-slate-900 text-white">Resolvido</option>
           </select>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div className="flex items-center gap-2">
           <select 
             value={orgaoFilter}
             onChange={e => setOrgaoFilter(e.target.value)}
-            style={{ padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', color: '#334155', background: '#f8fafc', cursor: 'pointer' }}
+            className="bg-white/5 border border-white/10 text-slate-300 text-sm rounded-xl py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all appearance-none cursor-pointer"
           >
-            <option value="TODOS">Qualquer Órgão</option>
-            <option value="Defesa Civil">Defesa Civil</option>
-            <option value="Bombeiros">Bombeiros</option>
-            <option value="Obras">Obras</option>
-            <option value="Assistência Social">Assistência Social</option>
+            <option value="TODOS" className="bg-slate-900 text-white">Qualquer Órgão</option>
+            <option value="Defesa Civil" className="bg-slate-900 text-white">Defesa Civil</option>
+            <option value="Bombeiros" className="bg-slate-900 text-white">Bombeiros</option>
+            <option value="Obras" className="bg-slate-900 text-white">Obras</option>
+            <option value="Assistência Social" className="bg-slate-900 text-white">Assistência Social</option>
           </select>
         </div>
 
         <button 
           onClick={fetchOccurrences}
           title="Atualizar dados"
-          style={{ background: 'transparent', border: '1px solid #cbd5e1', borderRadius: '0.5rem', cursor: 'pointer', padding: '0.5rem', display: 'flex', alignItems: 'center', color: '#64748b' }}
+          className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white hover:bg-white/10 transition-colors flex items-center justify-center"
         >
-          <RefreshCw size={15} className={loading ? "spin" : ""} />
+          <RefreshCw size={16} className={loading ? "animate-spin text-primary" : ""} />
         </button>
 
       </div>
 
-      {/* Tabela */}
-      <div className="glass-card" style={{ flex: 1, overflow: 'auto', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '1rem', boxShadow: 'var(--shadow-md)' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '800px' }}>
-          <thead style={{ background: '#f8fafc', position: 'sticky', top: 0, zIndex: 10 }}>
+      {/* Tabela (Bento Box) */}
+      <div className="glass-card flex-1 overflow-auto relative z-10 custom-scrollbar">
+        <table className="w-full text-left min-w-[800px] border-collapse">
+          <thead className="bg-white/[0.02] sticky top-0 z-20 backdrop-blur-md">
             <tr>
-              <th style={{ padding: '1rem', fontSize: '0.75rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, borderBottom: '1px solid #e2e8f0' }}>ID</th>
-              <th style={{ padding: '1rem', fontSize: '0.75rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, borderBottom: '1px solid #e2e8f0' }}>Data/Hora</th>
-              <th style={{ padding: '1rem', fontSize: '0.75rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, borderBottom: '1px solid #e2e8f0' }}>Tipo</th>
-              <th style={{ padding: '1rem', fontSize: '0.75rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, borderBottom: '1px solid #e2e8f0' }}>Relator</th>
-              <th style={{ padding: '1rem', fontSize: '0.75rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, borderBottom: '1px solid #e2e8f0' }}>Status</th>
-              <th style={{ padding: '1rem', fontSize: '0.75rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, borderBottom: '1px solid #e2e8f0' }}>Órgão Atribuído</th>
+              <th className="p-4 text-[10px] uppercase tracking-wider text-slate-500 font-bold border-b border-white/10">ID</th>
+              <th className="p-4 text-[10px] uppercase tracking-wider text-slate-500 font-bold border-b border-white/10">Data/Hora</th>
+              <th className="p-4 text-[10px] uppercase tracking-wider text-slate-500 font-bold border-b border-white/10">Tipo</th>
+              <th className="p-4 text-[10px] uppercase tracking-wider text-slate-500 font-bold border-b border-white/10">Relator</th>
+              <th className="p-4 text-[10px] uppercase tracking-wider text-slate-500 font-bold border-b border-white/10">Status</th>
+              <th className="p-4 text-[10px] uppercase tracking-wider text-slate-500 font-bold border-b border-white/10">Órgão Atribuído</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-white/5">
             {filteredOccurrences.length > 0 ? filteredOccurrences.map(occ => (
-              <tr key={occ.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                <td style={{ padding: '1rem', fontSize: '0.85rem', color: '#94a3b8', fontFamily: 'monospace' }}>
+              <tr key={occ.id} className="hover:bg-white/[0.02] transition-colors">
+                <td className="p-4 text-xs text-slate-500 font-mono">
                   {occ.id.substring(0, 8)}
                 </td>
-                <td style={{ padding: '1rem', fontSize: '0.85rem', color: '#475569' }}>
+                <td className="p-4 text-xs text-slate-400 font-medium">
                   {new Date(occ.created_at).toLocaleString('pt-BR')}
                 </td>
-                <td style={{ padding: '1rem', fontSize: '0.9rem', color: '#0f172a', fontWeight: 600 }}>
+                <td className="p-4 text-sm text-white font-semibold">
                   {occ.type}
                 </td>
-                <td style={{ padding: '1rem', fontSize: '0.85rem', color: '#334155' }}>
+                <td className="p-4 text-xs text-slate-300">
                   {occ.reporter_name || 'Anônimo'}
                 </td>
-                <td style={{ padding: '1rem' }}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', padding: '0.25rem 0.6rem', borderRadius: '1rem', fontSize: '0.75rem', fontWeight: 600, background: occ.status === 'Resolvido' ? '#dcfce7' : occ.status === 'Em Atendimento' ? '#fef08a' : '#f1f5f9', color: occ.status === 'Resolvido' ? '#166534' : occ.status === 'Em Atendimento' ? '#854d0e' : '#475569' }}>
+                <td className="p-4">
+                  <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold border ${occ.status === 'Resolvido' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : occ.status === 'Em Atendimento' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : occ.status === 'Aberto' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-white/5 text-slate-300 border-white/10'}`}>
                     {occ.status || 'Novo'}
                   </span>
                 </td>
-                <td style={{ padding: '1rem', fontSize: '0.85rem', color: '#475569', fontWeight: 500 }}>
-                  {occ.assigned_to || '-'}
+                <td className="p-4 text-xs font-semibold">
+                  <span className={`${occ.assigned_to === 'Defesa Civil' ? 'text-amber-400' : occ.assigned_to === 'Bombeiros' ? 'text-red-400' : occ.assigned_to === 'Obras' ? 'text-blue-400' : occ.assigned_to === 'Assistência Social' ? 'text-fuchsia-400' : 'text-slate-500'}`}>
+                    {occ.assigned_to || '-'}
+                  </span>
                 </td>
               </tr>
             )) : (
               <tr>
-                <td colSpan={6} style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8', fontSize: '0.9rem' }}>
+                <td colSpan={6} className="p-12 text-center text-slate-500 text-sm font-medium">
                   Nenhuma ocorrência encontrada com os filtros selecionados.
                 </td>
               </tr>

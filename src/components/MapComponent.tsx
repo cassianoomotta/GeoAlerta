@@ -79,12 +79,13 @@ export default function MapComponent({
     <MapContainer 
       center={[-29.8252, -50.5186]} // Santo Antônio da Patrulha - RS
       zoom={13} 
-      style={{ height: '100%', width: '100%', borderRadius: '1rem' }}
+      style={{ height: '100%', width: '100%', borderRadius: '1rem', background: '#0f172a' }}
     >
       <MapController markerRefs={markerRefs} />
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        className="dark-map-tiles"
       />
       
       {showFloodZones && (
@@ -93,7 +94,7 @@ export default function MapComponent({
           style={geoJsonStyle}
           onEachFeature={(feature, layer) => {
             if (feature.properties && feature.properties.name) {
-              layer.bindPopup(`<strong>${feature.properties.name}</strong><br/>Risco: ${feature.properties.riskLevel}`);
+              layer.bindPopup(`<strong style="color: #0f172a">${feature.properties.name}</strong><br/><span style="color: #64748b">Risco: ${feature.properties.riskLevel}</span>`);
             }
           }}
         />
@@ -105,21 +106,21 @@ export default function MapComponent({
           position={[shelter.lat, shelter.lng]} 
           icon={shelterIcon}
         >
-          <Popup>
-            <div style={{ minWidth: '180px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.3rem' }}>
-                <span style={{ background: '#dcfce7', color: '#166534', padding: '0.2rem 0.5rem', borderRadius: '1rem', fontSize: '0.7rem', fontWeight: 600 }}>Abrigo Oficial</span>
+          <Popup className="dark-popup">
+            <div className="min-w-[180px] bg-card text-foreground">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded-full text-[10px] font-bold tracking-wide uppercase border border-emerald-500/20">Abrigo Oficial</span>
               </div>
-              <strong style={{ fontSize: '1.05rem', color: '#0f172a' }}>{shelter.name}</strong><br/>
-              <span style={{ fontSize: '0.8rem', color: '#475569', display: 'block', marginBottom: '0.5rem' }}>{shelter.address}</span>
-              <div style={{ background: '#f8fafc', padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0', fontSize: '0.8rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.2rem' }}>
-                  <span style={{ color: '#64748b' }}>Ocupação:</span>
-                  <strong style={{ color: shelter.occupied >= shelter.capacity ? '#ef4444' : '#0f172a' }}>{shelter.occupied} / {shelter.capacity}</strong>
+              <strong className="text-sm text-white block mb-0.5">{shelter.name}</strong>
+              <span className="text-xs text-slate-400 block mb-2">{shelter.address}</span>
+              <div className="bg-white/5 p-2 rounded-lg border border-white/10 text-xs">
+                <div className="flex justify-between mb-1">
+                  <span className="text-slate-500">Ocupação:</span>
+                  <strong className={shelter.occupied >= shelter.capacity ? 'text-red-400' : 'text-slate-300'}>{shelter.occupied} / {shelter.capacity}</strong>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: '#64748b' }}>Contato:</span>
-                  <strong>{shelter.phone}</strong>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Contato:</span>
+                  <strong className="text-slate-300">{shelter.phone}</strong>
                 </div>
               </div>
             </div>
@@ -188,22 +189,26 @@ export default function MapComponent({
               }}
             >
               {!onMarkerClick && (
-                <Popup>
-                  <strong>{occ.type}</strong><br/>
-                  <span style={{ fontSize: '0.85rem' }}>
-                    Reportado por: <b>{occ.reporter_name || 'Anônimo'}</b>
-                  </span><br/>
-                  <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>
+                <Popup className="dark-popup">
+                  <strong className="text-white block mb-1 text-sm">{occ.type}</strong>
+                  <span className="text-xs text-slate-400 block mb-1">
+                    Reportado por: <b className="text-slate-300">{occ.reporter_name || 'Anônimo'}</b>
+                  </span>
+                  <span className="text-[10px] text-slate-500 block mb-2">
                     {new Date(occ.created_at).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}
-                  </span><br/>
-                  {occ.description && <span><br/>{occ.description}<br/></span>}
-                  <span style={{ fontSize: '0.8rem', color: '#666', display: 'block', marginTop: '0.5rem' }}>
-                    Status: {occ.status}
+                  </span>
+                  {occ.description && (
+                    <div className="bg-white/5 border border-white/10 p-2 rounded-lg text-xs text-slate-300 mb-2">
+                      {occ.description}
+                    </div>
+                  )}
+                  <span className="text-xs text-slate-400 block mb-2">
+                    Status: <span className="font-bold text-slate-200">{occ.status}</span>
                   </span>
                   {occ.photo_url && (
-                    <div style={{ marginTop: '0.5rem' }}>
-                      <a href={occ.photo_url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)' }}>
-                        Ver Foto
+                    <div className="mt-2">
+                      <a href={occ.photo_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:text-blue-400 text-xs font-semibold">
+                        Ver Evidência
                       </a>
                     </div>
                   )}

@@ -1,158 +1,98 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-:root {
-  --background: #f8fafc;
-  --surface: #ffffff;
-  --foreground: #0f172a;
-  --foreground-muted: #64748b;
-  --primary: #2563eb;
-  --primary-hover: #1d4ed8;
-  --primary-subtle: #eff6ff;
-  --danger: #dc2626;
-  --danger-hover: #b91c1c;
-  --danger-subtle: #fef2f2;
-  --warning: #d97706;
-  --warning-subtle: #fffbeb;
-  --success: #16a34a;
-  --success-subtle: #f0fdf4;
-  --card-bg: #ffffff;
-  --card-border: #e2e8f0;
-  --input-border: #cbd5e1;
-  --input-focus: #2563eb;
+@layer base {
+  :root {
+    --background: #020617; /* slate-950 */
+    --foreground: #f8fafc; /* slate-50 */
+    
+    --card: #0f172a; /* slate-900 */
+    --card-foreground: #f8fafc;
+    
+    --popover: #0f172a;
+    --popover-foreground: #f8fafc;
+    
+    --primary: #3b82f6; /* blue-500 */
+    --primary-foreground: #ffffff;
+    
+    --secondary: #1e293b; /* slate-800 */
+    --secondary-foreground: #f8fafc;
+    
+    --muted: #1e293b;
+    --muted-foreground: #94a3b8; /* slate-400 */
+    
+    --accent: #1e293b;
+    --accent-foreground: #f8fafc;
+    
+    --destructive: #ef4444; /* red-500 */
+    --destructive-foreground: #ffffff;
+
+    --border: #1e293b; /* slate-800 */
+    --input: #1e293b;
+    --ring: #3b82f6;
+    
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer components {
+  /* SaaS Premium Glass Card (Bento Box style) */
+  .glass-card {
+    @apply bg-white/[0.02] border border-white/10 backdrop-blur-xl shadow-2xl rounded-2xl;
+  }
   
-  --radius-sm: 0.375rem;
-  --radius-md: 0.625rem;
-  --radius-lg: 0.875rem;
-  --radius-xl: 1.25rem;
-  --radius-full: 9999px;
+  /* Modern Button */
+  .btn {
+    @apply inline-flex items-center justify-center rounded-xl text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background;
+  }
+  
+  .btn-primary {
+    @apply bg-primary text-primary-foreground hover:opacity-90 shadow-[0_0_15px_rgba(59,130,246,0.3)];
+  }
 
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.07), 0 2px 4px -2px rgba(15, 23, 42, 0.05);
-  --shadow-lg: 0 10px 25px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.04);
+  .btn-secondary {
+    @apply bg-secondary text-secondary-foreground hover:opacity-80 border border-white/5;
+  }
+  
+  .btn-danger {
+    @apply bg-destructive text-destructive-foreground hover:opacity-90 shadow-[0_0_15px_rgba(239,68,68,0.3)];
+  }
+
+  /* Form Elements */
+  .form-group {
+    @apply flex flex-col gap-2 mb-5;
+  }
+
+  .form-label {
+    @apply text-sm font-medium text-slate-300;
+  }
+
+  .form-input, .form-textarea, .form-select {
+    @apply flex w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:border-transparent transition-all;
+  }
+  
+  /* Maps Dark Tiles Filter if we can't load CartoDB natively easily */
+  .dark-map-tiles {
+    filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7);
+  }
+
+  /* Override Leaflet Popup for Dark Mode */
+  .dark-popup .leaflet-popup-content-wrapper,
+  .dark-popup .leaflet-popup-tip {
+    @apply bg-[#0f172a] border border-white/10 text-white shadow-xl;
+  }
+  .dark-popup .leaflet-popup-content {
+    @apply m-0 p-3;
+  }
 }
-
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  min-height: 100vh;
-}
-
-h1, h2, h3, h4, h5, h6 {
-  font-family: 'Outfit', sans-serif;
-  letter-spacing: -0.025em;
-  color: var(--foreground);
-}
-
-/* Clean Card Utility */
-.glass-card {
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-md);
-  transition: box-shadow 0.2s ease, border-color 0.2s ease;
-}
-
-.glass-card:hover {
-  box-shadow: var(--shadow-lg);
-  border-color: #cbd5e1;
-}
-
-/* Buttons */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.25rem;
-  font-weight: 600;
-  font-size: 0.925rem;
-  border-radius: var(--radius-lg);
-  border: 1px solid transparent;
-  cursor: pointer;
-  transition: all 0.15s ease-in-out;
-  font-family: 'Inter', sans-serif;
-}
-
-.btn:active {
-  transform: scale(0.98);
-}
-
-.btn-primary {
-  background-color: var(--primary);
-  color: #ffffff;
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
-}
-
-.btn-primary:hover {
-  background-color: var(--primary-hover);
-  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
-}
-
-.btn-danger {
-  background-color: var(--danger);
-  color: #ffffff;
-  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.25);
-}
-
-.btn-danger:hover {
-  background-color: var(--danger-hover);
-  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.35);
-}
-
-/* Forms */
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  margin-bottom: 1.25rem;
-}
-
-.form-label {
-  font-weight: 600;
-  font-size: 0.875rem;
-  color: #334155;
-}
-
-.form-select, .form-textarea, .form-input {
-  width: 100%;
-  padding: 0.75rem 1rem;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--input-border);
-  background: #ffffff;
-  color: var(--foreground);
-  font-family: inherit;
-  font-size: 0.95rem;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-}
-
-.form-select:focus, .form-textarea:focus, .form-input:focus {
-  outline: none;
-  border-color: var(--input-focus);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
-}
-
-.form-input::placeholder, .form-textarea::placeholder {
-  color: #94a3b8;
-}
-
-/* Layouts */
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem;
-}
-
-.mobile-container {
-  max-width: 580px;
-  margin: 0 auto;
-  padding: 1.5rem 1.25rem;
-}
-
