@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { MapPin, Camera, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { MapPin, Camera, AlertTriangle, CheckCircle2, Building2, ShieldAlert, Flame, HardHat, PhoneCall } from "lucide-react";
 
 export default function Home() {
   const [loading, setLoading] = useState(false);
@@ -73,13 +73,15 @@ export default function Home() {
 
   if (success) {
     return (
-      <main className="mobile-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', textAlign: 'center' }}>
-        <div className="glass-card" style={{ padding: '3rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+      <main className="mobile-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', textAlign: 'center' }}>
+        <div className="glass-card" style={{ padding: '2.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', width: '100%' }}>
           <CheckCircle2 size={64} color="var(--primary)" />
           <h2>Ocorrência Registrada!</h2>
-          <p>Sua ocorrência foi enviada à Defesa Civil com sua localização exata.</p>
+          <p style={{ opacity: 0.85, fontSize: '0.95rem' }}>
+            Seu relato foi transmitido em tempo real para a <strong>Defesa Civil</strong>, <strong>Corpo de Bombeiros</strong> e equipes de plantão.
+          </p>
           <button className="btn btn-primary" onClick={() => { setSuccess(false); setFile(null); setDescription(""); }}>
-            Voltar
+            Registrar Nova Ocorrência
           </button>
         </div>
       </main>
@@ -87,11 +89,54 @@ export default function Home() {
   }
 
   return (
-    <main className="mobile-container">
-      <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-        <AlertTriangle size={48} color="var(--danger)" style={{ margin: '0 auto 1rem' }} />
-        <h1>GeoAlerta</h1>
-        <p style={{ opacity: 0.8, marginTop: '0.5rem' }}>Reporte uma ocorrência com sua localização exata em apenas um clique.</p>
+    <main className="mobile-container" style={{ paddingBottom: '3rem' }}>
+      <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
+        
+        {/* Selo Oficial do Município */}
+        <div style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '0.45rem',
+          padding: '0.4rem 0.9rem',
+          background: 'rgba(37, 99, 235, 0.12)',
+          border: '1px solid rgba(37, 99, 235, 0.3)',
+          borderRadius: '2rem',
+          fontSize: '0.75rem',
+          fontWeight: 600,
+          color: 'var(--primary)',
+          marginBottom: '1.25rem',
+          letterSpacing: '0.03em'
+        }}>
+          <Building2 size={15} /> Prefeitura Municipal de Santo Antônio da Patrulha
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+          <AlertTriangle size={36} color="var(--danger)" />
+          <h1 style={{ fontSize: '2.2rem', fontWeight: 800, letterSpacing: '-0.03em' }}>GeoAlerta</h1>
+        </div>
+
+        <p style={{ opacity: 0.85, fontSize: '0.95rem', marginTop: '0.25rem' }}>
+          Canal Oficial de Emergências e Alertas Climáticos
+        </p>
+
+        {/* Órgãos Integrados */}
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          justifyContent: 'center',
+          gap: '0.4rem',
+          marginTop: '0.85rem'
+        }}>
+          <span style={{ fontSize: '0.7rem', padding: '0.2rem 0.6rem', borderRadius: '1rem', background: 'rgba(255,255,255,0.06)', border: '1px solid var(--card-border)', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+            <ShieldAlert size={12} color="#f59e0b" /> Defesa Civil
+          </span>
+          <span style={{ fontSize: '0.7rem', padding: '0.2rem 0.6rem', borderRadius: '1rem', background: 'rgba(255,255,255,0.06)', border: '1px solid var(--card-border)', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+            <Flame size={12} color="#ef4444" /> Bombeiros Militar (193)
+          </span>
+          <span style={{ fontSize: '0.7rem', padding: '0.2rem 0.6rem', borderRadius: '1rem', background: 'rgba(255,255,255,0.06)', border: '1px solid var(--card-border)', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+            <HardHat size={12} color="#3b82f6" /> Obras e Infraestrutura
+          </span>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="glass-card" style={{ padding: '2rem' }}>
@@ -166,10 +211,25 @@ export default function Home() {
           {loading ? "Enviando e capturando GPS..." : "REPORTAR EMERGÊNCIA"}
         </button>
         <p style={{ fontSize: '0.75rem', textAlign: 'center', marginTop: '1rem', opacity: 0.6 }}>
-          O sistema pedirá acesso ao seu GPS. Aceite para que a equipe saiba exatamente onde você está.
+          O sistema pedirá acesso ao seu GPS. Aceite para que as equipes saibam exatamente onde você está.
         </p>
 
       </form>
+
+      {/* Contatos Emergenciais */}
+      <div style={{ marginTop: '1.75rem', textAlign: 'center', padding: '1.25rem', background: 'rgba(239, 68, 68, 0.08)', borderRadius: '1.25rem', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', color: 'var(--danger)', fontWeight: 700, fontSize: '0.9rem', marginBottom: '0.35rem' }}>
+          <PhoneCall size={18} /> Risco Iminente à Vida?
+        </div>
+        <p style={{ fontSize: '0.8rem', opacity: 0.85 }}>
+          Ligue imediatamente: <strong>193</strong> (Bombeiros Militar) ou <strong>199</strong> (Defesa Civil).
+        </p>
+      </div>
+
+      <footer style={{ textAlign: 'center', marginTop: '2rem', fontSize: '0.72rem', opacity: 0.55, lineHeight: 1.5 }}>
+        Plataforma Oficial de Gestão de Riscos e Desastres Climáticos<br />
+        Prefeitura Municipal de Santo Antônio da Patrulha - RS
+      </footer>
     </main>
   );
 }

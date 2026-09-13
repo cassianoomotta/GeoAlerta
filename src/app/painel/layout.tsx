@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { Bell, Map as MapIcon, List, LogOut } from "lucide-react";
+import { Bell, Map as MapIcon, List, LogOut, ShieldAlert, Flame, HardHat, Building2, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 
 export default function PainelLayout({ children }: { children: React.ReactNode }) {
@@ -46,18 +46,39 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
 
   return (
     <div style={{ display: 'flex', height: '100vh', background: 'var(--background)' }}>
-      <aside style={{ width: '250px', borderRight: '1px solid var(--card-border)', background: 'var(--card-bg)', backdropFilter: 'blur(10px)', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ padding: '2rem 1.5rem', borderBottom: '1px solid var(--card-border)' }}>
-          <h2 style={{ fontSize: '1.2rem', margin: 0, color: 'var(--primary)' }}>GeoAlerta</h2>
-          <span style={{ fontSize: '0.8rem', opacity: 0.6 }}>Gestão de Ocorrências</span>
+      <aside style={{ width: '270px', borderRight: '1px solid var(--card-border)', background: 'var(--card-bg)', backdropFilter: 'blur(10px)', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ padding: '1.5rem 1.25rem', borderBottom: '1px solid var(--card-border)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.2rem' }}>
+            <AlertTriangle size={20} color="var(--danger)" />
+            <h2 style={{ fontSize: '1.25rem', margin: 0, fontWeight: 800 }}>GeoAlerta</h2>
+          </div>
+          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>
+            Gabinete de Crise Integrado
+          </span>
+          <span style={{ fontSize: '0.72rem', opacity: 0.65, display: 'block', marginTop: '0.15rem' }}>
+            Santo Antônio da Patrulha - RS
+          </span>
+
+          {/* Selos de Órgãos Integrados */}
+          <div style={{ marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', gap: '0.35rem', fontSize: '0.7rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', opacity: 0.85 }}>
+              <ShieldAlert size={13} color="#f59e0b" /> Defesa Civil Municipal
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', opacity: 0.85 }}>
+              <Flame size={13} color="#ef4444" /> Bombeiros Militar (CBMRS)
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', opacity: 0.85 }}>
+              <HardHat size={13} color="#3b82f6" /> Obras e Infraestrutura
+            </div>
+          </div>
         </div>
         
         <nav style={{ flex: 1, padding: '1rem 0' }}>
-          <Link href="/painel" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '1rem 1.5rem', color: 'var(--foreground)', textDecoration: 'none', borderLeft: '3px solid var(--primary)', background: 'rgba(37,99,235,0.05)' }}>
-            <MapIcon size={20} /> Mapa Tático
+          <Link href="/painel" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.85rem 1.25rem', color: 'var(--foreground)', textDecoration: 'none', borderLeft: '3px solid var(--primary)', background: 'rgba(37,99,235,0.08)', fontWeight: 600, fontSize: '0.9rem' }}>
+            <MapIcon size={18} /> Mapa Tático
           </Link>
-          <Link href="#" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '1rem 1.5rem', color: 'var(--foreground)', textDecoration: 'none', opacity: 0.7 }}>
-            <List size={20} /> Tabela (Em breve)
+          <Link href="#" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.85rem 1.25rem', color: 'var(--foreground)', textDecoration: 'none', opacity: 0.6, fontSize: '0.9rem' }}>
+            <List size={18} /> Ocorrências (Em breve)
           </Link>
         </nav>
 
