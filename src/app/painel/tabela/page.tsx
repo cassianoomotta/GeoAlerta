@@ -78,6 +78,40 @@ export default function TabelaPage() {
     document.body.removeChild(link);
   };
 
+  const updateStatus = async (id: string, newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from('occurrences')
+        .update({ status: newStatus })
+        .eq('id', id);
+        
+      if (error) throw error;
+      
+      // Update local state immediately
+      setOccurrences(prev => prev.map(o => o.id === id ? { ...o, status: newStatus } : o));
+    } catch (e) {
+      console.error("Erro ao atualizar status:", e);
+      alert("Erro ao atualizar status.");
+    }
+  };
+
+  const parseLocation = (loc: any) => {
+    if (!loc) return '-';
+    if (typeof loc === 'string') {
+      const match = loc.match(/POINT\(([-\d.]+) ([-\d.]+)\)/);
+      if (match) return `${match[2]}, ${match[1]}`;
+      // Basic WKB check for hex strings
+      if (loc.length === 50 && loc.startsWith('0101')) {
+        return "Coordenadas capturadas"; 
+      }
+      return "Coordenadas capturadas";
+    }
+    if (loc.coordinates) {
+      return `${loc.coordinates[1]}, ${loc.coordinates[0]}`;
+    }
+    return '-';
+  };
+
   return (
     <div className="flex flex-col h-full gap-6">
       
@@ -123,6 +157,7 @@ export default function TabelaPage() {
           >
             <option value="TODOS" className="bg-slate-900 text-white">Qualquer Status</option>
             <option value="Novo" className="bg-slate-900 text-white">Novo</option>
+            <option value="Aberto" className="bg-slate-900 text-white">Aberto</option>
             <option value="Em Atendimento" className="bg-slate-900 text-white">Em Atendimento</option>
             <option value="Resolvido" className="bg-slate-900 text-white">Resolvido</option>
           </select>
@@ -154,13 +189,14 @@ export default function TabelaPage() {
 
       {/* Tabela (Bento Box) */}
       <div className="glass-card flex-1 overflow-auto relative z-10 custom-scrollbar">
-        <table className="w-full text-left min-w-[800px] border-collapse">
+        <table className="w-full text-left min-w-[900px] border-collapse">
           <thead className="bg-white/[0.02] sticky top-0 z-20 backdrop-blur-md">
             <tr>
               <th className="p-4 text-[10px] uppercase tracking-wider text-slate-500 font-bold border-b border-white/10">ID</th>
               <th className="p-4 text-[10px] uppercase tracking-wider text-slate-500 font-bold border-b border-white/10">Data/Hora</th>
               <th className="p-4 text-[10px] uppercase tracking-wider text-slate-500 font-bold border-b border-white/10">Tipo</th>
               <th className="p-4 text-[10px] uppercase tracking-wider text-slate-500 font-bold border-b border-white/10">Relator</th>
+              <th className="p-4 text-[10px] uppercase tracking-wider text-slate-500 font-bold border-b border-white/10">Localização</th>
               <th className="p-4 text-[10px] uppercase tracking-wider text-slate-500 font-bold border-b border-white/10">Status</th>
               <th className="p-4 text-[10px] uppercase tracking-wider text-slate-500 font-bold border-b border-white/10">Órgão Atribuído</th>
             </tr>
@@ -180,10 +216,22 @@ export default function TabelaPage() {
                 <td className="p-4 text-xs text-slate-300">
                   {occ.reporter_name || 'Anônimo'}
                 </td>
+                <td className="p-4 text-xs text-slate-400">
+                  <a href={`https://maps.google.com/?q=${parseLocation(occ.location)}`} target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors truncate block max-w-[150px]">
+                    {parseLocation(occ.location)}
+                  </a>
+                </td>
                 <td className="p-4">
-                  <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold border ${occ.status === 'Resolvido' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : occ.status === 'Em Atendimento' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : occ.status === 'Aberto' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-white/5 text-slate-300 border-white/10'}`}>
-                    {occ.status || 'Novo'}
-                  </span>
+                  <select 
+                    value={occ.status || 'Novo'}
+                    onChange={(e) => updateStatus(occ.id, e.target.value)}
+                    className={`outline-none appearance-none cursor-pointer inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold border ${occ.status === 'Resolvido' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : occ.status === 'Em Atendimento' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : occ.status === 'Aberto' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-white/5 text-slate-300 border-white/10'}`}
+                  >
+                    <option value="Novo" className="bg-slate-900 text-white">Novo</option>
+                    <option value="Aberto" className="bg-slate-900 text-white">Aberto</option>
+                    <option value="Em Atendimento" className="bg-slate-900 text-white">Em Atendimento</option>
+                    <option value="Resolvido" className="bg-slate-900 text-white">Resolvido</option>
+                  </select>
                 </td>
                 <td className="p-4 text-xs font-semibold">
                   <span className={`${occ.assigned_to === 'Defesa Civil' ? 'text-amber-400' : occ.assigned_to === 'Bombeiros' ? 'text-red-400' : occ.assigned_to === 'Obras' ? 'text-blue-400' : occ.assigned_to === 'Assistência Social' ? 'text-fuchsia-400' : 'text-slate-500'}`}>

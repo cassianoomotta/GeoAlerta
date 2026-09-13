@@ -113,185 +113,130 @@ export default function Home() {
   }
 
   return (
-    <main className="mobile-container" style={{ paddingBottom: '3.5rem' }}>
-      <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
+    <main className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 flex flex-col items-center">
+      <div className="w-full max-w-md">
         
-        {/* Selo Institucional do Município */}
-        <div style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '0.45rem',
-          padding: '0.45rem 1rem',
-          background: '#eff6ff',
-          border: '1px solid #bfdbfe',
-          borderRadius: '2rem',
-          fontSize: '0.75rem',
-          fontWeight: 600,
-          color: '#1d4ed8',
-          marginBottom: '1.25rem',
-          letterSpacing: '0.02em'
-        }}>
-          <Building2 size={15} /> Prefeitura de Santo Antônio da Patrulha
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center gap-2 text-slate-500 mb-4 text-sm font-medium">
+            <Building2 size={16} />
+            <span>Prefeitura de S. Antônio da Patrulha</span>
+          </div>
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">GeoAlerta</h1>
+          <p className="text-slate-500 mt-2 text-sm">
+            Canal Oficial de Registro de Ocorrências Climáticas
+          </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-          <AlertTriangle size={36} color="#dc2626" />
-          <h1 style={{ fontSize: '2.25rem', fontWeight: 800, letterSpacing: '-0.03em', color: '#0f172a' }}>GeoAlerta</h1>
-        </div>
-
-        <p style={{ color: '#64748b', fontSize: '0.95rem', marginTop: '0.25rem', fontWeight: 500 }}>
-          Canal Oficial de Emergências e Alertas Climáticos
-        </p>
-
-        {/* 4 Órgãos Integrados com Mesmo Peso */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(2, 1fr)',
-          gap: '0.5rem',
-          marginTop: '1.25rem'
-        }}>
-          <a href="tel:199" style={{ fontSize: '0.75rem', padding: '0.45rem 0.6rem', borderRadius: '0.625rem', background: '#fffbeb', border: '1px solid #fde68a', display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#92400e', textDecoration: 'none', fontWeight: 600 }}>
-            <ShieldAlert size={14} color="#d97706" /> Defesa Civil (199)
-          </a>
-          <a href="tel:193" style={{ fontSize: '0.75rem', padding: '0.45rem 0.6rem', borderRadius: '0.625rem', background: '#fef2f2', border: '1px solid #fecaca', display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#991b1b', textDecoration: 'none', fontWeight: 600 }}>
-            <Flame size={14} color="#dc2626" /> Bombeiros (193)
-          </a>
-          <a href="tel:5136628400" style={{ fontSize: '0.75rem', padding: '0.45rem 0.6rem', borderRadius: '0.625rem', background: '#eff6ff', border: '1px solid #bfdbfe', display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#1e40af', textDecoration: 'none', fontWeight: 600 }}>
-            <HardHat size={14} color="#2563eb" /> Obras (3662-8400)
-          </a>
-          <a href="tel:5136628480" style={{ fontSize: '0.75rem', padding: '0.45rem 0.6rem', borderRadius: '0.625rem', background: '#fdf4ff', border: '1px solid #f5d0fe', display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#86198f', textDecoration: 'none', fontWeight: 600 }}>
-            <HeartHandshake size={14} color="#a21caf" /> Assist. Social (3662-8480)
-          </a>
-        </div>
-      </div>
-
-      <form onSubmit={handleSubmit} className="glass-card" style={{ padding: '2rem 1.75rem' }}>
-        
-        <div className="form-group">
-          <label className="form-label">
-            Seu Nome <span style={{ color: 'var(--danger)' }}>*</span>
-          </label>
-          <input 
-            type="text" 
-            className="form-input" 
-            placeholder="Digite seu nome completo"
-            required
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-        </div>
-
-        <div className="form-group">
-          <label className="form-label">
-            Tipo de Ocorrência <span style={{ color: 'var(--danger)' }}>*</span>
-          </label>
-          <select 
-            className="form-select" 
-            required
-            value={type} 
-            onChange={(e) => setType(e.target.value)}
-          >
-            <option value="Alagamento / Inundação">🌊 Alagamento / Inundação</option>
-            <option value="Deslizamento de Terra">⛰️ Deslizamento de Terra / Encosta</option>
-            <option value="Desabrigados / Acolhimento e Abrigo">🏠 Desabrigados / Acolhimento e Abrigo (Social)</option>
-            <option value="Queda de Árvore">🌳 Queda de Árvore</option>
-            <option value="Fio Partido / Choque Elétrico">⚡ Fio Partido / Risco Elétrico</option>
-            <option value="Bueiro / Via Pública Obstruída">🚧 Bueiro / Via Pública Obstruída (Obras)</option>
-            <option value="Alimentos / Água / Resgate Humanitário">📦 Alimentos / Água / Ajuda Humanitária</option>
-            <option value="Outros">⚠️ Outros</option>
-          </select>
-        </div>
-
-        <div className="form-group">
-          <label className="form-label">Descrição da Situação (Opcional)</label>
-          <textarea 
-            className="form-textarea" 
-            placeholder="Descreva pontos de referência, número de pessoas ou detalhes da situação..."
-            rows={3}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-          />
-        </div>
-
-        <div className="form-group">
-          <label className="form-label">Foto do Local (Opcional)</label>
-          <div style={{ position: 'relative' }}>
-            <input 
-              type="file" 
-              accept="image/*"
-              capture="environment"
-              onChange={(e) => setFile(e.target.files?.[0] || null)}
-              style={{
-                opacity: 0,
-                position: 'absolute',
-                width: '100%',
-                height: '100%',
-                cursor: 'pointer'
-              }}
-            />
-            <div className="form-input" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center', cursor: 'pointer', background: '#f8fafc', borderColor: '#cbd5e1', color: '#475569' }}>
-              <Camera size={18} color="#64748b" />
-              {file ? file.name : "Tirar Foto ou Escolher da Galeria"}
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-slate-200">
+          
+          <div className="space-y-5">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Seu Nome <span className="text-red-500">*</span>
+              </label>
+              <input 
+                type="text" 
+                placeholder="Nome completo"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none transition-all text-slate-900 bg-slate-50"
+              />
             </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Tipo de Ocorrência <span className="text-red-500">*</span>
+              </label>
+              <select 
+                required
+                value={type} 
+                onChange={(e) => setType(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none transition-all text-slate-900 bg-slate-50 appearance-none"
+              >
+                <option value="Alagamento / Inundação">Alagamento / Inundação</option>
+                <option value="Deslizamento de Terra">Deslizamento de Terra / Encosta</option>
+                <option value="Desabrigados / Acolhimento e Abrigo">Desabrigados / Acolhimento</option>
+                <option value="Queda de Árvore">Queda de Árvore</option>
+                <option value="Fio Partido / Choque Elétrico">Risco Elétrico / Fio Partido</option>
+                <option value="Bueiro / Via Pública Obstruída">Via Pública Obstruída</option>
+                <option value="Alimentos / Água / Resgate Humanitário">Ajuda Humanitária</option>
+                <option value="Outros">Outros</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Detalhes (Opcional)</label>
+              <textarea 
+                placeholder="Pontos de referência, pessoas no local..."
+                rows={3}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none transition-all text-slate-900 bg-slate-50 resize-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Evidência Fotográfica</label>
+              <div className="relative">
+                <input 
+                  type="file" 
+                  accept="image/*"
+                  capture="environment"
+                  onChange={(e) => setFile(e.target.files?.[0] || null)}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                />
+                <div className="w-full px-4 py-3 rounded-lg border border-dashed border-slate-300 bg-slate-50 text-slate-600 flex items-center justify-center gap-2 hover:bg-slate-100 transition-colors">
+                  <Camera size={18} />
+                  <span className="text-sm font-medium truncate max-w-[200px]">
+                    {file ? file.name : "Anexar Foto"}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <button 
+                type="submit" 
+                disabled={loading}
+                className="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium py-3 rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                <MapPin size={18} />
+                {loading ? "Processando e obtendo GPS..." : "Enviar Ocorrência"}
+              </button>
+              <p className="text-center text-xs text-slate-500 mt-3">
+                Será solicitado o acesso à sua localização para enviar o socorro exato.
+              </p>
+            </div>
+          </div>
+        </form>
+
+        {/* Telefones de Emergência Minimalista */}
+        <div className="mt-8 text-center">
+          <p className="text-sm font-semibold text-slate-900 mb-4">Contatos de Emergência</p>
+          <div className="grid grid-cols-2 gap-3">
+            <a href="tel:199" className="p-3 bg-white border border-slate-200 rounded-xl hover:border-slate-300 transition-colors">
+              <p className="text-xs text-slate-500 font-medium">Defesa Civil</p>
+              <p className="font-bold text-slate-900">199</p>
+            </a>
+            <a href="tel:193" className="p-3 bg-white border border-slate-200 rounded-xl hover:border-slate-300 transition-colors">
+              <p className="text-xs text-slate-500 font-medium">Bombeiros</p>
+              <p className="font-bold text-slate-900">193</p>
+            </a>
+            <a href="tel:5136628400" className="p-3 bg-white border border-slate-200 rounded-xl hover:border-slate-300 transition-colors">
+              <p className="text-xs text-slate-500 font-medium">Sec. de Obras</p>
+              <p className="font-bold text-slate-900">3662-8400</p>
+            </a>
+            <a href="tel:5136628480" className="p-3 bg-white border border-slate-200 rounded-xl hover:border-slate-300 transition-colors">
+              <p className="text-xs text-slate-500 font-medium">Assist. Social</p>
+              <p className="font-bold text-slate-900">3662-8480</p>
+            </a>
           </div>
         </div>
 
-        <button 
-          type="submit" 
-          className="btn btn-danger" 
-          style={{ width: '100%', marginTop: '0.75rem', padding: '1rem', fontSize: '1.05rem', fontWeight: 700 }}
-          disabled={loading}
-        >
-          <MapPin size={22} />
-          {loading ? "Enviando e capturando GPS..." : "REPORTAR EMERGÊNCIA"}
-        </button>
-        <p style={{ fontSize: '0.75rem', textAlign: 'center', marginTop: '0.85rem', color: '#64748b' }}>
-          O navegador solicitará acesso à sua localização (GPS). Aceite para direcionar o socorro exato.
-        </p>
-
-      </form>
-
-      {/* Contatos Emergenciais e Plantões Oficiais */}
-      <div style={{ marginTop: '1.75rem', padding: '1.25rem', background: '#ffffff', borderRadius: '1.25rem', border: '1px solid #e2e8f0', boxShadow: 'var(--shadow-sm)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', color: '#dc2626', fontWeight: 700, fontSize: '0.9rem', marginBottom: '0.85rem' }}>
-          <PhoneCall size={18} /> Telefones Úteis e Emergências
-        </div>
-        
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          <a href="tel:193" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.65rem 0.85rem', background: '#fef2f2', borderRadius: '0.625rem', textDecoration: 'none', color: '#0f172a', border: '1px solid #fee2e2' }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.82rem', fontWeight: 600 }}>
-              <Flame size={15} color="#dc2626" /> Bombeiros Militar (Resgate)
-            </span>
-            <span style={{ color: '#dc2626', fontWeight: 700, fontSize: '0.9rem' }}>193</span>
-          </a>
-
-          <a href="tel:199" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.65rem 0.85rem', background: '#fffbeb', borderRadius: '0.625rem', textDecoration: 'none', color: '#0f172a', border: '1px solid #fef3c7' }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.82rem', fontWeight: 600 }}>
-              <ShieldAlert size={15} color="#d97706" /> Defesa Civil Municipal
-            </span>
-            <span style={{ color: '#d97706', fontWeight: 700, fontSize: '0.88rem' }}>199 / (51) 99767-4224</span>
-          </a>
-
-          <a href="tel:5136628400" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.65rem 0.85rem', background: '#eff6ff', borderRadius: '0.625rem', textDecoration: 'none', color: '#0f172a', border: '1px solid #dbeafe' }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.82rem', fontWeight: 600 }}>
-              <HardHat size={15} color="#2563eb" /> Obras e Infraestrutura
-            </span>
-            <span style={{ color: '#2563eb', fontWeight: 700, fontSize: '0.88rem' }}>(51) 3662-8400</span>
-          </a>
-
-          <a href="tel:5136628480" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.65rem 0.85rem', background: '#fdf4ff', borderRadius: '0.625rem', textDecoration: 'none', color: '#0f172a', border: '1px solid #fae8ff' }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.82rem', fontWeight: 600 }}>
-              <HeartHandshake size={15} color="#a21caf" /> Assist. Social (Abrigos/Apoio)
-            </span>
-            <span style={{ color: '#a21caf', fontWeight: 700, fontSize: '0.88rem' }}>(51) 3662-8480</span>
-          </a>
-        </div>
       </div>
-
-      <footer style={{ textAlign: 'center', marginTop: '2rem', fontSize: '0.72rem', color: '#64748b', lineHeight: 1.5 }}>
-        Gabinete de Gestão Integrada de Crises e Desastres Climáticos<br />
-        Prefeitura Municipal de Santo Antônio da Patrulha - RS
-      </footer>
     </main>
   );
 }
