@@ -47,9 +47,9 @@
 }
 
 @layer components {
-  /* SaaS Premium Glass Card (Bento Box style) */
+  /* SaaS Premium Card with High Contrast */
   .glass-card {
-    @apply bg-white/[0.02] border border-white/10 backdrop-blur-xl shadow-2xl rounded-2xl;
+    @apply bg-slate-900/95 border border-slate-800 shadow-2xl rounded-2xl;
   }
   
   /* Modern Button */
@@ -81,18 +81,13 @@
   .form-input, .form-textarea, .form-select {
     @apply flex w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:border-transparent transition-all;
   }
-  
-  /* Maps Dark Tiles Filter if we can't load CartoDB natively easily */
-  .dark-map-tiles {
-    filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7);
-  }
 
-  /* Override Leaflet Popup for Dark Mode */
+  /* Override Leaflet Popup with Solid High-Contrast Dark Card */
   .dark-popup .leaflet-popup-content-wrapper,
   .dark-popup .leaflet-popup-tip {
-    @apply bg-[#0f172a] border border-white/10 text-white shadow-xl;
+    @apply bg-slate-900 border border-slate-700 text-white shadow-2xl;
   }
   .dark-popup .leaflet-popup-content {
-    @apply m-0 p-3;
+    @apply m-0 p-3.5 text-slate-100;
   }
 }

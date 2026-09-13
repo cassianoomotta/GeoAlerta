@@ -203,105 +203,119 @@ function PainelContent() {
           showShelters={showShelters}
         />
         
-        {/* Modal Sobreposto no Mapa - Dark Glassmorphism */}
+        {/* Modal Sobreposto no Mapa - Painel Tático com Alto Contraste e Legibilidade */}
         {selectedOccurrence && (
-          <div className="absolute top-0 right-0 w-[420px] max-w-full h-full bg-card/90 backdrop-blur-3xl border-l border-white/10 shadow-[auto_-20px_50px_rgba(0,0,0,0.5)] z-[1000] flex flex-col animate-in slide-in-from-right duration-300">
-            <div className="p-6 border-b border-white/10 flex justify-between items-start bg-white/[0.01]">
+          <div className="absolute top-0 right-0 w-[420px] max-w-full h-full bg-slate-900 border-l border-slate-700/80 shadow-2xl z-[1000] flex flex-col animate-in slide-in-from-right duration-300">
+            <div className="p-6 border-b border-slate-800 flex justify-between items-start bg-slate-900">
               <div>
-                <h3 className="text-lg font-bold text-white mb-1.5 tracking-tight flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]"></span>
+                <h3 className="text-lg font-bold text-white mb-1 tracking-tight flex items-center gap-2.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.9)]"></span>
                   {selectedOccurrence.type}
                 </h3>
-                <div className="text-[11px] text-slate-400 flex items-center gap-1.5 font-medium">
-                  <MapPin size={12} className="text-primary" /> Aberto há {Math.floor((Date.now() - new Date(selectedOccurrence.created_at).getTime()) / 60000)} minutos
+                <div className="text-xs text-slate-300 flex items-center gap-1.5 font-medium">
+                  <MapPin size={13} className="text-blue-400" /> Aberto há {Math.floor((Date.now() - new Date(selectedOccurrence.created_at).getTime()) / 60000)} minutos
                 </div>
               </div>
-              <button onClick={() => setSelectedOccurrence(null)} className="p-1.5 rounded-lg text-slate-400 hover:bg-white/10 hover:text-white transition-colors">
+              <button 
+                onClick={() => setSelectedOccurrence(null)} 
+                className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 bg-slate-800/80 border border-slate-700 transition-colors"
+                title="Fechar painel"
+              >
                 <X size={18} />
               </button>
             </div>
 
             <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">
               {selectedOccurrence.photo_url ? (
-                <a href={selectedOccurrence.photo_url} target="_blank" rel="noopener noreferrer">
-                  <div className="w-full h-48 rounded-2xl bg-cover bg-center mb-6 border border-white/10 shadow-lg group-hover:border-white/20 transition-all relative overflow-hidden" style={{ backgroundImage: `url(${selectedOccurrence.photo_url})` }}>
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                  </div>
-                </a>
+                <div className="mb-5">
+                  <strong className="block text-[11px] uppercase tracking-wider font-bold text-slate-400 mb-2 pl-0.5">Evidência Fotográfica</strong>
+                  <a href={selectedOccurrence.photo_url} target="_blank" rel="noopener noreferrer" className="block group">
+                    <div 
+                      className="w-full h-48 rounded-xl bg-cover bg-center border-2 border-slate-700 shadow-md group-hover:border-blue-500 transition-all relative overflow-hidden" 
+                      style={{ backgroundImage: `url(${selectedOccurrence.photo_url})` }}
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end p-3">
+                        <span className="text-xs font-semibold text-white bg-black/60 px-2.5 py-1 rounded-lg border border-white/20 flex items-center gap-1.5">
+                          <ExternalLink size={12} /> Abrir Foto Original
+                        </span>
+                      </div>
+                    </div>
+                  </a>
+                </div>
               ) : (
-                <div className="w-full h-24 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-center text-slate-500 text-xs font-medium mb-6">
-                  Nenhuma evidência fotográfica
+                <div className="w-full h-20 rounded-xl bg-slate-800/80 border border-slate-700/80 flex items-center justify-center text-slate-400 text-xs font-medium mb-5">
+                  Nenhuma evidência fotográfica anexada
                 </div>
               )}
 
-              <div className="mb-6 bg-white/[0.02] border border-white/5 rounded-2xl p-4">
-                <strong className="block text-[10px] uppercase tracking-[0.1em] text-slate-500 mb-1">Relator</strong>
-                <div className="text-sm font-semibold text-white">{selectedOccurrence.reporter_name || 'Cidadão Anônimo'}</div>
+              <div className="mb-5 bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-sm">
+                <strong className="block text-[11px] uppercase tracking-wider font-bold text-slate-400 mb-1">Relator</strong>
+                <div className="text-sm font-bold text-white">{selectedOccurrence.reporter_name || 'Cidadão Anônimo'}</div>
               </div>
 
               {selectedOccurrence.description && (
-                <div className="mb-6">
-                  <strong className="block text-[10px] uppercase tracking-[0.1em] text-slate-500 mb-2 pl-1">Descrição do Evento</strong>
-                  <div className="text-sm text-slate-300 leading-relaxed p-4 bg-white/[0.02] border border-white/5 rounded-2xl">
+                <div className="mb-5">
+                  <strong className="block text-[11px] uppercase tracking-wider font-bold text-slate-400 mb-1.5 pl-0.5">Descrição do Evento</strong>
+                  <div className="text-sm font-medium text-slate-200 leading-relaxed p-4 bg-slate-800 border border-slate-700 rounded-xl shadow-sm">
                     {selectedOccurrence.description}
                   </div>
                 </div>
               )}
 
-              <div className="mb-8">
-                <strong className="block text-[10px] uppercase tracking-[0.1em] text-slate-500 mb-2 pl-1">Status Operacional</strong>
-                <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border ${selectedOccurrence.status === 'Resolvido' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : selectedOccurrence.status === 'Em Atendimento' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-white/5 text-slate-300 border-white/10'}`}>
-                  {selectedOccurrence.status === 'Resolvido' && <CheckCircle2 size={12} />}
+              <div className="mb-6">
+                <strong className="block text-[11px] uppercase tracking-wider font-bold text-slate-400 mb-2 pl-0.5">Status Operacional</strong>
+                <div className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold border ${selectedOccurrence.status === 'Resolvido' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : selectedOccurrence.status === 'Em Atendimento' ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' : 'bg-blue-500/20 text-blue-300 border-blue-500/40'}`}>
+                  {selectedOccurrence.status === 'Resolvido' && <CheckCircle2 size={13} />}
                   {selectedOccurrence.status || 'Novo Registro'}
                 </div>
               </div>
 
-              <div>
-                <strong className="block text-[10px] uppercase tracking-[0.1em] text-slate-500 mb-3 pl-1">Triagem e Despacho Tático</strong>
+              <div className="mb-2">
+                <strong className="block text-[11px] uppercase tracking-wider font-bold text-slate-300 mb-3 pl-0.5">Triagem e Despacho Tático</strong>
                 <div className="grid grid-cols-2 gap-2.5">
                   <button 
                     disabled={updating}
                     onClick={() => updateOccurrence(selectedOccurrence.id, { assigned_to: 'Defesa Civil', status: 'Em Atendimento' })}
-                    className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold transition-all border ${selectedOccurrence.assigned_to === 'Defesa Civil' ? 'bg-amber-500/20 border-amber-500/50 text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.2)]' : 'bg-white/5 border-white/10 text-slate-400 hover:bg-amber-500/10 hover:border-amber-500/30 hover:text-amber-400'}`}>
-                    <ShieldAlert size={14} /> Defesa Civil
+                    className={`flex items-center justify-center gap-2 py-3 px-3 rounded-xl text-xs font-bold transition-all border ${selectedOccurrence.assigned_to === 'Defesa Civil' ? 'bg-amber-500/25 border-2 border-amber-400 text-amber-200 shadow-[0_0_15px_rgba(245,158,11,0.25)]' : 'bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-300 hover:border-amber-500/50 hover:text-amber-200 font-semibold'}`}>
+                    <ShieldAlert size={15} /> Defesa Civil
                   </button>
                   <button 
                     disabled={updating}
                     onClick={() => updateOccurrence(selectedOccurrence.id, { assigned_to: 'Bombeiros', status: 'Em Atendimento' })}
-                    className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold transition-all border ${selectedOccurrence.assigned_to === 'Bombeiros' ? 'bg-red-500/20 border-red-500/50 text-red-300 shadow-[0_0_15px_rgba(239,68,68,0.2)]' : 'bg-white/5 border-white/10 text-slate-400 hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400'}`}>
-                    <Flame size={14} /> Bombeiros
+                    className={`flex items-center justify-center gap-2 py-3 px-3 rounded-xl text-xs font-bold transition-all border ${selectedOccurrence.assigned_to === 'Bombeiros' ? 'bg-red-500/25 border-2 border-red-400 text-red-200 shadow-[0_0_15px_rgba(239,68,68,0.25)]' : 'bg-slate-800 hover:bg-slate-700 border border-slate-700 text-red-300 hover:border-red-500/50 hover:text-red-200 font-semibold'}`}>
+                    <Flame size={15} /> Bombeiros
                   </button>
                   <button 
                     disabled={updating}
                     onClick={() => updateOccurrence(selectedOccurrence.id, { assigned_to: 'Obras', status: 'Em Atendimento' })}
-                    className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold transition-all border ${selectedOccurrence.assigned_to === 'Obras' ? 'bg-blue-500/20 border-blue-500/50 text-blue-300 shadow-[0_0_15px_rgba(59,130,246,0.2)]' : 'bg-white/5 border-white/10 text-slate-400 hover:bg-blue-500/10 hover:border-blue-500/30 hover:text-blue-400'}`}>
-                    <HardHat size={14} /> Obras
+                    className={`flex items-center justify-center gap-2 py-3 px-3 rounded-xl text-xs font-bold transition-all border ${selectedOccurrence.assigned_to === 'Obras' ? 'bg-blue-500/25 border-2 border-blue-400 text-blue-200 shadow-[0_0_15px_rgba(59,130,246,0.25)]' : 'bg-slate-800 hover:bg-slate-700 border border-slate-700 text-blue-300 hover:border-blue-500/50 hover:text-blue-200 font-semibold'}`}>
+                    <HardHat size={15} /> Obras
                   </button>
                   <button 
                     disabled={updating}
                     onClick={() => updateOccurrence(selectedOccurrence.id, { assigned_to: 'Assistência Social', status: 'Em Atendimento' })}
-                    className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold transition-all border ${selectedOccurrence.assigned_to === 'Assistência Social' ? 'bg-fuchsia-500/20 border-fuchsia-500/50 text-fuchsia-300 shadow-[0_0_15px_rgba(217,70,239,0.2)]' : 'bg-white/5 border-white/10 text-slate-400 hover:bg-fuchsia-500/10 hover:border-fuchsia-500/30 hover:text-fuchsia-400'}`}>
-                    <HeartHandshake size={14} /> Ass. Social
+                    className={`flex items-center justify-center gap-2 py-3 px-3 rounded-xl text-xs font-bold transition-all border ${selectedOccurrence.assigned_to === 'Assistência Social' ? 'bg-fuchsia-500/25 border-2 border-fuchsia-400 text-fuchsia-200 shadow-[0_0_15px_rgba(217,70,239,0.25)]' : 'bg-slate-800 hover:bg-slate-700 border border-slate-700 text-fuchsia-300 hover:border-fuchsia-500/50 hover:text-fuchsia-200 font-semibold'}`}>
+                    <HeartHandshake size={15} /> Ass. Social
                   </button>
                 </div>
               </div>
             </div>
 
-            <div className="p-6 border-t border-white/10 bg-white/[0.01] flex gap-3">
+            <div className="p-6 border-t border-slate-800 bg-slate-900 flex gap-3">
               <a 
                 href={getGoogleMapsLink(selectedOccurrence.location)} 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-xs font-bold hover:bg-white/10 transition-colors"
+                className="flex-1 flex items-center justify-center gap-2 py-3 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white text-xs font-bold transition-colors shadow-sm"
               >
-                <ExternalLink size={14} className="text-primary" /> Rota GPS
+                <ExternalLink size={15} className="text-blue-400" /> Rota GPS
               </a>
               <button 
                 disabled={updating || selectedOccurrence.status === 'Resolvido'}
                 onClick={() => updateOccurrence(selectedOccurrence.id, { status: 'Resolvido' })}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold transition-all ${selectedOccurrence.status === 'Resolvido' ? 'bg-white/5 text-slate-500 cursor-not-allowed border border-white/5' : 'bg-emerald-600 text-white shadow-[0_0_20px_rgba(5,150,105,0.4)] hover:bg-emerald-500 border border-emerald-500/50'}`}
+                className={`flex-1 flex items-center justify-center gap-2 py-3 px-3 rounded-xl text-xs font-bold transition-all ${selectedOccurrence.status === 'Resolvido' ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700' : 'bg-emerald-600 text-white shadow-[0_0_20px_rgba(5,150,105,0.4)] hover:bg-emerald-500 border border-emerald-400/40'}`}
               >
-                <CheckCircle2 size={14} /> {selectedOccurrence.status === 'Resolvido' ? 'Resolvido' : 'Marcar Resolvido'}
+                <CheckCircle2 size={15} /> {selectedOccurrence.status === 'Resolvido' ? 'Resolvido' : 'Marcar Resolvido'}
               </button>
             </div>
           </div>

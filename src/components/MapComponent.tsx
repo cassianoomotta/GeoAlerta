@@ -80,13 +80,12 @@ export default function MapComponent({
     <MapContainer 
       center={[-29.8252, -50.5186]} // Santo Antônio da Patrulha - RS
       zoom={13} 
-      style={{ height: '100%', width: '100%', borderRadius: '1rem', background: '#0f172a' }}
+      style={{ height: '100%', width: '100%', borderRadius: '1rem', background: '#f8fafc' }}
     >
       <MapController markerRefs={markerRefs} />
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        className="dark-map-tiles"
       />
       
       {showFloodZones && (
