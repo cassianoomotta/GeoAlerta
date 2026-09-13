@@ -4,11 +4,13 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { Bell, Map as MapIcon, List, LogOut, ShieldAlert, Flame, HardHat, HeartHandshake, Building2, AlertTriangle } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 export default function PainelLayout({ children }: { children: React.ReactNode }) {
   const [unread, setUnread] = useState(0);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     // Busca as últimas 10 ocorrências ao carregar a página
@@ -89,11 +91,11 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
         </div>
         
         <nav style={{ flex: 1, padding: '1rem 0.75rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-          <Link href="/painel" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', color: '#1d4ed8', textDecoration: 'none', borderRadius: '0.5rem', background: '#eff6ff', fontWeight: 600, fontSize: '0.875rem' }}>
+          <Link href="/painel" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', color: pathname === '/painel' ? '#1d4ed8' : '#64748b', textDecoration: 'none', borderRadius: '0.5rem', background: pathname === '/painel' ? '#eff6ff' : 'transparent', fontWeight: pathname === '/painel' ? 600 : 400, fontSize: '0.875rem' }}>
             <MapIcon size={18} /> Mapa Tático
           </Link>
-          <Link href="#" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', color: '#64748b', textDecoration: 'none', borderRadius: '0.5rem', fontSize: '0.875rem' }}>
-            <List size={18} /> Ocorrências (Em breve)
+          <Link href="/painel/tabela" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', color: pathname === '/painel/tabela' ? '#1d4ed8' : '#64748b', textDecoration: 'none', borderRadius: '0.5rem', background: pathname === '/painel/tabela' ? '#eff6ff' : 'transparent', fontWeight: pathname === '/painel/tabela' ? 600 : 400, fontSize: '0.875rem' }}>
+            <List size={18} /> Tabela Operacional
           </Link>
         </nav>
 
