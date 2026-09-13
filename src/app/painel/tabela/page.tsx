@@ -177,9 +177,9 @@ export default function TabelaPage() {
     <div className="flex flex-col h-full gap-6">
       
       {/* Topo com Título e Ação de Exportação */}
-      <div className="flex items-start justify-between flex-wrap gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shrink-0">
         <div>
-          <h1 className="text-2xl font-extrabold text-white tracking-tight mb-1 drop-shadow-[0_0_10px_rgba(255,255,255,0.1)]">
+          <h1 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight mb-0.5 drop-shadow-[0_0_10px_rgba(255,255,255,0.1)]">
             Tabela Operacional de Desastres
           </h1>
           <p className="text-slate-400 text-xs font-medium">
@@ -189,62 +189,64 @@ export default function TabelaPage() {
 
         <button 
           onClick={exportToCSV}
-          className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all shadow-[0_0_15px_rgba(5,150,105,0.4)] border border-emerald-500/50 cursor-pointer"
+          className="w-full sm:w-auto flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all shadow-[0_0_15px_rgba(5,150,105,0.4)] border border-emerald-500/50 cursor-pointer shrink-0"
         >
           <FileSpreadsheet size={16} /> Exportar CSV Completo
         </button>
       </div>
 
       {/* Barra de Filtros e Busca */}
-      <div className="glass-card flex flex-wrap gap-4 p-4 items-center relative z-20">
+      <div className="glass-card flex flex-col sm:flex-row gap-2.5 sm:gap-4 p-3 sm:p-4 items-stretch sm:items-center relative z-20 shrink-0">
         
-        <div className="flex-1 min-w-[280px] relative">
+        <div className="flex-1 min-w-0 relative">
           <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <input 
             type="text" 
-            placeholder="Buscar por tipo, relator, coordenadas (ex: -29.82)..." 
+            placeholder="Buscar por tipo, relator, coordenadas..." 
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            className="w-full bg-white/5 border border-white/10 rounded-xl py-2 pl-10 pr-4 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
+            className="w-full bg-white/5 border border-white/10 rounded-xl py-2 pl-10 pr-4 text-xs sm:text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
           />
         </div>
 
-        <div className="flex items-center gap-2 border-l border-white/10 pl-4">
-          <Filter size={16} className="text-slate-400" />
-          <select 
-            value={statusFilter}
-            onChange={e => setStatusFilter(e.target.value)}
-            className="bg-white/5 border border-white/10 text-slate-300 text-sm rounded-xl py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all appearance-none cursor-pointer"
-          >
-            <option value="TODOS" className="bg-slate-900 text-white">Qualquer Status</option>
-            <option value="Novo" className="bg-slate-900 text-white">Novo</option>
-            <option value="Aberto" className="bg-slate-900 text-white">Aberto</option>
-            <option value="Em Atendimento" className="bg-slate-900 text-white">Em Atendimento</option>
-            <option value="Resolvido" className="bg-slate-900 text-white">Resolvido</option>
-          </select>
-        </div>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="flex-1 sm:flex-initial flex items-center gap-1.5 sm:border-l sm:border-white/10 sm:pl-4">
+            <Filter size={15} className="text-slate-400 shrink-0" />
+            <select 
+              value={statusFilter}
+              onChange={e => setStatusFilter(e.target.value)}
+              className="w-full bg-white/5 border border-white/10 text-slate-300 text-xs sm:text-sm rounded-xl py-2 px-2.5 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all appearance-none cursor-pointer"
+            >
+              <option value="TODOS" className="bg-slate-900 text-white">Qualquer Status</option>
+              <option value="Novo" className="bg-slate-900 text-white">Novo</option>
+              <option value="Aberto" className="bg-slate-900 text-white">Aberto</option>
+              <option value="Em Atendimento" className="bg-slate-900 text-white">Em Atendimento</option>
+              <option value="Resolvido" className="bg-slate-900 text-white">Resolvido</option>
+            </select>
+          </div>
 
-        <div className="flex items-center gap-2">
-          <select 
-            value={orgaoFilter}
-            onChange={e => setOrgaoFilter(e.target.value)}
-            className="bg-white/5 border border-white/10 text-slate-300 text-sm rounded-xl py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all appearance-none cursor-pointer"
-          >
-            <option value="TODOS" className="bg-slate-900 text-white">Qualquer Órgão</option>
-            <option value="Defesa Civil" className="bg-slate-900 text-white">Defesa Civil</option>
-            <option value="Bombeiros" className="bg-slate-900 text-white">Bombeiros</option>
-            <option value="Obras" className="bg-slate-900 text-white">Obras</option>
-            <option value="Assistência Social" className="bg-slate-900 text-white">Assistência Social</option>
-          </select>
-        </div>
+          <div className="flex-1 sm:flex-initial flex items-center gap-1.5">
+            <select 
+              value={orgaoFilter}
+              onChange={e => setOrgaoFilter(e.target.value)}
+              className="w-full bg-white/5 border border-white/10 text-slate-300 text-xs sm:text-sm rounded-xl py-2 px-2.5 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all appearance-none cursor-pointer"
+            >
+              <option value="TODOS" className="bg-slate-900 text-white">Qualquer Órgão</option>
+              <option value="Defesa Civil" className="bg-slate-900 text-white">Defesa Civil</option>
+              <option value="Bombeiros" className="bg-slate-900 text-white">Bombeiros</option>
+              <option value="Obras" className="bg-slate-900 text-white">Obras</option>
+              <option value="Assistência Social" className="bg-slate-900 text-white">Assistência Social</option>
+            </select>
+          </div>
 
-        <button 
-          onClick={fetchOccurrences}
-          title="Atualizar dados agora"
-          className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white hover:bg-white/10 transition-colors flex items-center justify-center cursor-pointer"
-        >
-          <RefreshCw size={16} className={loading ? "animate-spin text-primary" : ""} />
-        </button>
+          <button 
+            onClick={fetchOccurrences}
+            title="Atualizar dados agora"
+            className="p-2 sm:p-2.5 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white hover:bg-white/10 transition-colors flex items-center justify-center cursor-pointer shrink-0"
+          >
+            <RefreshCw size={15} className={loading ? "animate-spin text-primary" : ""} />
+          </button>
+        </div>
 
       </div>
 
@@ -502,7 +504,7 @@ export default function TabelaPage() {
                         </button>
                       </div>
 
-                      <div className="flex gap-2.5">
+                      <div className="flex flex-col sm:flex-row gap-2 sm:gap-2.5">
                         <Link
                           href={`/painel?focus=${selectedDetailOcc.id}`}
                           className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-[0_0_15px_rgba(37,99,235,0.4)] transition-all"
@@ -532,7 +534,7 @@ export default function TabelaPage() {
               </div>
 
               {/* Informações do Relator e Data */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="p-3.5 rounded-xl bg-white/5 border border-white/10">
                   <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Cidadão / Relator</span>
                   <p className="text-sm font-semibold text-white">{selectedDetailOcc.reporter_name || 'Anônimo'}</p>
@@ -566,7 +568,7 @@ export default function TabelaPage() {
               )}
 
               {/* Controles de Status e Órgão */}
-              <div className="grid grid-cols-2 gap-4 pt-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 pt-2">
                 <div>
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">Status da Ocorrência</label>
                   <select

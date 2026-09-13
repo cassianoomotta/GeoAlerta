@@ -27,4 +27,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - **Proibição Absoluta de Commits e Deploys pela IA:** O assistente de IA NUNCA deve executar comandos de `git commit`, `git push`, `git merge` ou disparar deploys em produção/Vercel.
 - **Controle Exclusivo do Usuário:** A IA apenas escreve, refatora e testa o código localmente. Apenas o USUÁRIO tem permissão para revisar, commitar (`git commit`) e subir (`git push` / deploy) as alterações.
 
+## 5. Configuração de Ambiente
+- **Arquivo de Variáveis:** O projeto adota a convenção de utilizar única e exclusivamente o arquivo `.env` dentro de `sistema/` para variáveis locais de ambiente (não versionado e protegido pelo `.gitignore`).
+
 

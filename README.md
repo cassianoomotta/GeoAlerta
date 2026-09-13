@@ -1,36 +1,51 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# GeoAlerta - Sistema de Monitoramento e Gabinete de Crise
 
-## Getting Started
+Sistema oficial para registro ágil de ocorrências climáticas (alagamentos, deslizamentos, quedas de árvores) pelos cidadãos e triagem operacional em tempo real para a Defesa Civil e órgãos municipais.
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## 🛠️ Stack Tecnológica
+
+- **Frontend:** Next.js 16 (App Router), React 19, TailwindCSS, Lucide React
+- **Mapas:** Leaflet.js, React-Leaflet, React-Leaflet-Cluster
+- **Backend / Database:** Supabase (PostgreSQL + extensão geográfica PostGIS, Realtime e Storage)
+
+---
+
+## ⚙️ Configuração das Variáveis de Ambiente
+
+As configurações de conexão com o Supabase devem ser definidas no arquivo `.env` dentro da pasta `sistema/`:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://SEU_PROJETO.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=SUA_CHAVE_ANON_AQUI
+DATABASE_URL=postgresql://postgres:[SENHA]@db.SEU_PROJETO.supabase.co:5432/postgres
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+> **Atenção:** O arquivo `.env` contém credenciais locais e é ignorado pelo `.gitignore` para não ser commitado no repositório.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🚀 Como Rodar Localmente
 
-## Learn More
+1. Instale as dependências:
+```bash
+npm install
+```
 
-To learn more about Next.js, take a look at the following resources:
+2. Execute o servidor de desenvolvimento:
+```bash
+npm run dev
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+3. Acesse a aplicação no navegador:
+- **Área do Cidadão (Registro rápido):** [http://localhost:3000](http://localhost:3000)
+- **Login dos Gestores:** [http://localhost:3000/login](http://localhost:3000/login)
+- **Painel Tático / Mapa:** [http://localhost:3000/painel](http://localhost:3000/painel)
+- **Tabela Operacional / Exportação CSV:** [http://localhost:3000/painel/tabela](http://localhost:3000/painel/tabela)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## 🗄️ Estrutura do Banco de Dados
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Para configurar um novo banco de dados Supabase, basta executar o script [`../supabase.sql`](../supabase.sql) no **SQL Editor** do Supabase. O script provisiona a extensão PostGIS, a tabela `occurrences`, os buckets de storage e as políticas RLS.

@@ -37,6 +37,16 @@ export default function Home() {
       return;
     }
 
+    if (name.trim().length > 100) {
+      alert("O nome informado é muito longo (máximo de 100 caracteres).");
+      return;
+    }
+
+    if (description.length > 1000) {
+      alert("A descrição informada ultrapassa o limite de 1000 caracteres.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -49,16 +59,42 @@ export default function Home() {
 
       const { latitude, longitude } = position.coords;
 
-      // 2. Upload Photo (if any)
+      // 2. Upload Photo com Sanitizacao Rigorosa
       let photo_url = null;
       if (file) {
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${Math.random()}.${fileExt}`;
+        // Validacao estrita de tipo MIME
+        const ALLOWED_TYPES: Record<string, string> = {
+          'image/jpeg': 'jpg',
+          'image/jpg': 'jpg',
+          'image/png': 'png',
+          'image/webp': 'webp'
+        };
+
+        if (!ALLOWED_TYPES[file.type]) {
+          alert("Formato de arquivo não suportado. Envie apenas fotos nos formatos JPG, PNG ou WebP.");
+          setLoading(false);
+          return;
+        }
+
+        // Limite de 5MB para protecao de armazenamento
+        const MAX_SIZE = 5 * 1024 * 1024;
+        if (file.size > MAX_SIZE) {
+          alert("A foto selecionada é muito grande. O limite máximo é de 5MB.");
+          setLoading(false);
+          return;
+        }
+
+        // Geracao de nome canônico seguro com UUID v4 (sem concatenar input do usuario)
+        const safeExt = ALLOWED_TYPES[file.type];
+        const fileName = `${crypto.randomUUID()}.${safeExt}`;
         const filePath = `${fileName}`;
 
         const { error: uploadError } = await supabase.storage
           .from('occurrence_photos')
-          .upload(filePath, file);
+          .upload(filePath, file, {
+            contentType: file.type,
+            upsert: false
+          });
 
         if (uploadError) throw uploadError;
 
@@ -131,27 +167,27 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 flex flex-col items-center">
+    <main className="min-h-screen bg-slate-50 py-6 sm:py-12 px-3 sm:px-6 lg:px-8 flex flex-col items-center">
       <div className="w-full max-w-md">
         
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 text-slate-500 mb-4 text-sm font-medium">
+        <div className="text-center mb-6 sm:mb-8">
+          <div className="inline-flex items-center gap-2 text-slate-500 mb-3 sm:mb-4 text-xs sm:text-sm font-medium">
             <Building2 size={16} />
             <span>Prefeitura de S. Antônio da Patrulha</span>
           </div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">GeoAlerta</h1>
-          <p className="text-slate-500 mt-2 text-sm">
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">GeoAlerta</h1>
+          <p className="text-slate-500 mt-1 sm:mt-2 text-xs sm:text-sm">
             Canal Oficial de Registro de Ocorrências Climáticas
           </p>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-slate-200">
+        <form onSubmit={handleSubmit} className="bg-white p-5 sm:p-8 rounded-2xl shadow-sm border border-slate-200">
           
-          <div className="space-y-5">
+          <div className="space-y-4 sm:space-y-5">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="block text-xs sm:text-sm font-medium text-slate-700 mb-1">
                 Seu Nome <span className="text-red-500">*</span>
               </label>
               <input 
@@ -160,19 +196,19 @@ export default function Home() {
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none transition-all text-slate-900 bg-slate-50"
+                className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none transition-all text-slate-900 bg-slate-50 text-base sm:text-sm"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="block text-xs sm:text-sm font-medium text-slate-700 mb-1">
                 Tipo de Ocorrência <span className="text-red-500">*</span>
               </label>
               <select 
                 required
                 value={type} 
                 onChange={(e) => setType(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none transition-all text-slate-900 bg-slate-50 appearance-none"
+                className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none transition-all text-slate-900 bg-slate-50 appearance-none text-base sm:text-sm"
               >
                 <option value="Alagamento / Inundação">Alagamento / Inundação</option>
                 <option value="Deslizamento de Terra">Deslizamento de Terra / Encosta</option>
@@ -186,18 +222,18 @@ export default function Home() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Detalhes (Opcional)</label>
+              <label className="block text-xs sm:text-sm font-medium text-slate-700 mb-1">Detalhes (Opcional)</label>
               <textarea 
                 placeholder="Pontos de referência, pessoas no local..."
                 rows={3}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none transition-all text-slate-900 bg-slate-50 resize-none"
+                className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none transition-all text-slate-900 bg-slate-50 resize-none text-base sm:text-sm"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Evidência Fotográfica</label>
+              <label className="block text-xs sm:text-sm font-medium text-slate-700 mb-1">Evidência Fotográfica</label>
               <div className="relative">
                 <input 
                   type="file" 
@@ -208,7 +244,7 @@ export default function Home() {
                 />
                 <div className="w-full px-4 py-3 rounded-lg border border-dashed border-slate-300 bg-slate-50 text-slate-600 flex items-center justify-center gap-2 hover:bg-slate-100 transition-colors">
                   <Camera size={18} />
-                  <span className="text-sm font-medium truncate max-w-[200px]">
+                  <span className="text-xs sm:text-sm font-medium truncate max-w-[200px]">
                     {file ? file.name : "Anexar Foto"}
                   </span>
                 </div>
@@ -219,37 +255,37 @@ export default function Home() {
               <button 
                 type="submit" 
                 disabled={loading}
-                className="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium py-3 rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+                className="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium py-3.5 rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-70 disabled:cursor-not-allowed text-sm sm:text-base cursor-pointer shadow-sm"
               >
                 <MapPin size={18} />
                 {loading ? "Processando e obtendo GPS..." : "Enviar Ocorrência"}
               </button>
-              <p className="text-center text-xs text-slate-500 mt-3">
+              <p className="text-center text-[11px] sm:text-xs text-slate-500 mt-2.5">
                 Será solicitado o acesso à sua localização para enviar o socorro exato.
               </p>
             </div>
           </div>
         </form>
 
-        {/* Telefones de Emergência Minimalista */}
-        <div className="mt-8 text-center">
-          <p className="text-sm font-semibold text-slate-900 mb-4">Contatos de Emergência</p>
-          <div className="grid grid-cols-2 gap-3">
-            <a href="tel:199" className="p-3 bg-white border border-slate-200 rounded-xl hover:border-slate-300 transition-colors">
-              <p className="text-xs text-slate-500 font-medium">Defesa Civil</p>
-              <p className="font-bold text-slate-900">199</p>
+        {/* Telefones de Emergência */}
+        <div className="mt-6 sm:mt-8 text-center">
+          <p className="text-xs sm:text-sm font-semibold text-slate-900 mb-3 sm:mb-4">Contatos de Emergência</p>
+          <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
+            <a href="tel:199" className="p-2.5 sm:p-3 bg-white border border-slate-200 rounded-xl hover:border-slate-300 transition-colors">
+              <p className="text-[11px] sm:text-xs text-slate-500 font-medium">Defesa Civil</p>
+              <p className="font-bold text-slate-900 text-sm sm:text-base">199</p>
             </a>
-            <a href="tel:193" className="p-3 bg-white border border-slate-200 rounded-xl hover:border-slate-300 transition-colors">
-              <p className="text-xs text-slate-500 font-medium">Bombeiros</p>
-              <p className="font-bold text-slate-900">193</p>
+            <a href="tel:193" className="p-2.5 sm:p-3 bg-white border border-slate-200 rounded-xl hover:border-slate-300 transition-colors">
+              <p className="text-[11px] sm:text-xs text-slate-500 font-medium">Bombeiros</p>
+              <p className="font-bold text-slate-900 text-sm sm:text-base">193</p>
             </a>
-            <a href="tel:5136628400" className="p-3 bg-white border border-slate-200 rounded-xl hover:border-slate-300 transition-colors">
-              <p className="text-xs text-slate-500 font-medium">Sec. de Obras</p>
-              <p className="font-bold text-slate-900">3662-8400</p>
+            <a href="tel:5136628400" className="p-2.5 sm:p-3 bg-white border border-slate-200 rounded-xl hover:border-slate-300 transition-colors">
+              <p className="text-[11px] sm:text-xs text-slate-500 font-medium">Sec. de Obras</p>
+              <p className="font-bold text-slate-900 text-xs sm:text-sm">3662-8400</p>
             </a>
-            <a href="tel:5136628480" className="p-3 bg-white border border-slate-200 rounded-xl hover:border-slate-300 transition-colors">
-              <p className="text-xs text-slate-500 font-medium">Assist. Social</p>
-              <p className="font-bold text-slate-900">3662-8480</p>
+            <a href="tel:5136628480" className="p-2.5 sm:p-3 bg-white border border-slate-200 rounded-xl hover:border-slate-300 transition-colors">
+              <p className="text-[11px] sm:text-xs text-slate-500 font-medium">Assist. Social</p>
+              <p className="font-bold text-slate-900 text-xs sm:text-sm">3662-8480</p>
             </a>
           </div>
         </div>
