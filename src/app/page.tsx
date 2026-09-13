@@ -95,18 +95,36 @@ export default function Home() {
 
   if (success) {
     return (
-      <main className="mobile-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', textAlign: 'center' }}>
-        <div className="glass-card" style={{ padding: '2.5rem 2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.25rem', width: '100%' }}>
-          <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <CheckCircle2 size={36} color="#16a34a" />
+      <main className="min-h-screen bg-slate-50 py-12 px-4 flex flex-col items-center justify-center">
+        <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-sm border border-slate-200 text-center">
+          <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <CheckCircle2 size={32} className="text-emerald-600" />
           </div>
-          <h2>Ocorrência Registrada!</h2>
-          <p style={{ color: '#475569', fontSize: '0.95rem', lineHeight: 1.6 }}>
-            Seu relato foi transmitido em tempo real para o <strong>Gabinete de Crise</strong> (Defesa Civil, Bombeiros, Obras e Assistência Social).
+          <h2 className="text-2xl font-bold text-slate-900 mb-3">Ocorrência Registrada!</h2>
+          <p className="text-slate-600 text-sm leading-relaxed mb-6">
+            Mantenha a calma. Sua localização exata já foi enviada em tempo real para as equipes de resgate do <strong>Gabinete de Crise</strong>.
           </p>
-          <button className="btn btn-primary" style={{ width: '100%', marginTop: '0.5rem' }} onClick={() => { setSuccess(false); setFile(null); setDescription(""); }}>
-            Registrar Nova Ocorrência
-          </button>
+          
+          <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-6 text-left">
+            <div className="flex items-center gap-2 text-blue-800 font-semibold mb-2 text-sm">
+              <Building2 size={16} /> Abrigo Mais Próximo Ativo
+            </div>
+            <p className="text-blue-900 font-bold">Ginásio Municipal de Esportes</p>
+            <p className="text-blue-700 text-xs mt-1">Rua Cel. Antônio Inácio, Centro (Aprox. 2km)</p>
+            <p className="text-blue-600 text-xs mt-2 font-medium">As equipes de Assistência Social já estão no local com mantimentos, água e cobertores.</p>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            <a href="tel:193" className="w-full bg-red-50 hover:bg-red-100 text-red-700 font-semibold py-3 rounded-lg flex items-center justify-center gap-2 transition-colors text-sm border border-red-200">
+              <PhoneCall size={16} /> Ligar Urgente 193
+            </a>
+            <button 
+              className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-3 rounded-lg transition-colors text-sm"
+              onClick={() => { setSuccess(false); setFile(null); setDescription(""); }}
+            >
+              Registrar Outra Ocorrência
+            </button>
+          </div>
         </div>
       </main>
     );

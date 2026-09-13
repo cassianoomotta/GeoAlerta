@@ -110,7 +110,13 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
         </nav>
 
         <div className="p-6 border-t border-white/5">
-           <button className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 transition-colors text-sm font-medium border border-white/5">
+           <button 
+             onClick={async () => {
+               await supabase.auth.signOut();
+               window.location.href = '/login';
+             }}
+             className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 transition-colors text-sm font-medium border border-white/5"
+           >
              <LogOut size={16} /> Encerrar Sessão
            </button>
         </div>
