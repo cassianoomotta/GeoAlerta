@@ -23,3 +23,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - **Painel Oficial:** Um painel web simples no sistema (`/painel`) servirá como central para receber os alertas in-app e visualizar o mapa.
 - **Exportação:** Os dados devem poder ser exportados localmente (CSV) diretamente pelos gestores pelo sistema.
 
+## 4. Governança de Código, Commits e Deploys (Regra Estrita)
+- **Proibição Absoluta de Commits e Deploys pela IA:** O assistente de IA NUNCA deve executar comandos de `git commit`, `git push`, `git merge` ou disparar deploys em produção/Vercel.
+- **Controle Exclusivo do Usuário:** A IA apenas escreve, refatora e testa o código localmente. Apenas o USUÁRIO tem permissão para revisar, commitar (`git commit`) e subir (`git push` / deploy) as alterações.
+
+
