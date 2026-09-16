@@ -6,9 +6,11 @@ import {
   MapPin, 
   MapPinOff,
   Camera, 
+  ImageIcon,
+  X,
   CheckCircle2, 
   Building2, 
-  PhoneCall,
+  PhoneCall, 
   LocateFixed,
   RefreshCw,
   Loader2,
@@ -449,22 +451,57 @@ export default function Home() {
             </div>
 
             <div>
-              <label className="block text-xs sm:text-sm font-medium text-slate-700 mb-1">Evidência Fotográfica</label>
-              <div className="relative">
-                <input 
-                  type="file" 
-                  accept="image/*"
-                  capture="environment"
-                  onChange={(e) => setFile(e.target.files?.[0] || null)}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                />
-                <div className="w-full px-4 py-3 rounded-lg border border-dashed border-slate-300 bg-slate-50 text-slate-600 flex items-center justify-center gap-2 hover:bg-slate-100 transition-colors">
-                  <Camera size={18} />
-                  <span className="text-xs sm:text-sm font-medium truncate max-w-[200px]">
-                    {file ? file.name : "Anexar Foto"}
-                  </span>
-                </div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs sm:text-sm font-medium text-slate-700">
+                  Evidência Fotográfica (Opcional)
+                </label>
+                <span className="text-[11px] text-slate-500 font-medium">Câmera ou Galeria</span>
               </div>
+
+              {file ? (
+                <div className="relative rounded-xl border border-slate-200 bg-slate-50 p-2.5 flex items-center gap-3">
+                  <div className="w-14 h-14 rounded-lg bg-slate-200 overflow-hidden relative flex-shrink-0 border border-slate-300">
+                    <img 
+                      src={URL.createObjectURL(file)} 
+                      alt="Pré-visualização da foto" 
+                      className="w-full h-full object-cover" 
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-slate-900 truncate">{file.name}</p>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      {(file.size / 1024 / 1024).toFixed(2)} MB • Foto selecionada
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setFile(null)}
+                    title="Remover foto"
+                    className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+              ) : (
+                <div className="relative">
+                  <input 
+                    type="file" 
+                    accept="image/*"
+                    onChange={(e) => setFile(e.target.files?.[0] || null)}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                  />
+                  <div className="w-full px-4 py-3.5 rounded-xl border border-dashed border-slate-300 bg-slate-50 text-slate-600 flex items-center justify-center gap-2.5 hover:bg-slate-100 hover:border-slate-400 transition-all cursor-pointer group">
+                    <div className="flex items-center gap-1.5 text-slate-500 group-hover:text-slate-800 transition-colors">
+                      <Camera size={18} />
+                      <span className="text-slate-300">/</span>
+                      <ImageIcon size={18} />
+                    </div>
+                    <span className="text-xs sm:text-sm font-medium text-slate-700 group-hover:text-slate-900 transition-colors">
+                      Tirar Foto ou Escolher da Galeria
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="pt-2">
