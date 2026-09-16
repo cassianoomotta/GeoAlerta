@@ -13,6 +13,7 @@ import {
   PhoneCall, 
   LocateFixed,
   RefreshCw,
+  RotateCw,
   Loader2,
   Lock,
   AlertOctagon,
@@ -40,86 +41,146 @@ export default function Home() {
   const [coords, setCoords] = useState<LocationCoords | null>(null);
   const [geoStatus, setGeoStatus] = useState<GeoStatusType>("idle");
   const [geoErrorMessage, setGeoErrorMessage] = useState<string | null>(null);
+  const [isLocating, setIsLocating] = useState(false);
 
-  // Função para solicitar autorização de localização nativa do navegador
-  const requestLocation = useCallback(() => {
-    if (typeof window === "undefined" || !navigator.geolocation) {
-      setGeoStatus("unavailable");
-      setGeoErrorMessage("Seu navegador ou aparelho não possui suporte a geolocalização.");
-      return;
-    }
-
-    setGeoStatus("requesting");
-    setGeoErrorMessage(null);
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setCoords({
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-          accuracy: position.coords.accuracy,
-        });
-        setGeoStatus("granted");
-        setGeoErrorMessage(null);
-      },
-      (error) => {
-        console.warn("Erro ao obter geolocalização:", error);
-        if (error.code === error.PERMISSION_DENIED) {
-          setGeoStatus("denied");
-          setGeoErrorMessage("Permissão de localização recusada ou bloqueada no navegador.");
-        } else if (error.code === error.POSITION_UNAVAILABLE) {
-          setGeoStatus("unavailable");
-          setGeoErrorMessage("Sinal de GPS indisponível no momento. Verifique se a localização está ativada nas configurações do aparelho.");
-        } else if (error.code === error.TIMEOUT) {
-          setGeoStatus("timeout");
-          setGeoErrorMessage("Tempo esgotado ao buscar sinal de GPS.");
-        } else {
-          setGeoStatus("denied");
-          setGeoErrorMessage("Não foi possível obter sua localização.");
-        }
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 15000,
-        maximumAge: 5000,
+  // Helper com fallback robusto (Satélite -> Rede/Wi-Fi) compatível com Safari iOS e Chrome
+  const fetchBrowserPosition = useCallback((): Promise<GeolocationPosition> => {
+    return new Promise((resolve, reject) => {
+      if (typeof window === "undefined" || !navigator.geolocation) {
+        return reject(new Error("Geolocalização não suportada neste navegador."));
       }
-    );
+
+      // Tentativa 1: Alta precisão (GPS por satélite)
+      navigator.geolocation.getCurrentPosition(
+        (position) => resolve(position),
+        (error) => {
+          // Se o usuário recusou explicitamente (código 1), não adianta tentar outro modo
+          if (error.code === 1) {
+            return reject(error);
+          }
+
+          // Se deu timeout (3) ou indisponível (2), tenta o modo balanceado (Wi-Fi / Antenas)
+          // Esse fallback é crucial no Safari iOS quando o usuário está dentro de casa
+          navigator.geolocation.getCurrentPosition(
+            (fallbackPos) => resolve(fallbackPos),
+            (fallbackErr) => reject(fallbackErr),
+            {
+              enableHighAccuracy: false,
+              timeout: 10000,
+              maximumAge: 60000,
+            }
+          );
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 7000,
+          maximumAge: 5000,
+        }
+      );
+    });
   }, []);
 
-  // Solicita permissão automaticamente ao carregar a página
-  useEffect(() => {
-    requestLocation();
+  // Solicitar localização
+  const requestLocation = useCallback(async (isSilentAutoCheck = false) => {
+    if (!isSilentAutoCheck) {
+      setIsLocating(true);
+      setGeoStatus("requesting");
+      setGeoErrorMessage(null);
+    }
 
-    // Observa mudanças nas permissões do navegador se suportado
+    try {
+      const position = await fetchBrowserPosition();
+      setCoords({
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        accuracy: position.coords.accuracy,
+      });
+      setGeoStatus("granted");
+      setGeoErrorMessage(null);
+    } catch (error: any) {
+      console.warn("Erro ao obter geolocalização:", error);
+      if (isSilentAutoCheck) {
+        // No Safari iOS, chamadas automáticas no mount sem toque do usuário
+        // frequentemente falham com PERMISSION_DENIED.
+        // NÃO marcamos como 'denied' no silent check para não exibir a tela vermelha antes do usuário clicar!
+        setGeoStatus("idle");
+      } else {
+        if (error?.code === 1) {
+          setGeoStatus("denied");
+          setGeoErrorMessage("Acesso à localização recusado pelo navegador ou pelo sistema operacional.");
+        } else if (error?.code === 2) {
+          setGeoStatus("unavailable");
+          setGeoErrorMessage("Sinal de GPS indisponível no momento. Verifique se o GPS está ligado nas configurações do celular.");
+        } else if (error?.code === 3) {
+          setGeoStatus("timeout");
+          setGeoErrorMessage("Tempo esgotado ao buscar sinal de satélite. Tente novamente.");
+        } else {
+          setGeoStatus("denied");
+          setGeoErrorMessage("Não foi possível capturar a localização.");
+        }
+      }
+    } finally {
+      if (!isSilentAutoCheck) {
+        setIsLocating(false);
+      }
+    }
+  }, [fetchBrowserPosition]);
+
+  // Checagem inicial ao carregar a página
+  useEffect(() => {
+    requestLocation(true);
+
+    // Monitora alterações de permissão na Permissions API (se disponível)
     if (typeof window !== "undefined" && navigator.permissions && navigator.permissions.query) {
-      navigator.permissions
-        .query({ name: "geolocation" as PermissionName })
-        .then((permissionStatus) => {
-          permissionStatus.onchange = () => {
-            if (permissionStatus.state === "granted") {
-              requestLocation();
-            } else if (permissionStatus.state === "denied") {
-              setGeoStatus("denied");
-              setGeoErrorMessage("Acesso à localização foi desativado nas configurações do navegador.");
-            } else {
-              setGeoStatus("idle");
-            }
-          };
-        })
-        .catch(() => {
-          // Ignora se o navegador não suportar query para geolocation
-        });
+      try {
+        navigator.permissions
+          .query({ name: "geolocation" as PermissionName })
+          .then((permissionStatus) => {
+            permissionStatus.onchange = () => {
+              if (permissionStatus.state === "granted") {
+                requestLocation(false);
+              } else if (permissionStatus.state === "denied") {
+                setGeoStatus("denied");
+                setGeoErrorMessage("Acesso à localização foi desativado nas configurações do navegador.");
+              } else {
+                setGeoStatus("idle");
+              }
+            };
+          })
+          .catch(() => {
+            // Safari / navegadores antigos podem ignorar query para geolocation
+          });
+      } catch {
+        // Ignora erros no Safari
+      }
     }
   }, [requestLocation]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // REGRA ESTRITA: O sistema não funciona sem a localização habilitada
-    if (geoStatus !== "granted" || !coords) {
-      alert("SISTEMA BLOQUEADO: O GeoAlerta NÃO funciona sem o acesso à sua localização. Por favor, autorize o GPS no navegador para que possamos enviar as viaturas de socorro com exatidão.");
-      requestLocation();
-      return;
+    // 1. REGRA ESTRITA: O sistema não funciona sem a localização habilitada
+    let activeCoords = coords;
+    if (geoStatus !== "granted" || !activeCoords) {
+      setIsLocating(true);
+      try {
+        const position = await fetchBrowserPosition();
+        activeCoords = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracy: position.coords.accuracy,
+        };
+        setCoords(activeCoords);
+        setGeoStatus("granted");
+      } catch (err) {
+        console.error("Geolocalização não autorizada no submit:", err);
+        setGeoStatus("denied");
+        alert("SISTEMA BLOQUEADO: O GeoAlerta NÃO funciona sem o acesso à sua localização. Por favor, autorize o GPS no navegador para que possamos enviar as viaturas de socorro com exatidão.");
+        setIsLocating(false);
+        return;
+      } finally {
+        setIsLocating(false);
+      }
     }
 
     if (!name.trim()) {
@@ -145,12 +206,11 @@ export default function Home() {
     setLoading(true);
 
     try {
-      const { latitude, longitude } = coords;
+      const { latitude, longitude } = activeCoords!;
 
-      // 1. Upload Photo com Sanitização Rigorosa
+      // 2. Upload Photo com Sanitização Rigorosa
       let photo_url = null;
       if (file) {
-        // Validação estrita de tipo MIME
         const ALLOWED_TYPES: Record<string, string> = {
           'image/jpeg': 'jpg',
           'image/jpg': 'jpg',
@@ -164,7 +224,6 @@ export default function Home() {
           return;
         }
 
-        // Limite de 5MB para proteção de armazenamento
         const MAX_SIZE = 5 * 1024 * 1024;
         if (file.size > MAX_SIZE) {
           alert("A foto selecionada é muito grande. O limite máximo é de 5MB.");
@@ -172,7 +231,6 @@ export default function Home() {
           return;
         }
 
-        // Geração de nome canônico seguro com UUID v4
         const safeExt = ALLOWED_TYPES[file.type];
         const fileName = `${crypto.randomUUID()}.${safeExt}`;
         const filePath = `${fileName}`;
@@ -193,7 +251,7 @@ export default function Home() {
         photo_url = data.publicUrl;
       }
 
-      // 2. Insert into DB using PostGIS format for location
+      // 3. Insert into DB using PostGIS format for location
       const { error: dbError } = await supabase
         .from('occurrences')
         .insert([
@@ -248,7 +306,7 @@ export default function Home() {
                 setSuccess(false); 
                 setFile(null); 
                 setDescription(""); 
-                requestLocation();
+                requestLocation(false);
               }}
             >
               Registrar Outra Ocorrência
@@ -319,28 +377,14 @@ export default function Home() {
                   </div>
                   <button
                     type="button"
-                    onClick={requestLocation}
+                    disabled={isLocating}
+                    onClick={() => requestLocation(false)}
                     title="Recalcular localização GPS"
-                    className="text-xs text-emerald-800 hover:text-emerald-950 bg-emerald-100 hover:bg-emerald-200 px-2.5 py-1.5 rounded-lg flex items-center gap-1 transition-colors font-semibold cursor-pointer"
+                    className="text-xs text-emerald-800 hover:text-emerald-950 bg-emerald-100 hover:bg-emerald-200 px-2.5 py-1.5 rounded-lg flex items-center gap-1 transition-colors font-semibold cursor-pointer disabled:opacity-50"
                   >
-                    <RefreshCw size={12} />
-                    <span className="hidden sm:inline">Atualizar</span>
+                    {isLocating ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
+                    <span className="hidden sm:inline">{isLocating ? "Obtendo..." : "Atualizar"}</span>
                   </button>
-                </div>
-              </div>
-            ) : geoStatus === "requesting" ? (
-              <div className="bg-blue-50 border border-blue-300 rounded-xl p-4 text-blue-950 transition-all shadow-xs animate-pulse">
-                <div className="flex items-center gap-3">
-                  <Loader2 size={22} className="text-blue-600 animate-spin flex-shrink-0" />
-                  <div>
-                    <p className="font-bold text-xs sm:text-sm text-blue-950 flex items-center gap-1.5">
-                      <Lock size={14} className="text-blue-600" />
-                      Solicitando autorização de GPS...
-                    </p>
-                    <p className="text-xs text-blue-800 mt-0.5 leading-relaxed">
-                      Selecione <strong>&quot;Permitir&quot;</strong> no aviso do navegador para que o sistema seja desbloqueado.
-                    </p>
-                  </div>
                 </div>
               </div>
             ) : geoStatus === "denied" ? (
@@ -352,27 +396,50 @@ export default function Home() {
                   <div className="flex-1 min-w-0">
                     <p className="font-extrabold text-xs sm:text-sm text-rose-950 uppercase tracking-wide flex items-center gap-1.5">
                       <Lock size={14} className="text-rose-600" />
-                      Sistema Bloqueado: Localização Negada
+                      Localização Não Autorizada
                     </p>
                     <p className="text-xs text-rose-900 mt-1 font-medium leading-relaxed">
                       O sistema <strong>NÃO FUNCIONA</strong> e não enviará ocorrências sem o GPS ativo. O resgate exige saber suas coordenadas exatas.
                     </p>
+
+                    {/* Instruções detalhadas para Safari (iOS) e navegadores móveis */}
                     <div className="text-[11px] text-rose-900 mt-2.5 bg-rose-100 p-2.5 rounded-lg leading-relaxed border border-rose-200">
-                      <strong>Como desbloquear o sistema:</strong>
-                      <ol className="list-decimal ml-4 mt-1 space-y-0.5">
-                        <li>Clique no <strong>ícone de cadeado / configurações</strong> na barra de endereços do seu navegador.</li>
-                        <li>Mude <strong>Localização</strong> para <strong>Permitir</strong>.</li>
-                        <li>Clique no botão abaixo para reativar o envio.</li>
+                      <p className="font-bold text-rose-950 mb-1">📱 No iPhone (Safari):</p>
+                      <ol className="list-decimal ml-4 space-y-1">
+                        <li>Toque no menu <strong>&quot;aA&quot;</strong> ou <strong>&quot;...&quot;</strong> na barra de endereços &gt; <strong>Ajustes do Site</strong> &gt; mude <strong>Localização</strong> para <strong>Permitir</strong>.</li>
+                        <li><strong>IMPORTANTE:</strong> Toque no botão <strong>Recarregar Página</strong> abaixo para o Safari aplicar a permissão.</li>
+                        <li>Se continuar bloqueado, confira: <em>Ajustes do iPhone &gt; Privacidade e Segurança &gt; Serviços de Localização &gt; Safari</em>.</li>
                       </ol>
                     </div>
-                    <button
-                      type="button"
-                      onClick={requestLocation}
-                      className="mt-3 w-full bg-rose-600 hover:bg-rose-700 text-white text-xs sm:text-sm font-bold px-3.5 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-sm"
-                    >
-                      <RefreshCw size={15} />
-                      Tentar Autorizar Novamente
-                    </button>
+
+                    <div className="mt-3 flex flex-col sm:flex-row gap-2">
+                      <button
+                        type="button"
+                        onClick={() => window.location.reload()}
+                        className="flex-1 bg-rose-700 hover:bg-rose-800 text-white text-xs sm:text-sm font-bold px-3.5 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-sm"
+                      >
+                        <RotateCw size={15} />
+                        Recarregar Página para Ativar
+                      </button>
+                      <button
+                        type="button"
+                        disabled={isLocating}
+                        onClick={() => requestLocation(false)}
+                        className="bg-white hover:bg-rose-50 text-rose-700 border border-rose-300 text-xs sm:text-sm font-bold px-3.5 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-60"
+                      >
+                        {isLocating ? (
+                          <>
+                            <Loader2 size={15} className="animate-spin" />
+                            Verificando...
+                          </>
+                        ) : (
+                          <>
+                            <RefreshCw size={15} />
+                            Tentar Novamente
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -384,18 +451,28 @@ export default function Home() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-extrabold text-xs sm:text-sm text-amber-950 uppercase tracking-wide">
-                      Localização Não Habilitada (Envio Travado)
+                      Localização Obrigatória (Envio Travado)
                     </p>
                     <p className="text-xs text-amber-900 mt-1 leading-relaxed">
                       O sistema <strong>NÃO funciona</strong> sem a localização ativa. Toque no botão abaixo para habilitar o GPS e liberar o formulário.
                     </p>
                     <button
                       type="button"
-                      onClick={requestLocation}
-                      className="mt-3 w-full bg-amber-600 hover:bg-amber-700 text-white text-xs sm:text-sm font-bold px-4 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-sm"
+                      disabled={isLocating}
+                      onClick={() => requestLocation(false)}
+                      className="mt-3 w-full bg-amber-600 hover:bg-amber-700 text-white text-xs sm:text-sm font-bold px-4 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-sm disabled:opacity-60"
                     >
-                      <LocateFixed size={16} />
-                      Habilitar Localização para Liberar o Sistema
+                      {isLocating ? (
+                        <>
+                          <Loader2 size={16} className="animate-spin" />
+                          Buscando sinal de GPS...
+                        </>
+                      ) : (
+                        <>
+                          <LocateFixed size={16} />
+                          Habilitar Localização para Liberar o Sistema
+                        </>
+                      )}
                     </button>
                   </div>
                 </div>
@@ -507,7 +584,7 @@ export default function Home() {
             <div className="pt-2">
               <button 
                 type="submit" 
-                disabled={loading || geoStatus !== "granted"}
+                disabled={loading || geoStatus !== "granted" || isLocating}
                 className={`w-full font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all text-sm sm:text-base shadow-sm ${
                   geoStatus === "granted"
                     ? "bg-slate-900 hover:bg-slate-800 text-white cursor-pointer"
@@ -518,6 +595,11 @@ export default function Home() {
                   <>
                     <Loader2 size={18} className="animate-spin" />
                     Enviando ocorrência...
+                  </>
+                ) : isLocating ? (
+                  <>
+                    <Loader2 size={18} className="animate-spin" />
+                    Obtendo localização...
                   </>
                 ) : geoStatus === "granted" ? (
                   <>
