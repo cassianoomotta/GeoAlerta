@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { ShieldAlert, Flame, HardHat, HeartHandshake, X, MapPin, ExternalLink, RefreshCw, CheckCircle2, Layers } from "lucide-react";
 import { parseCoordinates, getGoogleMapsUrl, formatCoordinates } from "@/lib/geoUtils";
+import { formatOpenedAgo } from "@/lib/dateUtils";
 
 // Leaflet precisa ser carregado dinamicamente para evitar erro de 'window is not defined' no SSR
 const MapComponent = dynamic(() => import("@/components/MapComponent"), {
@@ -26,6 +27,15 @@ function PainelContent() {
   const [loading, setLoading] = useState(false);
   const [selectedOccurrence, setSelectedOccurrence] = useState<any | null>(null);
   const [updating, setUpdating] = useState(false);
+  const [, setTimeTick] = useState(0);
+
+  // Atualiza o contador de tempo relativo periodicamente a cada 15 segundos
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeTick(t => t + 1);
+    }, 15000);
+    return () => clearInterval(timer);
+  }, []);
 
   const fetchOccurrences = async () => {
     setLoading(true);
@@ -223,7 +233,7 @@ function PainelContent() {
                   {selectedOccurrence.type}
                 </h3>
                 <div className="text-xs text-slate-300 flex items-center gap-1.5 font-medium">
-                  <MapPin size={13} className="text-blue-400 shrink-0" /> Aberto há {Math.floor((Date.now() - new Date(selectedOccurrence.created_at).getTime()) / 60000)} minutos
+                  <MapPin size={13} className="text-blue-400 shrink-0" /> {formatOpenedAgo(selectedOccurrence.created_at)}
                 </div>
               </div>
               <button 

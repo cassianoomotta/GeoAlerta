@@ -9,6 +9,7 @@ import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import { floodZonesGeoJSON, shelters } from '@/data/geo';
 import { parseCoordinates } from '@/lib/geoUtils';
+import { formatTimeAgo } from '@/lib/dateUtils';
 
 // Pino Vermelho (Ocorrências)
 const icon = L.icon({
@@ -164,7 +165,7 @@ export default function MapComponent({
                     Reportado por: <b className="text-slate-300">{occ.reporter_name || 'Anônimo'}</b>
                   </span>
                   <span className="text-[10px] text-slate-500 block mb-2">
-                    {new Date(occ.created_at).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}
+                    {new Date(occ.created_at).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})} • há {formatTimeAgo(occ.created_at)}
                   </span>
                   {occ.description && (
                     <div className="bg-white/5 border border-white/10 p-2 rounded-lg text-xs text-slate-300 mb-2">

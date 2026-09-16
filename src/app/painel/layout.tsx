@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { formatTimeAgo } from "@/lib/dateUtils";
 
 export default function PainelLayout({ children }: { children: React.ReactNode }) {
   const [unread, setUnread] = useState(0);
@@ -298,7 +299,7 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
                         <strong className="text-red-400 text-xs sm:text-sm truncate">{n.type}</strong>
                         <p className="my-0.5 text-slate-300 text-[11px] truncate">{n.description || 'Sem descrição'}</p>
                         <span className="text-[10px] text-slate-500 font-medium tracking-wide">
-                          {n.reporter_name || 'Anônimo'} • {new Date(n.created_at).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}
+                          {n.reporter_name || 'Anônimo'} • há {formatTimeAgo(n.created_at)}
                         </span>
                       </div>
                     </div>
