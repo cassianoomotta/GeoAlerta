@@ -2,10 +2,11 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
-import { Building2, Plus, Users, PawPrint, Trash2, ChevronDown, UserPlus, Download, Eye, FileText, Clock, Phone } from "lucide-react";
+import { Building2, Plus, Users, PawPrint, Trash2, ChevronDown, UserPlus, Download, Eye, FileText, Clock, Phone, MapPin, Loader2 } from "lucide-react";
 import { PageHeader, Card, Badge, StatCard, Field, inputCls, btnPrimary, btnGhost, EmptyState, Modal, fmtDate } from "@/modules/core/ui";
 import { MUNICIPIO } from "@/modules/core/ui";
 import { downloadCSV } from "@/lib/csvUtils";
+import { geocodeAddress } from "@/lib/geoUtils";
 
 interface Shelter {
   id: string;
@@ -53,6 +54,9 @@ export default function AbrigosPage() {
   const [name, setName] = useState("");
   const [type, setType] = useState("humano");
   const [address, setAddress] = useState("");
+  const [lat, setLat] = useState("");
+  const [lng, setLng] = useState("");
+  const [geocoding, setGeocoding] = useState(false);
   const [capacity, setCapacity] = useState("0");
   const [phone, setPhone] = useState("");
   const [manager, setManager] = useState("");
@@ -91,13 +95,46 @@ export default function AbrigosPage() {
     if (openId !== id) fetchPeople(id);
   };
 
+  const handleGeocode = async () => {
+    if (!address.trim()) return alert("Digite o endereço ou cole o link do Google Maps primeiro.");
+    setGeocoding(true);
+    try {
+      const coords = await geocodeAddress(address.trim());
+      if (coords) {
+        setLat(String(coords.lat));
+        setLng(String(coords.lng));
+      } else {
+        alert("Não foi possível localizar as coordenadas automaticamente deste endereço. Digite a latitude e longitude manualmente ou cole o link do Google Maps com coordenadas.");
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setGeocoding(false);
+    }
+  };
+
   const submitShelter = async (e: React.FormEvent) => {
     e.preventDefault();
+    let finalLat = lat.trim() ? parseFloat(lat) : null;
+    let finalLng = lng.trim() ? parseFloat(lng) : null;
+
+    if ((finalLat === null || finalLng === null) && address.trim()) {
+      setGeocoding(true);
+      const coords = await geocodeAddress(address.trim());
+      setGeocoding(false);
+      if (coords) {
+        finalLat = coords.lat;
+        finalLng = coords.lng;
+      }
+    }
+
     const payload = {
       municipio: MUNICIPIO,
       name: name.trim(),
       type,
       address: address.trim() || null,
+      lat: finalLat,
+      lng: finalLng,
       capacity: Number(capacity) || 0,
       phone: phone.trim() || null,
       manager: manager.trim() || null,
@@ -106,10 +143,10 @@ export default function AbrigosPage() {
     };
     if (editingShelter) {
       const { error } = await supabase.from("shelters").update(payload).eq("id", editingShelter.id);
-      if (error) return alert("Erro ao salvar abrigo.");
+      if (error) return alert("Erro ao salvar abrigo: " + error.message);
     } else {
       const { error } = await supabase.from("shelters").insert(payload);
-      if (error) return alert("Erro ao criar abrigo.");
+      if (error) return alert("Erro ao criar abrigo: " + error.message);
     }
     setShowShelterForm(false);
     setEditingShelter(null);
@@ -118,7 +155,7 @@ export default function AbrigosPage() {
   };
 
   const resetShelter = () => {
-    setName(""); setType("humano"); setAddress(""); setCapacity("0");
+    setName(""); setType("humano"); setAddress(""); setLat(""); setLng(""); setCapacity("0");
     setPhone(""); setManager(""); setStatus(STATUSES[0]); setNotes("");
   };
 
@@ -130,6 +167,8 @@ export default function AbrigosPage() {
   const openEditShelter = (s: Shelter) => {
     setEditingShelter(s);
     setName(s.name); setType(s.type); setAddress(s.address || "");
+    setLat(s.lat !== null && s.lat !== undefined ? String(s.lat) : "");
+    setLng(s.lng !== null && s.lng !== undefined ? String(s.lng) : "");
     setCapacity(String(s.capacity)); setPhone(s.phone || "");
     setManager(s.manager || ""); setStatus(s.status); setNotes(s.notes || "");
     setShowShelterForm(true);
@@ -462,7 +501,52 @@ export default function AbrigosPage() {
                 <option value="misto" className="bg-slate-900 text-white">Misto (humano + pet)</option>
               </select>
             </Field>
-            <Field label="Endereço"><input className={inputCls} value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Rua, número e bairro" /></Field>
+            <Field label="Endereço ou Link do Google Maps">
+              <div className="flex gap-2">
+                <input 
+                  className={inputCls} 
+                  value={address} 
+                  onChange={(e) => setAddress(e.target.value)} 
+                  placeholder="ex: R. Bolívia, 71 ou cole o link do Google Maps" 
+                />
+                <button
+                  type="button"
+                  onClick={handleGeocode}
+                  disabled={geocoding}
+                  className="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shrink-0 flex items-center gap-1.5 transition-all cursor-pointer"
+                  title="Buscar Latitude e Longitude a partir do endereço"
+                >
+                  {geocoding ? <Loader2 size={14} className="animate-spin" /> : <MapPin size={14} />}
+                  <span>{geocoding ? "Buscando..." : "Localizar"}</span>
+                </button>
+              </div>
+            </Field>
+
+            <div className="grid grid-cols-2 gap-3 p-3 bg-white/5 border border-white/10 rounded-xl">
+              <Field label="Latitude GPS (Mapa)">
+                <input 
+                  type="number" 
+                  step="any" 
+                  className={inputCls} 
+                  value={lat} 
+                  onChange={(e) => setLat(e.target.value)} 
+                  placeholder="ex: -29.8357" 
+                />
+              </Field>
+              <Field label="Longitude GPS (Mapa)">
+                <input 
+                  type="number" 
+                  step="any" 
+                  className={inputCls} 
+                  value={lng} 
+                  onChange={(e) => setLng(e.target.value)} 
+                  placeholder="ex: -50.5250" 
+                />
+              </Field>
+              <p className="col-span-2 text-[11px] text-slate-400">
+                💡 Ao salvar ou clicar em <b>Localizar</b>, as coordenadas são calculadas automaticamente para exibir o abrigo no mapa.
+              </p>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <Field label="Capacidade" required><input type="number" min="0" className={inputCls} value={capacity} onChange={(e) => setCapacity(e.target.value)} placeholder="0" required /></Field>
               <Field label="Telefone"><input className={inputCls} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(51) 99999-9999" /></Field>

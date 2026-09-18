@@ -59,6 +59,20 @@ export function parseCoordinates(location: any): Coordinates | null {
           return { lat, lng };
         }
       }
+
+      // 4. Link ou query do Google Maps com coordenadas (@lat,lng ou ?q=lat,lng)
+      const gmapsAtMatch = trimmed.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+      if (gmapsAtMatch) {
+        const lat = parseFloat(gmapsAtMatch[1]);
+        const lng = parseFloat(gmapsAtMatch[2]);
+        if (!isNaN(lat) && !isNaN(lng)) return { lat, lng };
+      }
+      const gmapsQMatch = trimmed.match(/[?&](?:q|ll)=(-?\d+\.\d+),(-?\d+\.\d+)/);
+      if (gmapsQMatch) {
+        const lat = parseFloat(gmapsQMatch[1]);
+        const lng = parseFloat(gmapsQMatch[2]);
+        if (!isNaN(lat) && !isNaN(lng)) return { lat, lng };
+      }
     }
 
     // 4. GeoJSON Object: { coordinates: [lng, lat] }
@@ -146,4 +160,45 @@ export function findClosestEntity<T extends { lat: number | null; lng: number | 
   }
 
   return closest;
+}
+
+/**
+ * Geocodifica um endereço textual ou extrai coordenadas de link do Google Maps.
+ */
+export async function geocodeAddress(
+  input: string,
+  fallbackCity: string = "Santo Antônio da Patrulha"
+): Promise<Coordinates | null> {
+  if (!input || !input.trim()) return null;
+  const trimmed = input.trim();
+
+  // 1. Tentar parsear se já contiver coordenadas ou link do Google Maps
+  const parsed = parseCoordinates(trimmed);
+  if (parsed) return parsed;
+
+  // 2. Se for texto de endereço, consultar Nominatim OpenStreetMap
+  try {
+    let query = trimmed;
+    if (!query.toLowerCase().includes("patrulha") && !query.toLowerCase().includes("rs")) {
+      query = `${trimmed}, ${fallbackCity}, RS, Brasil`;
+    }
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`,
+      {
+        headers: { "User-Agent": "GeoAlerta-App" }
+      }
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data && data.length > 0 && data[0].lat && data[0].lon) {
+      return {
+        lat: parseFloat(data[0].lat),
+        lng: parseFloat(data[0].lon),
+      };
+    }
+  } catch (e) {
+    console.warn("Falha no geocoding do endereço:", e);
+  }
+
+  return null;
 }

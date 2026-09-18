@@ -268,6 +268,7 @@ export default function MapComponent({
               key={`shelter-${shelter.id}`} 
               position={[shelter.lat, shelter.lng]} 
               icon={shelterIcon(shelter.type, shelter.occupied, shelter.capacity, shelter.status)}
+              zIndexOffset={5000}
             >
               <Popup className="dark-popup">
                 <div className="min-w-[200px] bg-card text-foreground">
@@ -408,7 +409,9 @@ export default function MapComponent({
             <Marker
               key={`team-live-${pt.team_id}-${i}`}
               position={[pt.lat, pt.lng]}
-              icon={teamGpsIcon(pt.organ)}
+              icon={teamGpsIcon(pt.organ, pt.team_name)}
+              zIndexOffset={15000}
+              riseOnHover={true}
             >
               <Popup className="dark-popup">
                 <div className="min-w-[170px]">

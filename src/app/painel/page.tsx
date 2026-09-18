@@ -55,7 +55,7 @@ function PainelContent() {
 
   // ---------- Estado: Visibilidade das camadas ----------
   const [showOccurrences, setShowOccurrences] = useState(true);
-  const [showFloodZones, setShowFloodZones] = useState(true);
+  const [showFloodZones, setShowFloodZones] = useState(false);
   const [showAutoFloodZones, setShowAutoFloodZones] = useState(true);
   const [showShelters, setShowShelters] = useState(true);
   const [showTeams, setShowTeams] = useState(true);
@@ -71,30 +71,30 @@ function PainelContent() {
   }, []);
 
   // ---------- Fetch: Ocorrências ----------
-  const fetchOccurrences = async () => {
-    setLoading(true);
-    const { data } = await supabase
-      .from('occurrences')
-      .select('*')
-      .order('created_at', { ascending: false });
-      
-    if (data) {
-      setOccurrences(data);
+  const fetchOccurrences = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('occurrences')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setOccurrences(data || []);
+    } catch (e) {
+      console.error('Erro ao buscar ocorrências:', e);
     }
-    setLoading(false);
-  };
+  }, []);
 
   // ---------- Fetch: Abrigos (do Supabase) ----------
   const fetchShelters = useCallback(async () => {
     const { data } = await supabase
       .from("shelters")
-      .select("id, name, type, address, lat, lng, capacity, occupied, phone, status")
-      .eq("municipio", MUNICIPIO)
-      .order("name");
+      .select("*")
+      .eq("municipio", MUNICIPIO);
     if (data) setShelters(data);
   }, []);
 
-  // ---------- Fetch: Equipes GPS (Sempre visíveis no mapa, sem sumir) ----------
+  // ---------- Fetch: Equipes GPS (em tempo real) ----------
   const fetchLiveTeams = useCallback(async () => {
     // 1. Buscar equipes cadastradas no município
     const { data: teamsData } = await supabase
@@ -103,7 +103,7 @@ function PainelContent() {
       .eq("municipio", MUNICIPIO)
       .order("name");
 
-    // 2. Buscar últimas posições enviadas pelos agentes (sem corte de 5min)
+    // 2. Buscar últimas posições enviadas pelos agentes
     const { data: locData } = await supabase
       .from("team_locations")
       .select("*")
@@ -119,11 +119,11 @@ function PainelContent() {
 
     const teamList: MapTeamLive[] = [];
 
-    // Se houver equipes cadastradas no banco:
+    // Exibir no mapa SOMENTE equipes reais que realmente transmitiram sinal de GPS e estão ativas
     if (teamsData && teamsData.length > 0) {
       teamsData.forEach((t: any) => {
         const loc = latestLocMap.get(t.id);
-        if (loc) {
+        if (loc && t.status !== 'Indisponível' && Number.isFinite(loc.lat) && Number.isFinite(loc.lng)) {
           teamList.push({
             team_id: t.id,
             team_name: t.name,
@@ -137,82 +137,17 @@ function PainelContent() {
             phone: t.phone,
             status: t.status,
           });
-        } else {
-          // Equipe cadastrada que ainda não transmitiu GPS: posicionar na Base Operacional para NUNCA sumir do mapa
-          const base = ORGAN_DEFAULT_BASES[t.organ] || { lat: -29.8252, lng: -50.5186 };
-          teamList.push({
-            team_id: t.id,
-            team_name: t.name,
-            organ: t.organ || "Defesa Civil",
-            type: t.type,
-            lat: base.lat,
-            lng: base.lng,
-            accuracy: 0,
-            sent_at: new Date().toISOString(),
-            member_name: t.leader || "Base Operacional",
-            phone: t.phone,
-            status: t.status,
-          });
         }
       });
-    } else {
-      // Se não houver equipes no banco ainda, carregar equipes operacionais base para garantir visibilidade permanente no mapa
-      const DEFAULT_BASES_LIST: MapTeamLive[] = [
-        {
-          team_id: "defesa-civil-alfa",
-          team_name: "Defesa Civil - Equipe Alfa",
-          organ: "Defesa Civil",
-          type: "Resgate e Monitoramento",
-          lat: -29.8285,
-          lng: -50.5192,
-          accuracy: 10,
-          sent_at: new Date().toISOString(),
-          member_name: "Coord. Operacional",
-          status: "Disponível",
-        },
-        {
-          team_id: "bombeiros-bravo",
-          team_name: "Corpo de Bombeiros - Viatura 01",
-          organ: "Bombeiros",
-          type: "Socorro e Busca",
-          lat: -29.8214,
-          lng: -50.5140,
-          accuracy: 8,
-          sent_at: new Date().toISOString(),
-          member_name: "Sgt. Silva",
-          status: "Disponível",
-        },
-        {
-          team_id: "obras-desobstrucao",
-          team_name: "Obras - Equipe Desobstrução",
-          organ: "Obras",
-          type: "Desobstrução e Drenagem",
-          lat: -29.8320,
-          lng: -50.5230,
-          accuracy: 15,
-          sent_at: new Date().toISOString(),
-          member_name: "Plantão Obras",
-          status: "Disponível",
-        },
-        {
-          team_id: "social-acolhimento",
-          team_name: "Assistência Social - Acolhimento",
-          organ: "Assistência Social",
-          type: "Apoio e Abrigo",
-          lat: -29.8260,
-          lng: -50.5165,
-          accuracy: 12,
-          sent_at: new Date().toISOString(),
-          member_name: "Plantão CRAS",
-          status: "Disponível",
-        },
-      ];
+    }
 
-      // Mesclar posições avulsas caso existam em team_locations
-      latestLocMap.forEach((loc: any) => {
+    // Posições adicionais de agentes em team_locations
+    latestLocMap.forEach((loc: any, teamId: string) => {
+      const alreadyInList = teamList.some(item => item.team_id === teamId);
+      if (!alreadyInList && Number.isFinite(loc.lat) && Number.isFinite(loc.lng)) {
         teamList.push({
           team_id: loc.team_id,
-          team_name: loc.team_name || "Equipe",
+          team_name: loc.team_name || "Equipe em Campo",
           organ: "Defesa Civil",
           lat: loc.lat,
           lng: loc.lng,
@@ -220,12 +155,8 @@ function PainelContent() {
           sent_at: loc.sent_at,
           member_name: loc.member_name,
         });
-      });
-
-      if (teamList.length === 0) {
-        teamList.push(...DEFAULT_BASES_LIST);
       }
-    }
+    });
 
     setLiveTeams(teamList);
   }, []);

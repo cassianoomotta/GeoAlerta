@@ -193,21 +193,42 @@ export function getOrganColor(organ: string): string {
 /**
  * Cria um L.divIcon pulsante para equipes com GPS ativo.
  */
-export function teamGpsIcon(organ: string): L.DivIcon {
+export function teamGpsIcon(organ: string, teamName?: string): L.DivIcon {
   const color = getOrganColor(organ);
   return L.divIcon({
-    className: "",
-    html: `<div style="
-      width:18px;height:18px;
-      background:${color};
-      border-radius:50%;
-      border:3px solid white;
-      box-shadow:0 0 0 4px ${color}44, 0 0 12px ${color}99;
-      animation:teamPulse 1.5s infinite;
-    "></div>`,
-    iconSize: [18, 18],
-    iconAnchor: [9, 9],
-    popupAnchor: [0, -12],
+    className: "team-live-marker-wrapper",
+    html: `
+      <div style="position:relative;display:flex;flex-direction:column;align-items:center;pointer-events:auto;z-index:9999;">
+        ${teamName ? `
+          <div style="
+            background: rgba(15, 23, 42, 0.95);
+            color: #ffffff;
+            font-size: 10px;
+            font-weight: 800;
+            padding: 2px 7px;
+            border-radius: 6px;
+            border: 1.5px solid ${color};
+            box-shadow: 0 2px 10px rgba(0,0,0,0.7), 0 0 10px ${color}66;
+            white-space: nowrap;
+            margin-bottom: 4px;
+            letter-spacing: 0.3px;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+          ">
+            ${teamName}
+          </div>
+        ` : ''}
+        <div style="
+          width:22px;height:22px;
+          background:${color};
+          border-radius:50%;
+          border:3px solid white;
+          box-shadow:0 0 0 5px ${color}55, 0 0 18px ${color};
+          animation:teamPulse 1.5s infinite;
+        "></div>
+      </div>`,
+    iconSize: [120, 52],
+    iconAnchor: [60, teamName ? 40 : 11],
+    popupAnchor: [0, -28],
   });
 }
 
