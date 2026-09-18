@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import dynamic from "next/dynamic";
 import { supabase } from "@/lib/supabase";
-import { ShieldAlert, Flame, HardHat, Plus, Trash2, LocateFixed, Radio, Users, Truck, Satellite, Download } from "lucide-react";
+import { ShieldAlert, Flame, HardHat, Plus, Trash2, LocateFixed, Radio, Users, Truck, Satellite, Download, MessageCircle } from "lucide-react";
 import { PageHeader, Card, Badge, StatCard, Field, inputCls, btnPrimary, btnGhost, EmptyState, Modal, fmtDate } from "@/modules/core/ui";
 import { MUNICIPIO } from "@/modules/core/ui";
 import { downloadCSV } from "@/lib/csvUtils";
@@ -242,6 +242,17 @@ export default function EquipesPage() {
                 <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/5 gap-2">
                   <Badge tone={t.status === "Disponível" ? "green" : t.status === "Em missão" ? "amber" : "slate"}>{t.status}</Badge>
                   <div className="flex items-center gap-2">
+                    <button 
+                      onClick={() => {
+                        const url = `${window.location.origin}/rastreio?equipe=${t.id}`;
+                        const text = encodeURIComponent(`Acesse este link para transmitir a localização da equipe ${t.name}:\n${url}`);
+                        window.open(`https://wa.me/?text=${text}`, '_blank');
+                      }} 
+                      title="Enviar Link de Rastreio pelo WhatsApp"
+                      className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-green-500/10 text-green-400 hover:bg-green-500/20 hover:text-green-300 transition-colors cursor-pointer border border-green-500/20"
+                    >
+                      <MessageCircle size={14} />
+                    </button>
                     {isLive ? (
                       <button onClick={stopSharing} className="inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 hover:bg-emerald-500/20 cursor-pointer">
                         <LocateFixed size={13} /> Parar GPS
