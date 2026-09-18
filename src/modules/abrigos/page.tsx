@@ -225,18 +225,18 @@ export default function AbrigosPage() {
                 <option value="misto" className="bg-slate-900 text-white">Misto (humano + pet)</option>
               </select>
             </Field>
-            <Field label="Endereço"><input className={inputCls} value={address} onChange={(e) => setAddress(e.target.value)} /></Field>
+            <Field label="Endereço"><input className={inputCls} value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Rua, número e bairro" /></Field>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Capacidade" required><input type="number" min="0" className={inputCls} value={capacity} onChange={(e) => setCapacity(e.target.value)} required /></Field>
-              <Field label="Telefone"><input className={inputCls} value={phone} onChange={(e) => setPhone(e.target.value)} /></Field>
+              <Field label="Capacidade" required><input type="number" min="0" className={inputCls} value={capacity} onChange={(e) => setCapacity(e.target.value)} placeholder="0" required /></Field>
+              <Field label="Telefone"><input className={inputCls} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(51) 99999-9999" /></Field>
             </div>
-            <Field label="Gestor"><input className={inputCls} value={manager} onChange={(e) => setManager(e.target.value)} /></Field>
+            <Field label="Gestor / Responsável"><input className={inputCls} value={manager} onChange={(e) => setManager(e.target.value)} placeholder="Nome do coordenador do abrigo" /></Field>
             <Field label="Status">
               <select className={inputCls} value={status} onChange={(e) => setStatus(e.target.value)}>{STATUSES.map((s) => <option key={s} className="bg-slate-900 text-white" value={s}>{s}</option>)}</select>
             </Field>
-            <Field label="Observações"><textarea className={inputCls} rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} /></Field>
+            <Field label="Observações"><textarea className={inputCls} rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Estrutura, banheiros, acessibilidade, etc." /></Field>
             <div className="flex gap-2 pt-2">
-              <button type="submit" className={`${btnPrimary} flex-1`}>{editingShelter ? "Salvar" : "Cadastrar"}</button>
+              <button type="submit" className={`${btnPrimary} flex-1`}>{editingShelter ? "Salvar Alterações" : "Cadastrar Abrigo"}</button>
               <button type="button" onClick={() => setShowShelterForm(false)} className={`${btnGhost} flex-1`}>Cancelar</button>
             </div>
           </form>
@@ -246,20 +246,20 @@ export default function AbrigosPage() {
       {showPersonForm && (
         <Modal onClose={() => setShowPersonForm(null)} title="Cadastrar Pessoa no Abrigo">
           <form onSubmit={(e) => showPersonForm && submitPerson(e, showPersonForm)} className="space-y-4">
-            <Field label="Nome completo" required><input className={inputCls} value={pName} onChange={(e) => setPName(e.target.value)} required /></Field>
+            <Field label="Nome completo" required><input className={inputCls} value={pName} onChange={(e) => setPName(e.target.value)} placeholder="Nome completo do abrigado" required /></Field>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="CPF"><input className={inputCls} value={pCpf} onChange={(e) => setPCpf(e.target.value)} /></Field>
-              <Field label="Idade"><input type="number" min="0" className={inputCls} value={pAge} onChange={(e) => setPAge(e.target.value)} /></Field>
+              <Field label="CPF"><input className={inputCls} value={pCpf} onChange={(e) => setPCpf(e.target.value)} placeholder="000.000.000-00" /></Field>
+              <Field label="Idade"><input type="number" min="0" className={inputCls} value={pAge} onChange={(e) => setPAge(e.target.value)} placeholder="Idade" /></Field>
             </div>
-            <Field label="Contato"><input className={inputCls} value={pPhone} onChange={(e) => setPPhone(e.target.value)} /></Field>
+            <Field label="Contato"><input className={inputCls} value={pPhone} onChange={(e) => setPPhone(e.target.value)} placeholder="(51) 99999-9999" /></Field>
             <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
               <input type="checkbox" checked={pHasPet} onChange={(e) => setPHasPet(e.target.checked)} className="accent-fuchsia-500" />
               Está acompanhado(a) de pet(s)
             </label>
             {pHasPet && <Field label="Detalhes do pet"><input className={inputCls} value={pPets} onChange={(e) => setPPets(e.target.value)} placeholder="ex: 2 cães, 1 gato" /></Field>}
-            <Field label="Observações"><textarea className={inputCls} rows={2} value={pNotes} onChange={(e) => setPNotes(e.target.value)} /></Field>
+            <Field label="Observações"><textarea className={inputCls} rows={2} value={pNotes} onChange={(e) => setPNotes(e.target.value)} placeholder="Medicamentos de uso contínuo, necessidades especiais, etc." /></Field>
             <div className="flex gap-2 pt-2">
-              <button type="submit" className={`${btnPrimary} flex-1`}>Cadastrar</button>
+              <button type="submit" className={`${btnPrimary} flex-1`}>Cadastrar Pessoa</button>
               <button type="button" onClick={() => setShowPersonForm(null)} className={`${btnGhost} flex-1`}>Cancelar</button>
             </div>
           </form>

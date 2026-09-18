@@ -121,28 +121,28 @@ export default function VoluntariosPage() {
       {showForm && (
         <Modal onClose={() => setShowForm(false)} title={editingId ? "Editar Voluntário" : "Novo Voluntário"}>
           <form onSubmit={submit} className="space-y-4">
-            <Field label="Nome completo" required><input className={inputCls} value={fullName} onChange={(e) => setFullName(e.target.value)} required /></Field>
+            <Field label="Nome completo" required><input className={inputCls} value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Nome completo do voluntário" required /></Field>
             <Field label="Especialidade">
               <select className={inputCls} value={specialty} onChange={(e) => setSpecialty(e.target.value)}>{SPECIALTIES.map((s) => <option key={s} className="bg-slate-900 text-white" value={s}>{s}</option>)}</select>
             </Field>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Telefone"><input className={inputCls} value={phone} onChange={(e) => setPhone(e.target.value)} /></Field>
-              <Field label="E-mail"><input type="email" className={inputCls} value={email} onChange={(e) => setEmail(e.target.value)} /></Field>
+              <Field label="Telefone"><input className={inputCls} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(51) 99999-9999" /></Field>
+              <Field label="E-mail"><input type="email" className={inputCls} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@exemplo.com" /></Field>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <Field label="Veículo"><input className={inputCls} value={vehicle} onChange={(e) => setVehicle(e.target.value)} placeholder="ex: Jipe Toyota 4x4" /></Field>
-              <Field label="Capacidade"><input className={inputCls} value={capacity} onChange={(e) => setCapacity(e.target.value)} placeholder="ex: 4 passageiros" /></Field>
+              <Field label="Capacidade"><input className={inputCls} value={capacity} onChange={(e) => setCapacity(e.target.value)} placeholder="ex: 4 passageiros, reboque" /></Field>
             </div>
             <Field label="Status">
               <select className={inputCls} value={status} onChange={(e) => setStatus(e.target.value)}>{STATUSES.map((s) => <option key={s} className="bg-slate-900 text-white" value={s}>{s}</option>)}</select>
             </Field>
-            <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
-              <input type="checkbox" checked={available} onChange={(e) => setAvailable(e.target.checked)} className="accent-emerald-500" />
-              Disponível para atuação
+            <label className="flex items-center gap-2 text-sm text-slate-200 cursor-pointer">
+              <input type="checkbox" checked={available} onChange={(e) => setAvailable(e.target.checked)} className="w-4 h-4 rounded accent-emerald-500" />
+              Disponível para atuação imediata
             </label>
-            <Field label="Observações"><textarea className={inputCls} rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} /></Field>
+            <Field label="Observações"><textarea className={inputCls} rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Disponibilidade de horários, equipamentos próprios, etc." /></Field>
             <div className="flex gap-2 pt-2">
-              <button type="submit" className={`${btnPrimary} flex-1`}>{editingId ? "Salvar" : "Cadastrar"}</button>
+              <button type="submit" className={`${btnPrimary} flex-1`}>{editingId ? "Salvar Alterações" : "Cadastrar Voluntário"}</button>
               <button type="button" onClick={() => setShowForm(false)} className={`${btnGhost} flex-1`}>Cancelar</button>
             </div>
           </form>

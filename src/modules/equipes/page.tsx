@@ -212,17 +212,17 @@ export default function EquipesPage() {
                 <select className={inputCls} value={type} onChange={(e) => setType(e.target.value)}>{TYPES.map((t) => <option key={t} className="bg-slate-900 text-white" value={t}>{t}</option>)}</select>
               </Field>
             </div>
-            <Field label="Líder / responsável"><input className={inputCls} value={leader} onChange={(e) => setLeader(e.target.value)} /></Field>
+            <Field label="Líder / Responsável"><input className={inputCls} value={leader} onChange={(e) => setLeader(e.target.value)} placeholder="Nome do comandante ou responsável" /></Field>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Telefone"><input className={inputCls} value={phone} onChange={(e) => setPhone(e.target.value)} /></Field>
-              <Field label="Veículo"><input className={inputCls} value={vehicle} onChange={(e) => setVehicle(e.target.value)} placeholder="ex: caminhonete 4x4" /></Field>
+              <Field label="Telefone de Contato"><input className={inputCls} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(51) 99999-9999" /></Field>
+              <Field label="Veículo / Prefixo"><input className={inputCls} value={vehicle} onChange={(e) => setVehicle(e.target.value)} placeholder="ex: Caminhonete 4x4, Viatura 02" /></Field>
             </div>
-            <Field label="Capacidade/observação"><input className={inputCls} value={capacity} onChange={(e) => setCapacity(e.target.value)} placeholder="ex: 5 resgatistas, caixa de resgate" /></Field>
-            <Field label="Status">
+            <Field label="Capacidade e Equipamentos"><input className={inputCls} value={capacity} onChange={(e) => setCapacity(e.target.value)} placeholder="ex: 5 operadores, motobomba, motosserra" /></Field>
+            <Field label="Status Operacional">
               <select className={inputCls} value={status} onChange={(e) => setStatus(e.target.value)}>{STATUSES.map((s) => <option key={s} className="bg-slate-900 text-white" value={s}>{s}</option>)}</select>
             </Field>
             <div className="flex gap-2 pt-2">
-              <button type="submit" className={`${btnPrimary} flex-1`}>{editingTeam ? "Salvar" : "Cadastrar"}</button>
+              <button type="submit" className={`${btnPrimary} flex-1`}>{editingTeam ? "Salvar Alterações" : "Cadastrar Equipe"}</button>
               <button type="button" onClick={() => setShowTeamForm(false)} className={`${btnGhost} flex-1`}>Cancelar</button>
             </div>
           </form>
@@ -232,15 +232,15 @@ export default function EquipesPage() {
       {showMembers && (
         <Modal onClose={() => setShowMembers(null)} title={`Membros — ${showMembers.name}`}>
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs text-slate-500">{members.length} membro(s)</span>
+            <span className="text-xs text-slate-400 font-medium">{members.length} membro(s)</span>
             <button onClick={() => setShowMemberForm(true)} className={btnGhost}><Plus size={14} /> Adicionar membro</button>
           </div>
           {members.length === 0 ? (
-            <p className="text-sm text-slate-500 py-4 text-center">Nenhum membro ainda.</p>
+            <p className="text-sm text-slate-400 py-4 text-center">Nenhum membro cadastrado nesta equipe.</p>
           ) : (
             <div className="flex flex-col gap-2">
               {members.map((m) => (
-                <div key={m.id} className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10">
+                <div key={m.id} className="flex items-center justify-between p-3 rounded-xl bg-slate-800/60 border border-slate-700/80">
                   <div>
                     <div className="text-sm font-semibold text-white">{m.full_name}</div>
                     <div className="text-[11px] text-slate-400">{m.role}{m.phone ? ` • ${m.phone}` : ""}</div>
@@ -252,14 +252,14 @@ export default function EquipesPage() {
           )}
 
           {showMemberForm && (
-            <form onSubmit={submitMember} className="space-y-3 mt-4 border-t border-white/10 pt-4">
-              <Field label="Nome completo" required><input className={inputCls} value={mName} onChange={(e) => setMName(e.target.value)} required /></Field>
+            <form onSubmit={submitMember} className="space-y-3 mt-4 border-t border-slate-700/80 pt-4">
+              <Field label="Nome completo" required><input className={inputCls} value={mName} onChange={(e) => setMName(e.target.value)} placeholder="Nome completo do integrante" required /></Field>
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Função"><input className={inputCls} value={mRole} onChange={(e) => setMRole(e.target.value)} placeholder="ex: Resgatista" /></Field>
-                <Field label="Telefone"><input className={inputCls} value={mPhone} onChange={(e) => setMPhone(e.target.value)} /></Field>
+                <Field label="Função"><input className={inputCls} value={mRole} onChange={(e) => setMRole(e.target.value)} placeholder="ex: Resgatista, Motorista" /></Field>
+                <Field label="Telefone"><input className={inputCls} value={mPhone} onChange={(e) => setMPhone(e.target.value)} placeholder="(51) 99999-9999" /></Field>
               </div>
               <div className="flex gap-2">
-                <button type="submit" className={`${btnPrimary} flex-1`}>Adicionar</button>
+                <button type="submit" className={`${btnPrimary} flex-1`}>Salvar Membro</button>
                 <button type="button" onClick={() => setShowMemberForm(false)} className={`${btnGhost} flex-1`}>Cancelar</button>
               </div>
             </form>

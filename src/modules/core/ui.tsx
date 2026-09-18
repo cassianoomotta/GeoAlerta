@@ -78,26 +78,26 @@ export function StatCard({ label, value, icon, tone = "blue" }: { label: string;
 // ---------- Form primitivas ----------
 export function Field({ label, children, required }: { label: string; children: ReactNode; required?: boolean }) {
   return (
-    <label className="block">
-      <span className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-        {label} {required && <span className="text-red-500">*</span>}
-      </span>
+    <div className="flex flex-col gap-1.5">
+      <label className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1">
+        {label} {required && <span className="text-red-400 font-extrabold">*</span>}
+      </label>
       {children}
-    </label>
+    </div>
   );
 }
 
 export const inputCls =
-  "w-full bg-white/10 border border-white/15 rounded-xl px-3.5 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all";
+  "w-full bg-slate-950/90 border border-slate-600/80 rounded-xl px-4 py-2.5 text-sm text-slate-100 placeholder:text-slate-400 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-400 transition-all shadow-inner";
 
 export const btnPrimary =
-  "inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold px-4 py-2.5 rounded-xl transition-colors shadow-sm border border-blue-500/40 cursor-pointer disabled:opacity-50";
+  "inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-all shadow-lg shadow-blue-600/25 border border-blue-400/30 cursor-pointer disabled:opacity-50";
 export const btnGhost =
-  "inline-flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 text-slate-300 text-sm font-bold px-4 py-2.5 rounded-xl transition-colors border border-white/10 cursor-pointer disabled:opacity-50";
+  "inline-flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 active:bg-slate-800 text-slate-200 text-sm font-bold px-5 py-2.5 rounded-xl transition-all border border-slate-600/60 cursor-pointer disabled:opacity-50";
 
 export function EmptyState({ message }: { message: string }) {
   return (
-    <div className="p-12 text-center text-slate-500 text-sm font-medium">
+    <div className="p-12 text-center text-slate-400 text-sm font-medium">
       {message}
     </div>
   );
@@ -105,17 +105,21 @@ export function EmptyState({ message }: { message: string }) {
 
 export function Modal({ onClose, children, title }: { onClose: () => void; children: ReactNode; title?: string }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="glass-card w-full sm:w-[min(30rem,calc(100vw-2rem))] max-h-[92vh] border border-white/15 bg-slate-950/95 shadow-2xl rounded-t-2xl sm:rounded-2xl overflow-hidden flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-150">
+      <div className="w-full max-w-lg bg-slate-900 border border-slate-700/80 shadow-2xl rounded-2xl overflow-hidden flex flex-col max-h-[90vh]">
         {title && (
-          <div className="p-4 border-b border-white/10 flex items-center justify-between bg-white/[0.02] shrink-0">
-            <h3 className="text-base font-extrabold text-white">{title}</h3>
-            <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer">
+          <div className="px-6 py-4 border-b border-slate-700/80 flex items-center justify-between bg-slate-950/60 shrink-0">
+            <h3 className="text-base font-bold text-white tracking-wide">{title}</h3>
+            <button 
+              type="button" 
+              onClick={onClose} 
+              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer text-base font-bold"
+            >
               ✕
             </button>
           </div>
         )}
-        <div className="p-5 overflow-y-auto custom-scrollbar flex-1">{children}</div>
+        <div className="p-6 overflow-y-auto custom-scrollbar flex-1">{children}</div>
       </div>
     </div>
   );

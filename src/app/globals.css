@@ -75,11 +75,21 @@
   }
 
   .form-label {
-    @apply text-sm font-medium text-slate-300;
+    @apply text-sm font-semibold text-slate-200 tracking-wide;
   }
 
   .form-input, .form-textarea, .form-select {
-    @apply flex w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:border-transparent transition-all;
+    @apply flex w-full rounded-xl border border-slate-700 bg-slate-950 px-3.5 py-2.5 text-sm text-slate-100 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:border-transparent transition-all;
+  }
+
+  /* Garantir que controles nativos (date picker, selects, etc) usem dark mode legível */
+  input, select, textarea {
+    color-scheme: dark;
+  }
+
+  select option {
+    background-color: #0f172a; /* slate-900 */
+    color: #f8fafc; /* slate-50 */
   }
 
   /* Override Leaflet Popup with Solid High-Contrast Dark Card */
