@@ -105,8 +105,8 @@ export function EmptyState({ message }: { message: string }) {
 
 export function Modal({ onClose, children, title }: { onClose: () => void; children: ReactNode; title?: string }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-150">
-      <div className="w-full max-w-lg bg-slate-900 border border-slate-700/80 shadow-2xl rounded-2xl overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-150">
+      <div className="w-full max-w-lg bg-slate-900 border border-slate-700/80 shadow-2xl rounded-2xl overflow-hidden flex flex-col max-h-[90vh] relative z-10">
         {title && (
           <div className="px-6 py-4 border-b border-slate-700/80 flex items-center justify-between bg-slate-950/60 shrink-0">
             <h3 className="text-base font-bold text-white tracking-wide">{title}</h3>

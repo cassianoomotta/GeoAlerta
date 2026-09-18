@@ -45,27 +45,5 @@ export const floodZonesGeoJSON = {
   ]
 };
 
-export const shelters = [
-  {
-    id: '1',
-    name: "Ginásio Municipal de Esportes",
-    address: "Rua Exemplo, 123 - Centro",
-    capacity: 250,
-    occupied: 45,
-    lat: -29.8252,
-    lng: -50.5186,
-    phone: "(51) 3662-1234",
-    status: "Aberto"
-  },
-  {
-    id: '2',
-    name: "Escola Estadual Técnica",
-    address: "Av. Principal, 987 - Bairro Alto",
-    capacity: 400,
-    occupied: 120,
-    lat: -29.8150,
-    lng: -50.5280,
-    phone: "(51) 3662-5678",
-    status: "Aberto"
-  }
-];
+// Nota: Os abrigos agora são carregados dinamicamente do Supabase (tabela "shelters").
+// O array estático foi removido para evitar dados desatualizados no mapa.

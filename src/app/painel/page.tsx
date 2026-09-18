@@ -1,12 +1,14 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useState, useMemo, Suspense } from "react";
+import { useEffect, useState, useMemo, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { ShieldAlert, Flame, HardHat, HeartHandshake, X, MapPin, ExternalLink, RefreshCw, CheckCircle2, Layers } from "lucide-react";
+import { ShieldAlert, Flame, HardHat, HeartHandshake, X, MapPin, ExternalLink, RefreshCw, CheckCircle2, Layers, Radio, Boxes, Users } from "lucide-react";
 import { parseCoordinates, getGoogleMapsUrl, formatCoordinates } from "@/lib/geoUtils";
 import { formatOpenedAgo } from "@/lib/dateUtils";
+import { MUNICIPIO } from "@/modules/core/ui";
+import type { MapShelter, MapTeamLive, MapResource, MapVolunteerSummary } from "@/components/MapComponent";
 
 // Leaflet precisa ser carregado dinamicamente para evitar erro de 'window is not defined' no SSR
 const MapComponent = dynamic(() => import("@/components/MapComponent"), {
@@ -22,12 +24,27 @@ function PainelContent() {
   const searchParams = useSearchParams();
   const focusId = searchParams.get('focus');
 
+  // ---------- Estado: Ocorrências ----------
   const [occurrences, setOccurrences] = useState<any[]>([]);
   const [selectedFilter, setSelectedFilter] = useState<string>("TODOS");
   const [loading, setLoading] = useState(false);
   const [selectedOccurrence, setSelectedOccurrence] = useState<any | null>(null);
   const [updating, setUpdating] = useState(false);
   const [, setTimeTick] = useState(0);
+
+  // ---------- Estado: Dados dos módulos ----------
+  const [shelters, setShelters] = useState<MapShelter[]>([]);
+  const [liveTeams, setLiveTeams] = useState<MapTeamLive[]>([]);
+  const [resources, setResources] = useState<MapResource[]>([]);
+  const [volunteerSummary, setVolunteerSummary] = useState<MapVolunteerSummary>({ total: 0, available: 0, bySpecialty: [] });
+
+  // ---------- Estado: Visibilidade das camadas ----------
+  const [showOccurrences, setShowOccurrences] = useState(true);
+  const [showFloodZones, setShowFloodZones] = useState(true);
+  const [showShelters, setShowShelters] = useState(true);
+  const [showTeams, setShowTeams] = useState(true);
+  const [showResources, setShowResources] = useState(true);
+  const [showVolunteers, setShowVolunteers] = useState(true);
 
   // Atualiza o contador de tempo relativo periodicamente a cada 15 segundos
   useEffect(() => {
@@ -37,6 +54,7 @@ function PainelContent() {
     return () => clearInterval(timer);
   }, []);
 
+  // ---------- Fetch: Ocorrências ----------
   const fetchOccurrences = async () => {
     setLoading(true);
     const { data } = await supabase
@@ -50,10 +68,98 @@ function PainelContent() {
     setLoading(false);
   };
 
+  // ---------- Fetch: Abrigos (do Supabase) ----------
+  const fetchShelters = useCallback(async () => {
+    const { data } = await supabase
+      .from("shelters")
+      .select("id, name, type, address, lat, lng, capacity, occupied, phone, status")
+      .eq("municipio", MUNICIPIO)
+      .order("name");
+    if (data) setShelters(data);
+  }, []);
+
+  // ---------- Fetch: Equipes GPS (últimos 5 minutos) ----------
+  const fetchLiveTeams = useCallback(async () => {
+    const { data: locData } = await supabase
+      .from("team_locations")
+      .select("*")
+      .gte("sent_at", new Date(Date.now() - 5 * 60 * 1000).toISOString())
+      .order("sent_at", { ascending: true });
+
+    if (!locData) return;
+
+    // Buscar dados das equipes para enriquecer com órgão/tipo
+    const { data: teamsData } = await supabase
+      .from("teams")
+      .select("id, name, organ, type")
+      .eq("municipio", MUNICIPIO);
+
+    const teamMap = new Map<string, { organ: string; type: string }>();
+    (teamsData || []).forEach((t: any) => teamMap.set(t.id, { organ: t.organ, type: t.type }));
+
+    // Manter apenas a última localização por equipe
+    const latest = new Map<string, MapTeamLive>();
+    locData.forEach((row: any) => {
+      const teamInfo = teamMap.get(row.team_id);
+      latest.set(row.team_id, {
+        team_id: row.team_id,
+        team_name: row.team_name || row.member_name || "Equipe",
+        organ: teamInfo?.organ || "Defesa Civil",
+        type: teamInfo?.type,
+        lat: row.lat,
+        lng: row.lng,
+        accuracy: row.accuracy,
+        sent_at: row.sent_at,
+        member_name: row.member_name,
+      });
+    });
+    setLiveTeams(Array.from(latest.values()));
+  }, []);
+
+  // ---------- Fetch: Recursos ----------
+  const fetchResources = useCallback(async () => {
+    const { data } = await supabase
+      .from("resources")
+      .select("id, name, category, quantity, unit, status, shelter_id")
+      .eq("municipio", MUNICIPIO);
+    if (data) setResources(data);
+  }, []);
+
+  // ---------- Fetch: Voluntários (resumo agregado) ----------
+  const fetchVolunteers = useCallback(async () => {
+    const { data } = await supabase
+      .from("volunteers")
+      .select("specialty, available, status")
+      .eq("municipio", MUNICIPIO);
+
+    if (!data) return;
+
+    const total = data.length;
+    const available = data.filter((v: any) => v.available && v.status === "Ativo").length;
+
+    // Agrupar por especialidade (só ativos)
+    const specMap = new Map<string, number>();
+    data.filter((v: any) => v.available && v.status === "Ativo").forEach((v: any) => {
+      specMap.set(v.specialty, (specMap.get(v.specialty) || 0) + 1);
+    });
+
+    const bySpecialty = Array.from(specMap.entries())
+      .map(([specialty, count]) => ({ specialty, count }))
+      .sort((a, b) => b.count - a.count);
+
+    setVolunteerSummary({ total, available, bySpecialty });
+  }, []);
+
+  // ---------- Fetch inicial + Real-time ----------
   useEffect(() => {
     fetchOccurrences();
+    fetchShelters();
+    fetchLiveTeams();
+    fetchResources();
+    fetchVolunteers();
 
-    const channel = supabase
+    // Real-time: ocorrências
+    const occChannel = supabase
       .channel('public:occurrences:map')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'occurrences' }, (payload) => {
         setOccurrences((prev) => [payload.new, ...prev]);
@@ -64,10 +170,34 @@ function PainelContent() {
       })
       .subscribe();
 
+    // Real-time: equipes GPS (atualiza a cada insert)
+    const teamChannel = supabase
+      .channel('team-locations-map')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'team_locations' }, () => {
+        fetchLiveTeams();
+      })
+      .subscribe();
+
+    // Real-time: abrigos (ocupação pode mudar)
+    const shelterChannel = supabase
+      .channel('shelters-map')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'shelters' }, () => {
+        fetchShelters();
+      })
+      .subscribe();
+
+    // Heartbeat: atualizar GPS e recursos a cada 15s
+    const heartbeat = setInterval(() => {
+      fetchLiveTeams();
+    }, 15000);
+
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(occChannel);
+      supabase.removeChannel(teamChannel);
+      supabase.removeChannel(shelterChannel);
+      clearInterval(heartbeat);
     };
-  }, []);
+  }, [fetchShelters, fetchLiveTeams, fetchResources, fetchVolunteers]);
 
   useEffect(() => {
     if (focusId && occurrences.length > 0) {
@@ -80,10 +210,6 @@ function PainelContent() {
       }
     }
   }, [focusId, occurrences]);
-
-  const [showOccurrences, setShowOccurrences] = useState(true);
-  const [showFloodZones, setShowFloodZones] = useState(true);
-  const [showShelters, setShowShelters] = useState(true);
 
   // Filtragem inteligente por Órgão com mesmo peso
   const filteredOccurrences = useMemo(() => {
@@ -122,6 +248,18 @@ function PainelContent() {
     return getGoogleMapsUrl(coords);
   };
 
+  // Contadores rápidos
+  const liveTeamCount = liveTeams.length;
+
+  // ---------- Fetch all on refresh ----------
+  const refreshAll = () => {
+    fetchOccurrences();
+    fetchShelters();
+    fetchLiveTeams();
+    fetchResources();
+    fetchVolunteers();
+  };
+
   return (
     <div className="flex flex-col h-full gap-4 relative">
       
@@ -139,23 +277,36 @@ function PainelContent() {
         {/* Filtros Rápidos por Órgão e Camadas */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full md:w-auto">
           
-          <div className="glass-card flex items-center justify-between sm:justify-start gap-3 px-3 py-1.5 rounded-xl shrink-0">
-            <span className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1 tracking-wider">
+          {/* Controle de Camadas */}
+          <div className="glass-card flex items-center justify-between sm:justify-start gap-2.5 px-3 py-1.5 rounded-xl shrink-0 overflow-x-auto no-scrollbar">
+            <span className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1 tracking-wider shrink-0">
               <Layers size={12} /> Camadas
             </span>
-            <div className="flex items-center gap-2.5">
-              <label className="flex items-center gap-1.5 text-[11px] cursor-pointer text-slate-300 hover:text-white transition-colors font-medium">
-                <input type="checkbox" checked={showOccurrences} onChange={(e) => setShowOccurrences(e.target.checked)} className="accent-primary" /> Ocorrências
+            <div className="flex items-center gap-2">
+              <label className="flex items-center gap-1 text-[10px] cursor-pointer text-slate-300 hover:text-white transition-colors font-medium whitespace-nowrap">
+                <input type="checkbox" checked={showOccurrences} onChange={(e) => setShowOccurrences(e.target.checked)} className="accent-red-500 w-3 h-3" /> Ocorrências
               </label>
-              <label className="flex items-center gap-1.5 text-[11px] cursor-pointer text-slate-300 hover:text-white transition-colors font-medium">
-                <input type="checkbox" checked={showFloodZones} onChange={(e) => setShowFloodZones(e.target.checked)} className="accent-red-500" /> Manchas
+              <label className="flex items-center gap-1 text-[10px] cursor-pointer text-slate-300 hover:text-white transition-colors font-medium whitespace-nowrap">
+                <input type="checkbox" checked={showFloodZones} onChange={(e) => setShowFloodZones(e.target.checked)} className="accent-red-400 w-3 h-3" /> Manchas
               </label>
-              <label className="flex items-center gap-1.5 text-[11px] cursor-pointer text-slate-300 hover:text-white transition-colors font-medium">
-                <input type="checkbox" checked={showShelters} onChange={(e) => setShowShelters(e.target.checked)} className="accent-emerald-500" /> Abrigos
+              <label className="flex items-center gap-1 text-[10px] cursor-pointer text-slate-300 hover:text-white transition-colors font-medium whitespace-nowrap">
+                <input type="checkbox" checked={showShelters} onChange={(e) => setShowShelters(e.target.checked)} className="accent-emerald-500 w-3 h-3" /> Abrigos
+              </label>
+              <label className="flex items-center gap-1 text-[10px] cursor-pointer text-slate-300 hover:text-white transition-colors font-medium whitespace-nowrap">
+                <input type="checkbox" checked={showTeams} onChange={(e) => setShowTeams(e.target.checked)} className="accent-blue-500 w-3 h-3" /> 
+                Equipes
+                {liveTeamCount > 0 && <span className="text-[9px] bg-emerald-500/20 text-emerald-400 px-1 rounded-full font-bold">{liveTeamCount}</span>}
+              </label>
+              <label className="flex items-center gap-1 text-[10px] cursor-pointer text-slate-300 hover:text-white transition-colors font-medium whitespace-nowrap">
+                <input type="checkbox" checked={showResources} onChange={(e) => setShowResources(e.target.checked)} className="accent-amber-500 w-3 h-3" /> Recursos
+              </label>
+              <label className="flex items-center gap-1 text-[10px] cursor-pointer text-slate-300 hover:text-white transition-colors font-medium whitespace-nowrap">
+                <input type="checkbox" checked={showVolunteers} onChange={(e) => setShowVolunteers(e.target.checked)} className="accent-pink-500 w-3 h-3" /> Voluntários
               </label>
             </div>
           </div>
 
+          {/* Filtros de Órgão */}
           <div className="glass-card flex items-center gap-1.5 px-2 py-1.5 rounded-xl overflow-x-auto no-scrollbar w-full sm:w-auto">
             <button 
               onClick={() => setSelectedFilter("TODOS")}
@@ -195,8 +346,8 @@ function PainelContent() {
             <div className="w-[1px] h-6 bg-white/10 mx-1 shrink-0"></div>
 
             <button 
-              onClick={fetchOccurrences}
-              title="Atualizar dados"
+              onClick={refreshAll}
+              title="Atualizar todos os dados"
               className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors shrink-0"
             >
               <RefreshCw size={14} className={loading ? "animate-spin text-primary" : ""} />
@@ -213,6 +364,13 @@ function PainelContent() {
           showOccurrences={showOccurrences}
           showFloodZones={showFloodZones}
           showShelters={showShelters}
+          showTeams={showTeams}
+          showResources={showResources}
+          showVolunteers={showVolunteers}
+          shelters={shelters}
+          liveTeams={liveTeams}
+          resources={resources}
+          volunteerSummary={volunteerSummary}
         />
         
         {/* Backdrop para fechar no mobile */}
@@ -352,4 +510,3 @@ export default function PainelPage() {
     </Suspense>
   );
 }
-

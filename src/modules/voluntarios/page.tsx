@@ -2,13 +2,15 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
-import { Plus, Trash2, HeartHandshake, Truck, Users, PhoneCall, Stethoscope } from "lucide-react";
-import { PageHeader, Card, Badge, StatCard, Field, inputCls, btnPrimary, btnGhost, EmptyState, Modal } from "@/modules/core/ui";
+import { Plus, Trash2, HeartHandshake, Truck, Users, PhoneCall, Stethoscope, Download } from "lucide-react";
+import { PageHeader, Card, Badge, StatCard, Field, inputCls, btnPrimary, btnGhost, EmptyState, Modal, fmtDate } from "@/modules/core/ui";
 import { MUNICIPIO } from "@/modules/core/ui";
+import { downloadCSV } from "@/lib/csvUtils";
 
 interface Volunteer {
   id: string; full_name: string; specialty: string; phone: string | null; email: string | null;
   vehicle: string | null; capacity: string | null; available: boolean; status: string; notes: string | null;
+  created_at: string;
 }
 
 const SPECIALTIES = ["Jipeiro", "Saúde", "Logística", "Barco/Embarcação", "Cozinha", "Motorista", "Comunicação", "Bombeiro Civil", "Outros"];
@@ -51,6 +53,43 @@ export default function VoluntariosPage() {
   const del = async (id: string) => { if (!confirm("Excluir este voluntário?")) return; await supabase.from("volunteers").delete().eq("id", id); fetchAll(); };
   const toggleAvailable = async (v: Volunteer) => { await supabase.from("volunteers").update({ available: !v.available }).eq("id", v.id); fetchAll(); };
 
+  const exportCSV = () => {
+    if (volunteers.length === 0) {
+      alert("Não há voluntários cadastrados para exportar.");
+      return;
+    }
+
+    const headers = [
+      "ID",
+      "Nome Completo",
+      "Especialidade",
+      "Telefone",
+      "E-mail",
+      "Veículo",
+      "Capacidade do Veículo",
+      "Disponibilidade Imediata",
+      "Status Operacional",
+      "Observações",
+      "Data de Cadastro"
+    ];
+
+    const rows = volunteers.map((v) => [
+      v.id,
+      v.full_name,
+      v.specialty,
+      v.phone || "—",
+      v.email || "—",
+      v.vehicle || "—",
+      v.capacity || "—",
+      v.available ? "Disponível" : "Indisponível",
+      v.status,
+      v.notes || "",
+      fmtDate(v.created_at)
+    ]);
+
+    downloadCSV(`geoalerta_voluntarios_${new Date().toISOString().slice(0, 10)}`, headers, rows);
+  };
+
   const availableCount = volunteers.filter((v) => v.available && v.status === "Ativo").length;
   const jipeiros = volunteers.filter((v) => v.specialty === "Jipeiro").length;
   const saude = volunteers.filter((v) => v.specialty === "Saúde").length;
@@ -61,7 +100,16 @@ export default function VoluntariosPage() {
       <PageHeader
         title="Controle de Voluntários"
         subtitle="Jipeiros, equipes de saúde, embarcações e apoio logístico"
-        action={<button onClick={() => { setEditingId(null); reset(); setShowForm(true); }} className={btnPrimary}><Plus size={16} /> Novo Voluntário</button>}
+        action={
+          <div className="flex items-center gap-2">
+            <button onClick={exportCSV} className={btnGhost} title="Exportar planilha CSV dos voluntários">
+              <Download size={15} /> Exportar CSV
+            </button>
+            <button onClick={() => { setEditingId(null); reset(); setShowForm(true); }} className={btnPrimary}>
+              <Plus size={16} /> Novo Voluntário
+            </button>
+          </div>
+        }
       />
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

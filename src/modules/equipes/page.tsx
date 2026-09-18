@@ -3,9 +3,10 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import dynamic from "next/dynamic";
 import { supabase } from "@/lib/supabase";
-import { ShieldAlert, Flame, HardHat, Plus, Trash2, LocateFixed, Radio, Users, Truck, Satellite } from "lucide-react";
-import { PageHeader, Card, Badge, StatCard, Field, inputCls, btnPrimary, btnGhost, EmptyState, Modal } from "@/modules/core/ui";
+import { ShieldAlert, Flame, HardHat, Plus, Trash2, LocateFixed, Radio, Users, Truck, Satellite, Download } from "lucide-react";
+import { PageHeader, Card, Badge, StatCard, Field, inputCls, btnPrimary, btnGhost, EmptyState, Modal, fmtDate } from "@/modules/core/ui";
 import { MUNICIPIO } from "@/modules/core/ui";
+import { downloadCSV } from "@/lib/csvUtils";
 
 // Leaflet só em client
 const TeamMap = dynamic(() => import("./TeamMap").then((m) => m.TeamMap), { ssr: false, loading: () => <div className="h-72 flex items-center justify-center text-slate-500 text-sm">Carregando mapa das equipes...</div> });
@@ -114,6 +115,55 @@ export default function EquipesPage() {
   };
   const delMember = async (mid: string) => { await supabase.from("team_members").delete().eq("id", mid); openMembers(showMembers!); };
 
+  const exportCSV = async () => {
+    if (teams.length === 0) {
+      alert("Não há equipes cadastradas para exportar.");
+      return;
+    }
+
+    const { data: allMembers } = await supabase
+      .from("team_members")
+      .select("team_id, full_name, role");
+
+    const membersByTeam: Record<string, string[]> = {};
+    (allMembers || []).forEach((m) => {
+      if (!membersByTeam[m.team_id]) membersByTeam[m.team_id] = [];
+      membersByTeam[m.team_id].push(`${m.full_name} (${m.role})`);
+    });
+
+    const headers = [
+      "ID",
+      "Nome da Equipe",
+      "Órgão",
+      "Tipo de Atuação",
+      "Líder / Responsável",
+      "Telefone",
+      "Veículo / Prefixo",
+      "Capacidade e Equipamentos",
+      "Status",
+      "Total de Integrantes",
+      "Lista de Membros",
+      "Data de Criação"
+    ];
+
+    const rows = teams.map((t) => [
+      t.id,
+      t.name,
+      t.organ,
+      t.type,
+      t.leader || "—",
+      t.phone || "—",
+      t.vehicle || "—",
+      t.capacity || "—",
+      t.status,
+      membersByTeam[t.id]?.length || 0,
+      (membersByTeam[t.id] || []).join(", ") || "Nenhum membro",
+      fmtDate(t.created_at)
+    ]);
+
+    downloadCSV(`geoalerta_equipes_campo_${new Date().toISOString().slice(0, 10)}`, headers, rows);
+  };
+
   const tone = (org: string) => (ORGAN_TONE[org] || "slate") as "amber" | "red" | "blue" | "fuchsia" | "emerald" | "slate";
   const liveCount = live.filter((p) => new Date(p.sent_at).getTime() > now - 5 * 60 * 1000).length;
 
@@ -122,7 +172,16 @@ export default function EquipesPage() {
       <PageHeader
         title="Equipes de Resgate"
         subtitle="Equipes, membros e geolocalização em tempo real (GPS dos agentes)"
-        action={<button onClick={() => { setEditingTeam(null); resetTeam(); setShowTeamForm(true); }} className={btnPrimary}><Plus size={16} /> Nova Equipe</button>}
+        action={
+          <div className="flex items-center gap-2">
+            <button onClick={exportCSV} className={btnGhost} title="Exportar planilha CSV das equipes">
+              <Download size={15} /> Exportar CSV
+            </button>
+            <button onClick={() => { setEditingTeam(null); resetTeam(); setShowTeamForm(true); }} className={btnPrimary}>
+              <Plus size={16} /> Nova Equipe
+            </button>
+          </div>
+        }
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
@@ -140,7 +199,7 @@ export default function EquipesPage() {
           </span>
           {liveCount > 0 && <Badge tone="green"><span className="animate-pulse">●</span> {liveCount} transmitindo</Badge>}
         </div>
-        <div className="h-72 rounded-xl overflow-hidden">
+        <div className="h-72 rounded-xl overflow-hidden relative z-0 isolate">
           <TeamMap teams={teams} live={live} />
         </div>
         {liveCount === 0 && <p className="text-[11px] text-slate-500 mt-2">Nenhum agente transmitindo localização agora. Para ativar, clique em &quot;Compartilhar GPS&quot; em uma equipe no dispositivo do agente.</p>}

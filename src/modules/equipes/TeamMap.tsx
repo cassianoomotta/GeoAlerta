@@ -38,7 +38,7 @@ export function TeamMap({ teams, live }: { teams: TeamForMap[]; live: LivePoint[
       center={[-29.8252, -50.5186]}
       zoom={13}
       ref={mapRef}
-      style={{ height: "100%", width: "100%" }}
+      style={{ height: "100%", width: "100%", zIndex: 0 }}
     >
       <style>{`@keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.35)}100%{transform:scale(1)}}`}</style>
       <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
