@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap, GeoJSON } from 'react-leaflet';
+import { useRef, useEffect, useMemo } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, useMap, GeoJSON, Polyline } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -10,6 +10,7 @@ import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import { floodZonesGeoJSON } from '@/data/geo';
 import { parseCoordinates } from '@/lib/geoUtils';
 import { formatTimeAgo } from '@/lib/dateUtils';
+import { generateDynamicFloodZones } from '@/lib/autoFloodZones';
 import {
   occurrenceIcon,
   shelterIcon,
@@ -43,6 +44,8 @@ export interface MapTeamLive {
   sent_at: string;
   member_name?: string;
   type?: string;
+  phone?: string | null;
+  status?: string;
 }
 
 export interface MapResource {
@@ -101,6 +104,8 @@ export default function MapComponent({
   onMarkerClick,
   showOccurrences = true,
   showFloodZones = true,
+  showAutoFloodZones = true,
+  autoFloodRadius = 150,
   showShelters = true,
   showTeams = true,
   showResources = true,
@@ -110,11 +115,14 @@ export default function MapComponent({
   liveTeams = [],
   resources = [],
   volunteerSummary,
+  dispatchVector,
 }: { 
   occurrences: any[];
   onMarkerClick?: (occ: any) => void;
   showOccurrences?: boolean;
   showFloodZones?: boolean;
+  showAutoFloodZones?: boolean;
+  autoFloodRadius?: number;
   showShelters?: boolean;
   showTeams?: boolean;
   showResources?: boolean;
@@ -123,8 +131,19 @@ export default function MapComponent({
   liveTeams?: MapTeamLive[];
   resources?: MapResource[];
   volunteerSummary?: MapVolunteerSummary;
+  dispatchVector?: { from: [number, number]; to: [number, number]; teamName: string; distanceKm: number } | null;
 }) {
   const markerRefs = useRef<{[key: string]: L.Marker}>({});
+
+  // Cálculo da Mancha de Inundação Dinâmica em tempo real via Turf.js
+  const dynamicFloodZones = useMemo(() => {
+    if (!showAutoFloodZones) return null;
+    return generateDynamicFloodZones(occurrences, {
+      bufferRadiusMeters: autoFloodRadius,
+      varyBySeverity: true,
+      onlyActive: true,
+    });
+  }, [occurrences, showAutoFloodZones, autoFloodRadius]);
 
   const geoJsonStyle = (feature: any) => {
     return {
@@ -134,6 +153,18 @@ export default function MapComponent({
       color: feature?.properties?.color || '#ef4444',
       dashArray: '3',
       fillOpacity: 0.3
+    };
+  };
+
+  // Estilo moderno de alta visibilidade para manchas automáticas estimadas por IA/chamados
+  const dynamicZoneStyle = () => {
+    return {
+      fillColor: '#0284c7', // Sky blue vibrante
+      weight: 2.5,
+      opacity: 0.9,
+      color: '#38bdf8', // Cyan luminoso
+      dashArray: '6, 6',
+      fillOpacity: 0.32,
     };
   };
 
@@ -163,17 +194,69 @@ export default function MapComponent({
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         
-        {/* ===== CAMADA 1: Manchas de Inundação (GeoJSON) ===== */}
+        {/* ===== CAMADA 1: Manchas de Inundação Oficiais (GeoJSON) ===== */}
         {showFloodZones && (
           <GeoJSON 
             data={floodZonesGeoJSON as any} 
             style={geoJsonStyle}
             onEachFeature={(feature, layer) => {
               if (feature.properties && feature.properties.name) {
-                layer.bindPopup(`<strong style="color: #0f172a">${feature.properties.name}</strong><br/><span style="color: #64748b">Risco: ${feature.properties.riskLevel}</span>`);
+                layer.bindPopup(`<strong style="color: #0f172a">${feature.properties.name}</strong><br/><span style="color: #64748b">Risco Oficial: ${feature.properties.riskLevel}</span>`);
               }
             }}
           />
+        )}
+
+        {/* ===== CAMADA 1B: Mancha Dinâmica (IA / Ocorrências via Turf.js) ===== */}
+        {showAutoFloodZones && dynamicFloodZones?.geoJson && (
+          <GeoJSON 
+            key={`dynamic-flood-zone-${dynamicFloodZones.lastUpdated}-${dynamicFloodZones.totalOccurrences}`}
+            data={dynamicFloodZones.geoJson} 
+            style={dynamicZoneStyle}
+            onEachFeature={(feature, layer) => {
+              const props = feature?.properties || {};
+              layer.bindPopup(`
+                <div style="min-width: 220px; font-family: system-ui, -apple-system, sans-serif; color: #0f172a; padding: 2px;">
+                  <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+                    <span style="font-size: 16px;">🌊</span>
+                    <strong style="color: #0284c7; font-size: 13px;">Mancha Dinâmica (IA)</strong>
+                  </div>
+                  <div style="font-size: 11px; color: #64748b; margin-bottom: 8px; line-height: 1.35;">
+                    Polígono estimado automaticamente pela fusão contínua de chamados de alagamento da população.
+                  </div>
+                  <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 6px 10px; font-size: 11px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                      <span style="color: #0369a1;">Chamados fundidos:</span>
+                      <strong style="color: #0c4a6e;">${props.occurrencesCount || 0} ocorrências</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                      <span style="color: #0369a1;">Área inundada estimada:</span>
+                      <strong style="color: #0c4a6e;">~${props.estimatedAreaHectares || 0} ha</strong>
+                    </div>
+                  </div>
+                </div>
+              `);
+            }}
+          />
+        )}
+
+        {/* ===== CAMADA TÁTICA: Vetor de Despacho (Linha Ocorrência ↔ Equipe Recomendada) ===== */}
+        {dispatchVector && (
+          <Polyline
+            positions={[dispatchVector.from, dispatchVector.to]}
+            pathOptions={{
+              color: '#38bdf8', // Cyan luminoso
+              weight: 3.5,
+              dashArray: '8, 8',
+              opacity: 0.9,
+            }}
+          >
+            <Popup className="dark-popup">
+              <div className="text-xs font-bold text-white p-1">
+                🚒 Vetor Tático: {dispatchVector.teamName} • {dispatchVector.distanceKm.toLocaleString('pt-BR')} km
+              </div>
+            </Popup>
+          </Polyline>
         )}
 
         {/* ===== CAMADA 2: Abrigos (do Supabase, dinâmicos) ===== */}
@@ -369,6 +452,24 @@ export default function MapComponent({
                 <span className="text-white font-bold">{s.count}</span>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* ===== BADGE FLUTUANTE: Mancha Dinâmica Ativa ===== */}
+      {showAutoFloodZones && dynamicFloodZones && dynamicFloodZones.totalOccurrences > 0 && (
+        <div 
+          className="absolute top-4 right-4 z-[400] glass-card rounded-xl px-3 py-2 shadow-2xl border border-sky-500/30 backdrop-blur-xl bg-slate-900/90 text-white max-w-[240px] pointer-events-auto"
+        >
+          <div className="flex items-center gap-2 mb-1">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-sky-500"></span>
+            </span>
+            <span className="text-[10px] font-bold text-sky-400 uppercase tracking-wider">Mancha Dinâmica (IA)</span>
+          </div>
+          <div className="text-[11px] text-slate-300">
+            <span className="font-bold text-white">{dynamicFloodZones.totalOccurrences}</span> chamados ativos gerando <span className="font-bold text-sky-300">~{dynamicFloodZones.estimatedAreaHectares} ha</span> de área estimada.
           </div>
         </div>
       )}

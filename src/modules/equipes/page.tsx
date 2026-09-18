@@ -49,7 +49,10 @@ export default function EquipesPage() {
 
   // Heartbeat: última localização por equipe, atualizada a cada 10s + realtime
   const fetchLive = useCallback(async () => {
-    const { data } = await supabase.from("team_locations").select("*").gte("sent_at", new Date(Date.now() - 5 * 60 * 1000).toISOString()).order("sent_at", { ascending: true });
+    const { data } = await supabase
+      .from("team_locations")
+      .select("*")
+      .order("sent_at", { ascending: true });
     if (!data) return;
     const latest = new Map<string, LivePoint>();
     data.forEach((row: any) => {
@@ -104,6 +107,15 @@ export default function EquipesPage() {
   const resetTeam = () => { setName(""); setOrgan(ORGANS[0]); setType(TYPES[0]); setLeader(""); setPhone(""); setVehicle(""); setCapacity(""); setStatus(STATUSES[0]); };
   const openEdit = (t: Team) => { setEditingTeam(t); setName(t.name); setOrgan(t.organ); setType(t.type); setLeader(t.leader || ""); setPhone(t.phone || ""); setVehicle(t.vehicle || ""); setCapacity(t.capacity || ""); setStatus(t.status); setShowTeamForm(true); };
   const delTeam = async (id: string) => { if (!confirm("Excluir esta equipe?")) return; await supabase.from("teams").delete().eq("id", id); fetchTeams(); };
+
+  const updateTeamStatus = async (teamId: string, newStatus: string) => {
+    const { error } = await supabase.from("teams").update({ status: newStatus }).eq("id", teamId);
+    if (!error) {
+      setTeams((prev) => prev.map((t) => (t.id === teamId ? { ...t, status: newStatus } : t)));
+    } else {
+      alert("Erro ao atualizar status da equipe.");
+    }
+  };
 
   const openMembers = async (t: Team) => { setShowMembers(t); const { data } = await supabase.from("team_members").select("*").eq("team_id", t.id).order("full_name"); setMembers(data || []); };
   const submitMember = async (e: React.FormEvent) => {
@@ -165,7 +177,7 @@ export default function EquipesPage() {
   };
 
   const tone = (org: string) => (ORGAN_TONE[org] || "slate") as "amber" | "red" | "blue" | "fuchsia" | "emerald" | "slate";
-  const liveCount = live.filter((p) => new Date(p.sent_at).getTime() > now - 5 * 60 * 1000).length;
+  const liveCount = live.length;
 
   return (
     <div className="flex flex-col gap-5">
@@ -240,7 +252,25 @@ export default function EquipesPage() {
                 </div>
 
                 <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/5 gap-2">
-                  <Badge tone={t.status === "Disponível" ? "green" : t.status === "Em missão" ? "amber" : "slate"}>{t.status}</Badge>
+                  <div className="relative inline-flex items-center">
+                    <select
+                      value={t.status}
+                      onChange={(e) => updateTeamStatus(t.id, e.target.value)}
+                      className={`text-xs font-bold px-2.5 py-1 rounded-lg border appearance-none pr-6 cursor-pointer outline-none transition-all ${
+                        t.status === "Disponível"
+                          ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/20"
+                          : t.status === "Em missão"
+                          ? "bg-amber-500/10 text-amber-300 border-amber-500/30 hover:bg-amber-500/20"
+                          : "bg-slate-500/10 text-slate-300 border-slate-500/30 hover:bg-slate-500/20"
+                      }`}
+                      title="Clique para alterar status operacional"
+                    >
+                      <option value="Disponível" className="bg-slate-900 text-white">● Disponível</option>
+                      <option value="Em missão" className="bg-slate-900 text-white">● Em missão</option>
+                      <option value="Indisponível" className="bg-slate-900 text-white">● Indisponível</option>
+                    </select>
+                    <span className="absolute right-2 text-[9px] text-slate-400 pointer-events-none">▼</span>
+                  </div>
                   <div className="flex items-center gap-2">
                     <button 
                       onClick={() => {

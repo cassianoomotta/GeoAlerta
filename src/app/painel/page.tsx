@@ -4,10 +4,12 @@ import dynamic from "next/dynamic";
 import { useEffect, useState, useMemo, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { ShieldAlert, Flame, HardHat, HeartHandshake, X, MapPin, ExternalLink, RefreshCw, CheckCircle2, Layers, Radio, Boxes, Users } from "lucide-react";
-import { parseCoordinates, getGoogleMapsUrl, formatCoordinates } from "@/lib/geoUtils";
+import { ShieldAlert, Flame, HardHat, HeartHandshake, X, MapPin, ExternalLink, RefreshCw, CheckCircle2, Layers, Radio, Boxes, Users, AlertOctagon, Check, PhoneCall, Target } from "lucide-react";
+import { parseCoordinates, getGoogleMapsUrl, formatCoordinates, findClosestEntity } from "@/lib/geoUtils";
 import { formatOpenedAgo } from "@/lib/dateUtils";
 import { MUNICIPIO } from "@/modules/core/ui";
+import { floodZonesGeoJSON } from "@/data/geo";
+import { findSmartRecommendedTeam, checkOccurrenceInRiskZone } from "@/lib/dispatchIntelligence";
 import type { MapShelter, MapTeamLive, MapResource, MapVolunteerSummary } from "@/components/MapComponent";
 
 // Leaflet precisa ser carregado dinamicamente para evitar erro de 'window is not defined' no SSR
@@ -19,6 +21,15 @@ const MapComponent = dynamic(() => import("@/components/MapComponent"), {
     </div>
   )
 });
+
+export const ORGAN_DEFAULT_BASES: Record<string, { lat: number; lng: number }> = {
+  "Defesa Civil": { lat: -29.8285, lng: -50.5192 },
+  "Bombeiros": { lat: -29.8214, lng: -50.5140 },
+  "Obras": { lat: -29.8320, lng: -50.5230 },
+  "Assistência Social": { lat: -29.8260, lng: -50.5165 },
+  "Saúde": { lat: -29.8270, lng: -50.5150 },
+  "Polícia": { lat: -29.8240, lng: -50.5210 },
+};
 
 function PainelContent() {
   const searchParams = useSearchParams();
@@ -32,6 +43,10 @@ function PainelContent() {
   const [updating, setUpdating] = useState(false);
   const [, setTimeTick] = useState(0);
 
+  // Estados de Despacho e Apoio
+  const [showSupportSelector, setShowSupportSelector] = useState(false);
+  const [realtimeAlert, setRealtimeAlert] = useState<any | null>(null);
+
   // ---------- Estado: Dados dos módulos ----------
   const [shelters, setShelters] = useState<MapShelter[]>([]);
   const [liveTeams, setLiveTeams] = useState<MapTeamLive[]>([]);
@@ -41,6 +56,7 @@ function PainelContent() {
   // ---------- Estado: Visibilidade das camadas ----------
   const [showOccurrences, setShowOccurrences] = useState(true);
   const [showFloodZones, setShowFloodZones] = useState(true);
+  const [showAutoFloodZones, setShowAutoFloodZones] = useState(true);
   const [showShelters, setShowShelters] = useState(true);
   const [showTeams, setShowTeams] = useState(true);
   const [showResources, setShowResources] = useState(true);
@@ -78,42 +94,140 @@ function PainelContent() {
     if (data) setShelters(data);
   }, []);
 
-  // ---------- Fetch: Equipes GPS (últimos 5 minutos) ----------
+  // ---------- Fetch: Equipes GPS (Sempre visíveis no mapa, sem sumir) ----------
   const fetchLiveTeams = useCallback(async () => {
+    // 1. Buscar equipes cadastradas no município
+    const { data: teamsData } = await supabase
+      .from("teams")
+      .select("id, name, organ, type, phone, leader, status")
+      .eq("municipio", MUNICIPIO)
+      .order("name");
+
+    // 2. Buscar últimas posições enviadas pelos agentes (sem corte de 5min)
     const { data: locData } = await supabase
       .from("team_locations")
       .select("*")
-      .gte("sent_at", new Date(Date.now() - 5 * 60 * 1000).toISOString())
-      .order("sent_at", { ascending: true });
+      .order("sent_at", { ascending: false });
 
-    if (!locData) return;
-
-    // Buscar dados das equipes para enriquecer com órgão/tipo
-    const { data: teamsData } = await supabase
-      .from("teams")
-      .select("id, name, organ, type")
-      .eq("municipio", MUNICIPIO);
-
-    const teamMap = new Map<string, { organ: string; type: string }>();
-    (teamsData || []).forEach((t: any) => teamMap.set(t.id, { organ: t.organ, type: t.type }));
-
-    // Manter apenas a última localização por equipe
-    const latest = new Map<string, MapTeamLive>();
-    locData.forEach((row: any) => {
-      const teamInfo = teamMap.get(row.team_id);
-      latest.set(row.team_id, {
-        team_id: row.team_id,
-        team_name: row.team_name || row.member_name || "Equipe",
-        organ: teamInfo?.organ || "Defesa Civil",
-        type: teamInfo?.type,
-        lat: row.lat,
-        lng: row.lng,
-        accuracy: row.accuracy,
-        sent_at: row.sent_at,
-        member_name: row.member_name,
-      });
+    // Guardar a coordenada mais recente de cada equipe
+    const latestLocMap = new Map<string, any>();
+    (locData || []).forEach((loc: any) => {
+      if (!latestLocMap.has(loc.team_id)) {
+        latestLocMap.set(loc.team_id, loc);
+      }
     });
-    setLiveTeams(Array.from(latest.values()));
+
+    const teamList: MapTeamLive[] = [];
+
+    // Se houver equipes cadastradas no banco:
+    if (teamsData && teamsData.length > 0) {
+      teamsData.forEach((t: any) => {
+        const loc = latestLocMap.get(t.id);
+        if (loc) {
+          teamList.push({
+            team_id: t.id,
+            team_name: t.name,
+            organ: t.organ || "Defesa Civil",
+            type: t.type,
+            lat: loc.lat,
+            lng: loc.lng,
+            accuracy: loc.accuracy,
+            sent_at: loc.sent_at,
+            member_name: loc.member_name || t.leader,
+            phone: t.phone,
+            status: t.status,
+          });
+        } else {
+          // Equipe cadastrada que ainda não transmitiu GPS: posicionar na Base Operacional para NUNCA sumir do mapa
+          const base = ORGAN_DEFAULT_BASES[t.organ] || { lat: -29.8252, lng: -50.5186 };
+          teamList.push({
+            team_id: t.id,
+            team_name: t.name,
+            organ: t.organ || "Defesa Civil",
+            type: t.type,
+            lat: base.lat,
+            lng: base.lng,
+            accuracy: 0,
+            sent_at: new Date().toISOString(),
+            member_name: t.leader || "Base Operacional",
+            phone: t.phone,
+            status: t.status,
+          });
+        }
+      });
+    } else {
+      // Se não houver equipes no banco ainda, carregar equipes operacionais base para garantir visibilidade permanente no mapa
+      const DEFAULT_BASES_LIST: MapTeamLive[] = [
+        {
+          team_id: "defesa-civil-alfa",
+          team_name: "Defesa Civil - Equipe Alfa",
+          organ: "Defesa Civil",
+          type: "Resgate e Monitoramento",
+          lat: -29.8285,
+          lng: -50.5192,
+          accuracy: 10,
+          sent_at: new Date().toISOString(),
+          member_name: "Coord. Operacional",
+          status: "Disponível",
+        },
+        {
+          team_id: "bombeiros-bravo",
+          team_name: "Corpo de Bombeiros - Viatura 01",
+          organ: "Bombeiros",
+          type: "Socorro e Busca",
+          lat: -29.8214,
+          lng: -50.5140,
+          accuracy: 8,
+          sent_at: new Date().toISOString(),
+          member_name: "Sgt. Silva",
+          status: "Disponível",
+        },
+        {
+          team_id: "obras-desobstrucao",
+          team_name: "Obras - Equipe Desobstrução",
+          organ: "Obras",
+          type: "Desobstrução e Drenagem",
+          lat: -29.8320,
+          lng: -50.5230,
+          accuracy: 15,
+          sent_at: new Date().toISOString(),
+          member_name: "Plantão Obras",
+          status: "Disponível",
+        },
+        {
+          team_id: "social-acolhimento",
+          team_name: "Assistência Social - Acolhimento",
+          organ: "Assistência Social",
+          type: "Apoio e Abrigo",
+          lat: -29.8260,
+          lng: -50.5165,
+          accuracy: 12,
+          sent_at: new Date().toISOString(),
+          member_name: "Plantão CRAS",
+          status: "Disponível",
+        },
+      ];
+
+      // Mesclar posições avulsas caso existam em team_locations
+      latestLocMap.forEach((loc: any) => {
+        teamList.push({
+          team_id: loc.team_id,
+          team_name: loc.team_name || "Equipe",
+          organ: "Defesa Civil",
+          lat: loc.lat,
+          lng: loc.lng,
+          accuracy: loc.accuracy,
+          sent_at: loc.sent_at,
+          member_name: loc.member_name,
+        });
+      });
+
+      if (teamList.length === 0) {
+        teamList.push(...DEFAULT_BASES_LIST);
+      }
+    }
+
+    setLiveTeams(teamList);
   }, []);
 
   // ---------- Fetch: Recursos ----------
@@ -162,7 +276,9 @@ function PainelContent() {
     const occChannel = supabase
       .channel('public:occurrences:map')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'occurrences' }, (payload) => {
-        setOccurrences((prev) => [payload.new, ...prev]);
+        const newOcc = payload.new;
+        setOccurrences((prev) => [newOcc, ...prev]);
+        setRealtimeAlert(newOcc);
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'occurrences' }, (payload) => {
         setOccurrences((prev) => prev.map(o => o.id === payload.new.id ? payload.new : o));
@@ -235,6 +351,8 @@ function PainelContent() {
       const { error } = await supabase.from('occurrences').update(updates).eq('id', id);
       if (error) throw error;
       // Interface atualiza via real-time (postgres_changes)
+      setOccurrences(prev => prev.map(o => o.id === id ? { ...o, ...updates } : o));
+      setSelectedOccurrence((prev: any) => (prev && prev.id === id ? { ...prev, ...updates } : prev));
     } catch (e) {
       console.error(e);
       alert("Erro ao atualizar ocorrência. Verifique permissões (RLS).");
@@ -247,6 +365,43 @@ function PainelContent() {
     const coords = parseCoordinates(location);
     return getGoogleMapsUrl(coords);
   };
+
+  // Identificar coordenadas do chamado selecionado e calcular a equipe recomendada via inteligência de despacho
+  const occurrenceCoords = useMemo(() => {
+    if (!selectedOccurrence) return null;
+    return parseCoordinates(selectedOccurrence.location);
+  }, [selectedOccurrence]);
+
+  // Alocação Inteligente: cruza tipo de chamado, especialidade do órgão, status de disponibilidade e menor distância
+  const recommendedTeam = useMemo(() => {
+    if (!occurrenceCoords || liveTeams.length === 0) return null;
+    return findSmartRecommendedTeam(occurrenceCoords, selectedOccurrence?.type, liveTeams);
+  }, [occurrenceCoords, selectedOccurrence?.type, liveTeams]);
+
+  // Vetor Tático de Resposta (desenha a linha visual no mapa conectando o chamado à viatura)
+  const dispatchVector = useMemo(() => {
+    if (!occurrenceCoords || !recommendedTeam || !recommendedTeam.team.lat || !recommendedTeam.team.lng) return null;
+    return {
+      from: [occurrenceCoords.lat, occurrenceCoords.lng] as [number, number],
+      to: [recommendedTeam.team.lat, recommendedTeam.team.lng] as [number, number],
+      teamName: recommendedTeam.team.team_name,
+      distanceKm: recommendedTeam.distanceKm,
+    };
+  }, [occurrenceCoords, recommendedTeam]);
+
+  // Verificação Point-in-Polygon: alerta se o chamado caiu dentro de uma mancha de inundação ativa
+  const riskZoneCheck = useMemo(() => {
+    if (!occurrenceCoords) return null;
+    return checkOccurrenceInRiskZone(occurrenceCoords, floodZonesGeoJSON);
+  }, [occurrenceCoords]);
+
+  // Equipe recomendada para o chamado em tempo real
+  const realtimeAlertClosest = useMemo(() => {
+    if (!realtimeAlert) return null;
+    const coords = parseCoordinates(realtimeAlert.location);
+    if (!coords || liveTeams.length === 0) return null;
+    return findSmartRecommendedTeam(coords, realtimeAlert?.type, liveTeams);
+  }, [realtimeAlert, liveTeams]);
 
   // Contadores rápidos
   const liveTeamCount = liveTeams.length;
@@ -287,7 +442,12 @@ function PainelContent() {
                 <input type="checkbox" checked={showOccurrences} onChange={(e) => setShowOccurrences(e.target.checked)} className="accent-red-500 w-3 h-3" /> Ocorrências
               </label>
               <label className="flex items-center gap-1 text-[10px] cursor-pointer text-slate-300 hover:text-white transition-colors font-medium whitespace-nowrap">
-                <input type="checkbox" checked={showFloodZones} onChange={(e) => setShowFloodZones(e.target.checked)} className="accent-red-400 w-3 h-3" /> Manchas
+                <input type="checkbox" checked={showFloodZones} onChange={(e) => setShowFloodZones(e.target.checked)} className="accent-red-400 w-3 h-3" /> Manchas Oficiais
+              </label>
+              <label className="flex items-center gap-1.5 text-[10px] cursor-pointer text-sky-300 hover:text-white transition-colors font-medium whitespace-nowrap">
+                <input type="checkbox" checked={showAutoFloodZones} onChange={(e) => setShowAutoFloodZones(e.target.checked)} className="accent-sky-400 w-3 h-3" /> 
+                <span>Mancha IA</span>
+                <span className="text-[9px] bg-sky-500/20 text-sky-300 border border-sky-500/30 px-1 rounded-full font-bold">Auto</span>
               </label>
               <label className="flex items-center gap-1 text-[10px] cursor-pointer text-slate-300 hover:text-white transition-colors font-medium whitespace-nowrap">
                 <input type="checkbox" checked={showShelters} onChange={(e) => setShowShelters(e.target.checked)} className="accent-emerald-500 w-3 h-3" /> Abrigos
@@ -358,11 +518,51 @@ function PainelContent() {
 
       {/* Container do Mapa Tático */}
       <div className="glass-card flex-1 min-h-[300px] p-1 overflow-hidden relative group rounded-2xl">
+        {/* Banner de Alerta em Tempo Real quando nova ocorrência entra */}
+        {realtimeAlert && (
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[500] glass-card px-4 py-3 rounded-2xl shadow-2xl border border-red-500/50 bg-slate-900/95 flex items-center gap-3 animate-in slide-in-from-top duration-300 max-w-lg w-[92%]">
+            <div className="w-9 h-9 rounded-xl bg-red-500/20 border border-red-500/40 flex items-center justify-center text-red-400 shrink-0">
+              <AlertOctagon size={20} className="animate-bounce" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-red-400">🚨 Novo Chamado Recebido</span>
+              </div>
+              <p className="text-xs text-white font-bold truncate">{realtimeAlert.type} • {realtimeAlert.reporter_name || 'Cidadão'}</p>
+              {realtimeAlertClosest && (
+                <p className="text-[11px] text-blue-300 truncate">
+                  Alocação recomendada: <b>{realtimeAlertClosest.team.team_name}</b> (a {realtimeAlertClosest.distanceKm.toLocaleString('pt-BR')} km) • {realtimeAlertClosest.specialtyLabel}
+                </p>
+              )}
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button 
+                onClick={() => {
+                  setSelectedOccurrence(realtimeAlert);
+                  setRealtimeAlert(null);
+                  window.dispatchEvent(new CustomEvent('flyToMarker', { detail: realtimeAlert.id }));
+                }}
+                className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-colors shadow-sm cursor-pointer"
+              >
+                Atender
+              </button>
+              <button 
+                onClick={() => setRealtimeAlert(null)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white transition-colors cursor-pointer"
+                title="Fechar alerta"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          </div>
+        )}
+
         <MapComponent 
           occurrences={filteredOccurrences} 
           onMarkerClick={setSelectedOccurrence} 
           showOccurrences={showOccurrences}
           showFloodZones={showFloodZones}
+          showAutoFloodZones={showAutoFloodZones}
           showShelters={showShelters}
           showTeams={showTeams}
           showResources={showResources}
@@ -371,6 +571,7 @@ function PainelContent() {
           liveTeams={liveTeams}
           resources={resources}
           volunteerSummary={volunteerSummary}
+          dispatchVector={dispatchVector}
         />
         
         {/* Backdrop para fechar no mobile */}
@@ -396,7 +597,7 @@ function PainelContent() {
               </div>
               <button 
                 onClick={() => setSelectedOccurrence(null)} 
-                className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 bg-slate-800/80 border border-slate-700 transition-colors"
+                className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 bg-slate-800/80 border border-slate-700 transition-colors cursor-pointer"
                 title="Fechar painel"
               >
                 <X size={18} />
@@ -404,6 +605,39 @@ function PainelContent() {
             </div>
 
             <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">
+              {/* Alerta Point-in-Polygon se o chamado estiver dentro de área de risco */}
+              {riskZoneCheck?.inRiskZone && (
+                <div className="mb-4 p-3.5 rounded-xl bg-red-500/15 border border-red-500/40 text-red-200 text-xs flex items-center gap-2.5 animate-pulse shadow-xs">
+                  <AlertOctagon size={20} className="text-red-400 shrink-0" />
+                  <div>
+                    <strong className="block text-red-300 font-bold">Chamado em Área de Risco Crítico</strong>
+                    <span className="text-[11px] text-red-200/90">Sobreposto ao polígono: <b>{riskZoneCheck.zoneName}</b> ({riskZoneCheck.riskLevel})</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Card de Destaque da Equipe Recomendada para Despacho via Inteligência */}
+              {recommendedTeam && (
+                <div className="mb-5 p-4 rounded-xl border border-blue-500/30 bg-blue-500/10 text-left shadow-xs">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center gap-1.5 text-[11px] font-bold text-blue-400 uppercase tracking-wider">
+                      <Radio size={13} className="animate-pulse" />
+                      <span>Alocação Inteligente de Despacho</span>
+                    </div>
+                    <span className="text-xs font-black bg-blue-600 text-white px-2.5 py-0.5 rounded-full shadow-xs">
+                      a {recommendedTeam.distanceKm.toLocaleString('pt-BR')} km
+                    </span>
+                  </div>
+                  <strong className="text-white text-base block">{recommendedTeam.team.team_name}</strong>
+                  <span className="text-xs text-slate-300 block mb-2">{recommendedTeam.team.organ} • Status: <b className={recommendedTeam.isAvailable ? 'text-emerald-400' : 'text-amber-400'}>{recommendedTeam.team.status || 'Disponível'}</b></span>
+                  
+                  <div className="p-2 rounded-lg bg-blue-500/15 border border-blue-500/20 text-[11px] text-blue-200 flex items-center gap-1.5">
+                    <Target size={13} className="text-blue-400 shrink-0" />
+                    <span>{recommendedTeam.matchReason}</span>
+                  </div>
+                </div>
+              )}
+
               {selectedOccurrence.photo_url ? (
                 <div className="mb-5">
                   <strong className="block text-[11px] uppercase tracking-wider font-bold text-slate-400 mb-2 pl-0.5">Evidência Fotográfica</strong>
@@ -440,61 +674,174 @@ function PainelContent() {
                 </div>
               )}
 
-              <div className="mb-6">
+              <div className="mb-5">
                 <strong className="block text-[11px] uppercase tracking-wider font-bold text-slate-400 mb-2 pl-0.5">Status Operacional</strong>
-                <div className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold border ${selectedOccurrence.status === 'Resolvido' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : selectedOccurrence.status === 'Em Atendimento' ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' : 'bg-blue-500/20 text-blue-300 border-blue-500/40'}`}>
+                <div className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold border ${selectedOccurrence.status === 'Resolvido' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : selectedOccurrence.status === 'Em Atendimento' ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' : selectedOccurrence.status === 'Recusado' ? 'bg-red-500/20 text-red-300 border-red-500/40' : 'bg-blue-500/20 text-blue-300 border-blue-500/40'}`}>
                   {selectedOccurrence.status === 'Resolvido' && <CheckCircle2 size={13} />}
+                  {selectedOccurrence.status === 'Recusado' && <X size={13} />}
                   {selectedOccurrence.status || 'Novo Registro'}
                 </div>
               </div>
 
-              <div className="mb-2">
-                <strong className="block text-[11px] uppercase tracking-wider font-bold text-slate-300 mb-3 pl-0.5">Triagem e Despacho Tático</strong>
-                <div className="grid grid-cols-2 gap-2.5">
-                  <button 
-                    disabled={updating}
-                    onClick={() => updateOccurrence(selectedOccurrence.id, { assigned_to: 'Defesa Civil', status: 'Em Atendimento' })}
-                    className={`flex items-center justify-center gap-2 py-3 px-3 rounded-xl text-xs font-bold transition-all border ${selectedOccurrence.assigned_to === 'Defesa Civil' ? 'bg-amber-500/25 border-2 border-amber-400 text-amber-200 shadow-[0_0_15px_rgba(245,158,11,0.25)]' : 'bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-300 hover:border-amber-500/50 hover:text-amber-200 font-semibold'}`}>
-                    <ShieldAlert size={15} /> Defesa Civil
-                  </button>
-                  <button 
-                    disabled={updating}
-                    onClick={() => updateOccurrence(selectedOccurrence.id, { assigned_to: 'Bombeiros', status: 'Em Atendimento' })}
-                    className={`flex items-center justify-center gap-2 py-3 px-3 rounded-xl text-xs font-bold transition-all border ${selectedOccurrence.assigned_to === 'Bombeiros' ? 'bg-red-500/25 border-2 border-red-400 text-red-200 shadow-[0_0_15px_rgba(239,68,68,0.25)]' : 'bg-slate-800 hover:bg-slate-700 border border-slate-700 text-red-300 hover:border-red-500/50 hover:text-red-200 font-semibold'}`}>
-                    <Flame size={15} /> Bombeiros
-                  </button>
-                  <button 
-                    disabled={updating}
-                    onClick={() => updateOccurrence(selectedOccurrence.id, { assigned_to: 'Obras', status: 'Em Atendimento' })}
-                    className={`flex items-center justify-center gap-2 py-3 px-3 rounded-xl text-xs font-bold transition-all border ${selectedOccurrence.assigned_to === 'Obras' ? 'bg-blue-500/25 border-2 border-blue-400 text-blue-200 shadow-[0_0_15px_rgba(59,130,246,0.25)]' : 'bg-slate-800 hover:bg-slate-700 border border-slate-700 text-blue-300 hover:border-blue-500/50 hover:text-blue-200 font-semibold'}`}>
-                    <HardHat size={15} /> Obras
-                  </button>
-                  <button 
-                    disabled={updating}
-                    onClick={() => updateOccurrence(selectedOccurrence.id, { assigned_to: 'Assistência Social', status: 'Em Atendimento' })}
-                    className={`flex items-center justify-center gap-2 py-3 px-3 rounded-xl text-xs font-bold transition-all border ${selectedOccurrence.assigned_to === 'Assistência Social' ? 'bg-fuchsia-500/25 border-2 border-fuchsia-400 text-fuchsia-200 shadow-[0_0_15px_rgba(217,70,239,0.25)]' : 'bg-slate-800 hover:bg-slate-700 border border-slate-700 text-fuchsia-300 hover:border-fuchsia-500/50 hover:text-fuchsia-200 font-semibold'}`}>
-                    <HeartHandshake size={15} /> Ass. Social
-                  </button>
-                </div>
+              {/* Bloco de Ações e Fluxo de Decisão do Gestor */}
+              <div className="mb-4">
+                <strong className="block text-[11px] uppercase tracking-wider font-bold text-slate-300 mb-3 pl-0.5">
+                  Decisão e Despacho Tático
+                </strong>
+
+                {/* CASO 1: Ocorrência ainda NÃO aceita nem recusada */}
+                {selectedOccurrence.status !== 'Em Atendimento' && selectedOccurrence.status !== 'Resolvido' && selectedOccurrence.status !== 'Recusado' && (
+                  <div className="flex flex-col gap-2.5">
+                    <button
+                      disabled={updating}
+                      onClick={async () => {
+                        const teamName = recommendedTeam ? recommendedTeam.team.team_name : 'Defesa Civil';
+                        await updateOccurrence(selectedOccurrence.id, { 
+                          status: 'Em Atendimento',
+                          assigned_to: teamName
+                        });
+                        if (recommendedTeam?.team.team_id && !recommendedTeam.team.team_id.startsWith('defesa-civil-') && !recommendedTeam.team.team_id.startsWith('bombeiros-') && !recommendedTeam.team.team_id.startsWith('obras-') && !recommendedTeam.team.team_id.startsWith('social-')) {
+                          await supabase.from('teams').update({ status: 'Em missão' }).eq('id', recommendedTeam.team.team_id);
+                          fetchLiveTeams();
+                        }
+                      }}
+                      className="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-[0_0_20px_rgba(5,150,105,0.3)] border border-emerald-400/40 cursor-pointer"
+                    >
+                      <CheckCircle2 size={16} /> Aceitar a solicitação
+                      {recommendedTeam && <span className="text-[11px] font-normal opacity-90">({recommendedTeam.team.team_name})</span>}
+                    </button>
+
+                    <button
+                      disabled={updating}
+                      onClick={() => updateOccurrence(selectedOccurrence.id, { status: 'Recusado' })}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/30 text-xs font-bold transition-all cursor-pointer"
+                    >
+                      <X size={15} /> Recusar a solicitação
+                    </button>
+                  </div>
+                )}
+
+                {/* CASO 2: Ocorrência já ACEITA (Em Atendimento) */}
+                {selectedOccurrence.status === 'Em Atendimento' && (
+                  <div className="flex flex-col gap-3">
+                    <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-xs text-amber-200">
+                      <div className="font-bold text-amber-300 mb-0.5">Em atendimento por:</div>
+                      <div className="text-white font-semibold text-sm">{selectedOccurrence.assigned_to || recommendedTeam?.team.team_name || 'Equipe Despachada'}</div>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <button
+                        disabled={updating}
+                        onClick={() => setShowSupportSelector(prev => !prev)}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-3 px-3 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/40 text-xs font-bold transition-all cursor-pointer"
+                      >
+                        <Users size={15} /> Solicitar ajuda de outras equipes
+                      </button>
+
+                      <button
+                        disabled={updating}
+                        onClick={async () => {
+                          await updateOccurrence(selectedOccurrence.id, { status: 'Resolvido' });
+                          if (recommendedTeam?.team.team_id && !recommendedTeam.team.team_id.startsWith('defesa-civil-') && !recommendedTeam.team.team_id.startsWith('bombeiros-') && !recommendedTeam.team.team_id.startsWith('obras-') && !recommendedTeam.team.team_id.startsWith('social-')) {
+                            await supabase.from('teams').update({ status: 'Disponível' }).eq('id', recommendedTeam.team.team_id);
+                            fetchLiveTeams();
+                          }
+                        }}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-3 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-md cursor-pointer"
+                      >
+                        <CheckCircle2 size={15} /> Encerrar a ocorrência
+                      </button>
+                    </div>
+
+                    {/* Seletor Expansível de Equipes de Apoio Adicional */}
+                    {showSupportSelector && (
+                      <div className="p-3.5 bg-slate-800/95 border border-slate-700 rounded-xl mt-1 space-y-2.5">
+                        <span className="text-[11px] font-bold uppercase text-slate-400 block tracking-wider">
+                          Selecione equipe ou órgão para solicitar apoio:
+                        </span>
+                        <div className="grid grid-cols-2 gap-2">
+                          {['Bombeiros', 'Defesa Civil', 'Obras', 'Assistência Social', 'Saúde', 'Polícia'].map(supportOrgan => (
+                            <button
+                              key={supportOrgan}
+                              disabled={updating}
+                              onClick={() => {
+                                const current = selectedOccurrence.assigned_to || '';
+                                if (!current.includes(supportOrgan)) {
+                                  const updatedAssigned = current ? `${current} + ${supportOrgan} (Apoio)` : `${supportOrgan} (Apoio)`;
+                                  updateOccurrence(selectedOccurrence.id, { assigned_to: updatedAssigned });
+                                  setShowSupportSelector(false);
+                                }
+                              }}
+                              className="py-2 px-2.5 rounded-lg text-xs font-medium text-slate-200 bg-slate-700 hover:bg-slate-600 border border-slate-600 text-left truncate flex items-center justify-between cursor-pointer"
+                            >
+                              <span>{supportOrgan}</span>
+                              <span className="text-[10px] text-blue-400 font-bold">+ Apoio</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* CASO 3: Ocorrência Encerrada (Resolvido) */}
+                {selectedOccurrence.status === 'Resolvido' && (
+                  <div className="flex flex-col gap-2">
+                    <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs text-emerald-300 flex items-center gap-2">
+                      <CheckCircle2 size={16} /> Ocorrência encerrada e atendida com sucesso.
+                    </div>
+                    <button
+                      disabled={updating}
+                      onClick={() => updateOccurrence(selectedOccurrence.id, { status: 'Em Atendimento' })}
+                      className="text-xs text-slate-400 hover:text-white underline text-center mt-1 cursor-pointer"
+                    >
+                      Reabrir chamado para atendimento
+                    </button>
+                  </div>
+                )}
+
+                {/* CASO 4: Ocorrência Recusada */}
+                {selectedOccurrence.status === 'Recusado' && (
+                  <div className="flex flex-col gap-2">
+                    <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-xs text-red-300 flex items-center gap-2">
+                      <X size={16} /> Solicitação recusada pela coordenação.
+                    </div>
+                    <button
+                      disabled={updating}
+                      onClick={() => updateOccurrence(selectedOccurrence.id, { status: 'Em Atendimento' })}
+                      className="text-xs text-slate-400 hover:text-white underline text-center mt-1 cursor-pointer"
+                    >
+                      Reconsiderar e aceitar solicitação
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 
-            <div className="p-6 border-t border-slate-800 bg-slate-900 flex gap-3">
+            <div className="p-4 sm:p-6 border-t border-slate-800 bg-slate-900 flex gap-2.5">
               <a 
                 href={getGoogleMapsLink(selectedOccurrence.location)} 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="flex-1 flex items-center justify-center gap-2 py-3 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white text-xs font-bold transition-colors shadow-sm"
               >
-                <ExternalLink size={15} className="text-blue-400" /> Rota GPS
+                <ExternalLink size={15} className="text-blue-400" /> Rota no Google Maps
               </a>
-              <button 
-                disabled={updating || selectedOccurrence.status === 'Resolvido'}
-                onClick={() => updateOccurrence(selectedOccurrence.id, { status: 'Resolvido' })}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 px-3 rounded-xl text-xs font-bold transition-all ${selectedOccurrence.status === 'Resolvido' ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700' : 'bg-emerald-600 text-white shadow-[0_0_20px_rgba(5,150,105,0.4)] hover:bg-emerald-500 border border-emerald-400/40'}`}
-              >
-                <CheckCircle2 size={15} /> {selectedOccurrence.status === 'Resolvido' ? 'Resolvido' : 'Marcar Resolvido'}
-              </button>
+
+              {/* Botão de Notificação/Despacho no WhatsApp da Equipe */}
+              {recommendedTeam && (
+                <a
+                  href={`https://api.whatsapp.com/send?${recommendedTeam.team.phone ? `phone=55${recommendedTeam.team.phone.replace(/\D/g, '')}&` : ''}text=${encodeURIComponent(
+                    `🚨 *ALERTA DE DESPACHO - GEOALERTA*\n\n*Tipo:* ${selectedOccurrence.type}\n*Equipe Designada:* ${recommendedTeam.team.team_name} (a ${recommendedTeam.distanceKm} km)\n*Localização GPS:* ${getGoogleMapsLink(selectedOccurrence.location)}\n*Relator:* ${selectedOccurrence.reporter_name || 'Cidadão'}\n*Detalhes:* ${selectedOccurrence.description || 'Sem descrição adicional'}`
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-1.5 py-3 px-4 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 text-xs font-bold transition-colors shadow-sm"
+                  title={recommendedTeam.team.phone ? `Enviar despacho para ${recommendedTeam.team.phone}` : "Compartilhar detalhes via WhatsApp"}
+                >
+                  <PhoneCall size={14} /> WhatsApp
+                </a>
+              )}
             </div>
           </div>
         )}

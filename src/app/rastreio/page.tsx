@@ -16,6 +16,29 @@ function TrackerContent() {
   const [isSharing, setIsSharing] = useState(false);
   const [lastSent, setLastSent] = useState<Date | null>(null);
   const watchIdRef = useRef<number | null>(null);
+  const intervalIdRef = useRef<NodeJS.Timeout | null>(null);
+  const wakeLockRef = useRef<any>(null);
+
+  const requestWakeLock = async () => {
+    try {
+      if ('wakeLock' in navigator) {
+        wakeLockRef.current = await (navigator as any).wakeLock.request('screen');
+      }
+    } catch (e) {
+      console.warn('Wake Lock não disponível ou negado:', e);
+    }
+  };
+
+  const releaseWakeLock = async () => {
+    try {
+      if (wakeLockRef.current) {
+        await wakeLockRef.current.release();
+        wakeLockRef.current = null;
+      }
+    } catch (e) {
+      console.warn('Erro ao liberar Wake Lock:', e);
+    }
+  };
 
   useEffect(() => {
     async function loadTeam() {
@@ -41,14 +64,35 @@ function TrackerContent() {
     loadTeam();
   }, [teamId]);
 
-  // Limpa o watchPosition se o componente for desmontado
+  // Limpa recursos ao desmontar
   useEffect(() => {
     return () => {
       if (watchIdRef.current !== null) {
         navigator.geolocation.clearWatch(watchIdRef.current);
       }
+      if (intervalIdRef.current !== null) {
+        clearInterval(intervalIdRef.current);
+      }
+      releaseWakeLock();
     };
   }, []);
+
+  const sendPosition = async (latitude: number, longitude: number, accuracy: number) => {
+    if (!team) return;
+    const { error } = await supabase.from("team_locations").insert([
+      {
+        team_id: team.id,
+        team_name: team.name,
+        lat: latitude,
+        lng: longitude,
+        accuracy: accuracy,
+        sent_at: new Date().toISOString(),
+      },
+    ]);
+    if (!error) {
+      setLastSent(new Date());
+    }
+  };
 
   const startSharing = () => {
     if (!navigator.geolocation) {
@@ -57,36 +101,35 @@ function TrackerContent() {
     }
 
     setIsSharing(true);
+    requestWakeLock();
 
-    // Watch position
-    watchIdRef.current = navigator.geolocation.watchPosition(
-      async (pos) => {
-        const { latitude, longitude, accuracy } = pos.coords;
+    const handleSuccess = (pos: GeolocationPosition) => {
+      const { latitude, longitude, accuracy } = pos.coords;
+      sendPosition(latitude, longitude, accuracy);
+    };
 
-        // Envia para o supabase
-        const { error } = await supabase.from("team_locations").insert([
-          {
-            team_id: team.id,
-            team_name: team.name,
-            lat: latitude,
-            lng: longitude,
-            accuracy: accuracy,
-            sent_at: new Date().toISOString(),
-          },
-        ]);
-
-        if (!error) {
-          setLastSent(new Date());
+    // Disparo imediato da posição atual
+    navigator.geolocation.getCurrentPosition(
+      handleSuccess,
+      (err) => {
+        if (err.code === 1) {
+          alert("Permissão de GPS negada. Por favor, autorize a localização no navegador.");
+          stopSharing();
         }
       },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+
+    // Monitoramento contínuo via watchPosition
+    watchIdRef.current = navigator.geolocation.watchPosition(
+      handleSuccess,
       (err) => {
-        console.error(err);
+        console.warn("Aviso de GPS:", err.message);
         if (err.code === 1) {
-          alert("Permissão de localização negada. Por favor, autorize no navegador.");
-        } else {
-          alert("Erro ao obter localização: " + err.message);
+          alert("Permissão de GPS negada. O compartilhamento foi encerrado.");
+          stopSharing();
         }
-        stopSharing();
+        // Se for timeout temporário ou perda momentânea de sinal, NÃO interrompe o compartilhamento
       },
       {
         enableHighAccuracy: true,
@@ -94,6 +137,15 @@ function TrackerContent() {
         maximumAge: 0,
       }
     );
+
+    // Heartbeat periódico (a cada 15 segundos) para garantir transmissão ininterrupta
+    intervalIdRef.current = setInterval(() => {
+      navigator.geolocation.getCurrentPosition(
+        handleSuccess,
+        (err) => console.warn("Heartbeat GPS:", err.message),
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+      );
+    }, 15000);
   };
 
   const stopSharing = () => {
@@ -101,6 +153,11 @@ function TrackerContent() {
       navigator.geolocation.clearWatch(watchIdRef.current);
       watchIdRef.current = null;
     }
+    if (intervalIdRef.current !== null) {
+      clearInterval(intervalIdRef.current);
+      intervalIdRef.current = null;
+    }
+    releaseWakeLock();
     setIsSharing(false);
   };
 
@@ -175,15 +232,25 @@ function TrackerContent() {
         </button>
 
         {/* Status Text */}
-        <div className="mt-12 h-10">
-          {isSharing && lastSent && (
-            <p className="text-slate-400 text-xs font-medium animate-in fade-in slide-in-from-bottom-2">
-              Último sinal enviado às <strong className="text-emerald-400">{lastSent.toLocaleTimeString()}</strong>
-            </p>
-          )}
-          {!isSharing && (
-            <p className="text-slate-500 text-xs font-medium max-w-[250px] mx-auto leading-relaxed">
-              Deixe esta tela aberta enquanto estiver em missão. A tela não irá desligar enquanto transmitir.
+        <div className="mt-8">
+          {isSharing ? (
+            <div className="space-y-1.5">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                Transmissão Contínua Ativa
+              </div>
+              {lastSent && (
+                <p className="text-slate-400 text-xs font-medium">
+                  Último sinal enviado às <strong className="text-emerald-400">{lastSent.toLocaleTimeString()}</strong>
+                </p>
+              )}
+              <p className="text-slate-500 text-[11px] leading-relaxed max-w-[260px] mx-auto">
+                A tela permanecerá ligada e a localização será transmitida ininterruptamente até você desativar.
+              </p>
+            </div>
+          ) : (
+            <p className="text-slate-500 text-xs font-medium max-w-[260px] mx-auto leading-relaxed">
+              Mantenha esta tela aberta durante o turno. O envio de GPS permanecerá ativo continuamente até você desativar.
             </p>
           )}
         </div>

@@ -17,8 +17,10 @@ import {
   Loader2,
   Lock,
   AlertOctagon,
-  ShieldAlert
+  ShieldAlert,
+  Radio
 } from "lucide-react";
+import { findClosestEntity } from "@/lib/geoUtils";
 
 interface LocationCoords {
   latitude: number;
@@ -36,6 +38,11 @@ export default function Home() {
   const [type, setType] = useState("Alagamento / Inundação");
   const [description, setDescription] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  const [closestTeamInfo, setClosestTeamInfo] = useState<{
+    name: string;
+    organ: string;
+    distanceKm: number;
+  } | null>(null);
 
   // Estados de Geolocalização
   const [coords, setCoords] = useState<LocationCoords | null>(null);
@@ -266,6 +273,56 @@ export default function Home() {
 
       if (dbError) throw dbError;
 
+      // 4. Identificar a equipe de resgate mais próxima no momento do chamado
+      try {
+        const { data: teamLocs } = await supabase
+          .from('team_locations')
+          .select('team_id, team_name, lat, lng, sent_at')
+          .order('sent_at', { ascending: false });
+
+        const { data: teamsData } = await supabase
+          .from('teams')
+          .select('id, name, organ');
+
+        const teamMap = new Map<string, string>();
+        (teamsData || []).forEach((t: any) => teamMap.set(t.id, t.organ));
+
+        const locCandidates: { name: string; organ: string; lat: number; lng: number }[] = [];
+        const seen = new Set<string>();
+
+        (teamLocs || []).forEach((loc: any) => {
+          if (!seen.has(loc.team_id)) {
+            seen.add(loc.team_id);
+            locCandidates.push({
+              name: loc.team_name || 'Equipe de Resgate',
+              organ: teamMap.get(loc.team_id) || 'Defesa Civil',
+              lat: loc.lat,
+              lng: loc.lng,
+            });
+          }
+        });
+
+        // Se nenhuma equipe tiver enviado GPS ainda, usar as bases municipais cadastradas
+        if (locCandidates.length === 0) {
+          locCandidates.push(
+            { name: 'Defesa Civil - Equipe Alfa', organ: 'Defesa Civil', lat: -29.8285, lng: -50.5192 },
+            { name: 'Corpo de Bombeiros - Viatura 01', organ: 'Bombeiros', lat: -29.8214, lng: -50.5140 },
+            { name: 'Obras - Equipe Desobstrução', organ: 'Obras', lat: -29.8320, lng: -50.5230 }
+          );
+        }
+
+        const closest = findClosestEntity({ lat: latitude, lng: longitude }, locCandidates);
+        if (closest) {
+          setClosestTeamInfo({
+            name: closest.entity.name,
+            organ: closest.entity.organ,
+            distanceKm: closest.distanceKm,
+          });
+        }
+      } catch (err) {
+        console.warn('Erro ao identificar equipe mais próxima:', err);
+      }
+
       setSuccess(true);
     } catch (error) {
       console.error(error);
@@ -282,10 +339,30 @@ export default function Home() {
           <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle2 size={32} className="text-emerald-600" />
           </div>
-          <h2 className="text-2xl font-bold text-slate-900 mb-3">Ocorrência Registrada!</h2>
+          <h2 className="text-2xl font-bold text-slate-900 mb-2">Ocorrência Registrada!</h2>
           <p className="text-slate-600 text-sm leading-relaxed mb-6">
-            Mantenha a calma. Sua localização exata já foi enviada em tempo real para as equipes de resgate do <strong>Gabinete de Crise</strong>.
+            Mantenha a calma. Sua localização exata já foi transmitida para o <strong>Gabinete de Crise</strong>.
           </p>
+
+          {/* Destaque da Equipe Mais Próxima (com distância em km, sem previsão de tempo) */}
+          {closestTeamInfo && (
+            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mb-4 text-left shadow-xs">
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="flex items-center gap-2 text-emerald-800 font-bold text-sm">
+                  <ShieldAlert size={16} className="text-emerald-600 shrink-0" />
+                  <span>Equipe Mais Próxima</span>
+                </div>
+                <span className="text-xs font-black bg-emerald-600 text-white px-2.5 py-0.5 rounded-full shadow-xs">
+                  a {closestTeamInfo.distanceKm.toLocaleString('pt-BR')} km
+                </span>
+              </div>
+              <p className="text-emerald-950 font-bold text-sm">{closestTeamInfo.name}</p>
+              <p className="text-emerald-700 text-xs mt-0.5">{closestTeamInfo.organ}</p>
+              <p className="text-emerald-600 text-[11px] mt-2 leading-relaxed">
+                Suas coordenadas foram emitidas para o despacho operacional das viaturas desta região.
+              </p>
+            </div>
+          )}
           
           <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-6 text-left">
             <div className="flex items-center gap-2 text-blue-800 font-semibold mb-2 text-sm">

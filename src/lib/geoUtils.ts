@@ -108,3 +108,42 @@ export function getWazeUrl(coords: Coordinates | null): string {
   if (!coords) return "";
   return `https://waze.com/ul?ll=${coords.lat},${coords.lng}&navigate=yes`;
 }
+
+/**
+ * Calcula a distância em quilômetros entre duas coordenadas (Fórmula Haversine)
+ */
+export function calculateDistanceKm(c1: Coordinates, c2: Coordinates): number {
+  const R = 6371; // Raio médio da Terra em km
+  const dLat = ((c2.lat - c1.lat) * Math.PI) / 180;
+  const dLng = ((c2.lng - c1.lng) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((c1.lat * Math.PI) / 180) *
+      Math.cos((c2.lat * Math.PI) / 180) *
+      Math.sin(dLng / 2) *
+      Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return Number((R * c).toFixed(2));
+}
+
+/**
+ * Encontra a entidade mais próxima de uma coordenada de origem
+ */
+export function findClosestEntity<T extends { lat: number | null; lng: number | null }>(
+  origin: Coordinates,
+  entities: T[]
+): { entity: T; distanceKm: number } | null {
+  if (!entities || entities.length === 0) return null;
+
+  let closest: { entity: T; distanceKm: number } | null = null;
+
+  for (const item of entities) {
+    if (item.lat === null || item.lng === null || isNaN(item.lat) || isNaN(item.lng)) continue;
+    const dist = calculateDistanceKm(origin, { lat: item.lat, lng: item.lng });
+    if (!closest || dist < closest.distanceKm) {
+      closest = { entity: item, distanceKm: dist };
+    }
+  }
+
+  return closest;
+}
