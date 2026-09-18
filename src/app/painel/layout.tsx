@@ -321,7 +321,7 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
         </header>
 
         {/* 4. Container de Conteúdo (Filhos) com espaçamento responsivo */}
-        <div className="flex-1 p-2 sm:p-4 md:p-6 pb-20 md:pb-6 overflow-hidden relative z-0 flex flex-col">
+        <div className="flex-1 p-2 sm:p-4 md:p-6 pb-20 md:pb-6 overflow-y-auto overflow-x-hidden relative z-0 flex flex-col">
           {children}
         </div>
 
