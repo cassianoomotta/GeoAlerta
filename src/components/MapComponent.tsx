@@ -177,6 +177,77 @@ export default function MapComponent({
     acc[r.shelter_id].items.push(r);
     return acc;
   }, {});
+
+  // Distribuir suavemente ocorrências coincidentes (para que chamados no mesmo local ou junto a equipes fiquem 100% visíveis lado a lado)
+  const displayOccurrences = useMemo(() => {
+    // 1. Agrupar ocorrências por proximidade geográfica (~60m)
+    const groups = new Map<string, any[]>();
+    occurrences.forEach((occ) => {
+      const coords = parseCoordinates(occ.location);
+      if (!coords) return;
+      const key = `${coords.lat.toFixed(4)},${coords.lng.toFixed(4)}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(occ);
+    });
+
+    const result: any[] = [];
+
+    groups.forEach((group) => {
+      const baseCoords = parseCoordinates(group[0].location)!;
+
+      // Verificar se há alguma equipe ativa nas proximidades (~80m)
+      const hasTeamNearby = liveTeams.some((t) => {
+        const dLat = Math.abs(t.lat - baseCoords.lat) * 111;
+        const dLng = Math.abs(t.lng - baseCoords.lng) * 111 * Math.cos((baseCoords.lat * Math.PI) / 180);
+        return Math.sqrt(dLat * dLat + dLng * dLng) < 0.08;
+      });
+
+      if (group.length === 1 && !hasTeamNearby) {
+        // Ponto isolado sem conflito
+        result.push({
+          ...group[0],
+          displayCoords: { lat: baseCoords.lat, lng: baseCoords.lng },
+          originalCoords: baseCoords,
+        });
+      } else if (group.length === 1 && hasTeamNearby) {
+        // 1 chamado junto à viatura: afasta suavemente para o sul-sudoeste (~40m)
+        result.push({
+          ...group[0],
+          displayCoords: {
+            lat: baseCoords.lat - 0.00032,
+            lng: baseCoords.lng - 0.00025,
+          },
+          originalCoords: baseCoords,
+        });
+      } else {
+        // Múltiplos chamados no mesmo local: abre em leque angular amplo (~48m de raio)
+        // Se houver viatura no local, orienta o leque para o sul (deixando o norte livre para o crachá da viatura)
+        const radius = 0.00042;
+        group.forEach((occ, idx) => {
+          let angle: number;
+          if (hasTeamNearby) {
+            // Distribui na metade sul (de 210° a 330°)
+            const step = Math.PI / (group.length + 1);
+            angle = Math.PI + step * (idx + 1);
+          } else {
+            // Distribui 360° uniformemente
+            angle = (idx * 2 * Math.PI) / group.length + Math.PI / 4;
+          }
+
+          const lat = baseCoords.lat + Math.sin(angle) * radius;
+          const lng = baseCoords.lng + Math.cos(angle) * radius;
+
+          result.push({
+            ...occ,
+            displayCoords: { lat, lng },
+            originalCoords: baseCoords,
+          });
+        });
+      }
+    });
+
+    return result;
+  }, [occurrences, liveTeams]);
   
   return (
     <>
@@ -335,94 +406,134 @@ export default function MapComponent({
           );
         })}
 
-        {/* ===== CAMADA 3: Ocorrências (clusterizadas, ícones por tipo) ===== */}
+        {/* ===== CAMADA 3: Ocorrências (ícones individuais por tipo, desaglomeradas) ===== */}
         {showOccurrences && (
           <MarkerClusterGroup
             chunkedLoading
-            maxClusterRadius={50}
+            maxClusterRadius={25}
             spiderfyOnMaxZoom={true}
+            disableClusteringAtZoom={12}
+            spiderfyDistanceMultiplier={2.5}
           >
-            {occurrences.map((occ) => {
-              const coords = parseCoordinates(occ.location);
-              if (!coords) return null;
-              const { lat, lng } = coords;
+            {displayOccurrences.map((occ) => {
+              const { lat, lng } = occ.displayCoords;
 
-            return (
-              <Marker 
-                position={[lat, lng]} 
-                icon={occurrenceIcon(occ.type, occ.status)} 
-                key={occ.id}
-                ref={(m) => {
-                  if (m) {
-                    markerRefs.current[occ.id] = m;
-                  }
-                }}
-                eventHandlers={{
-                  click: () => {
-                    if (onMarkerClick) {
-                      onMarkerClick(occ);
+              return (
+                <Marker 
+                  position={[lat, lng]} 
+                  icon={occurrenceIcon(occ.type, occ.status)} 
+                  key={occ.id}
+                  zIndexOffset={2000}
+                  ref={(m) => {
+                    if (m) {
+                      markerRefs.current[occ.id] = m;
                     }
-                  }
-                }}
-              >
-                {!onMarkerClick && (
-                  <Popup className="dark-popup">
-                    <div className="min-w-[180px]">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="w-3 h-3 rounded-full shrink-0" style={{ background: getOccurrenceColor(occ.type) }}></span>
-                        <strong className="text-white text-sm">{occ.type}</strong>
+                  }}
+                  eventHandlers={{
+                    click: () => {
+                      if (onMarkerClick) {
+                        onMarkerClick(occ);
+                      }
+                    }
+                  }}
+                >
+                  {!onMarkerClick && (
+                    <Popup className="dark-popup">
+                      <div className="min-w-[180px]">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="w-3 h-3 rounded-full shrink-0" style={{ background: getOccurrenceColor(occ.type) }}></span>
+                          <strong className="text-white text-sm">{occ.type}</strong>
+                        </div>
+                        <span className="text-xs text-slate-400 block mb-1">
+                          Reportado por: <b className="text-slate-300">{occ.reporter_name || 'Anônimo'}</b>
+                        </span>
+                        <span className="text-[10px] text-slate-500 block mb-2">
+                          {new Date(occ.created_at).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})} • há {formatTimeAgo(occ.created_at)}
+                        </span>
+                        {occ.description && (
+                          <div className="bg-white/5 border border-white/10 p-2 rounded-lg text-xs text-slate-300 mb-2">
+                            {occ.description}
+                          </div>
+                        )}
+                        <span className="text-xs text-slate-400 block mb-2">
+                          Status: <span className="font-bold text-slate-200">{occ.status}</span>
+                        </span>
+                        {occ.photo_url && (
+                          <div className="mt-2">
+                            <a href={occ.photo_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:text-blue-400 text-xs font-semibold">
+                              Ver Evidência
+                            </a>
+                          </div>
+                        )}
                       </div>
-                      <span className="text-xs text-slate-400 block mb-1">
-                        Reportado por: <b className="text-slate-300">{occ.reporter_name || 'Anônimo'}</b>
-                      </span>
-                      <span className="text-[10px] text-slate-500 block mb-2">
-                        {new Date(occ.created_at).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})} • há {formatTimeAgo(occ.created_at)}
-                      </span>
-                      {occ.description && (
-                        <div className="bg-white/5 border border-white/10 p-2 rounded-lg text-xs text-slate-300 mb-2">
-                          {occ.description}
-                        </div>
-                      )}
-                      <span className="text-xs text-slate-400 block mb-2">
-                        Status: <span className="font-bold text-slate-200">{occ.status}</span>
-                      </span>
-                      {occ.photo_url && (
-                        <div className="mt-2">
-                          <a href={occ.photo_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:text-blue-400 text-xs font-semibold">
-                            Ver Evidência
-                          </a>
-                        </div>
-                      )}
-                    </div>
-                  </Popup>
-                )}
-              </Marker>
-            );
-          })}
+                    </Popup>
+                  )}
+                </Marker>
+              );
+            })}
           </MarkerClusterGroup>
         )}
 
         {/* ===== CAMADA 4: Equipes GPS (pontos pulsantes em tempo real) ===== */}
         {showTeams && liveTeams.map((pt, i) => {
           if (!Number.isFinite(pt.lat) || !Number.isFinite(pt.lng)) return null;
+
+          // Identificar ocorrências num raio de ~120m desta equipe
+          const nearbyOccs = occurrences.filter((occ) => {
+            const c = parseCoordinates(occ.location);
+            if (!c) return false;
+            const dLat = (c.lat - pt.lat) * 111;
+            const dLng = (c.lng - pt.lng) * 111 * Math.cos((pt.lat * Math.PI) / 180);
+            return Math.sqrt(dLat * dLat + dLng * dLng) < 0.12;
+          });
+
+          // Se houver chamados no mesmo local, posiciona a viatura suavemente ao norte (~30m) para que os crachás não se cruzem
+          const hasOverlap = nearbyOccs.length > 0;
+          const pos: [number, number] = hasOverlap
+            ? [pt.lat + 0.00028, pt.lng]
+            : [pt.lat, pt.lng];
+
           return (
             <Marker
               key={`team-live-${pt.team_id}-${i}`}
-              position={[pt.lat, pt.lng]}
-              icon={teamGpsIcon(pt.organ, pt.team_name)}
-              zIndexOffset={15000}
+              position={pos}
+              icon={teamGpsIcon(pt.organ, pt.team_name, nearbyOccs.length)}
+              zIndexOffset={3000}
               riseOnHover={true}
             >
               <Popup className="dark-popup">
-                <div className="min-w-[170px]">
+                <div className="min-w-[190px]">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="w-3 h-3 rounded-full shrink-0" style={{ background: getOrganColor(pt.organ) }}></span>
                     <strong className="text-white block text-sm">{pt.team_name}</strong>
                   </div>
                   <span className="text-xs text-slate-400 block mb-1">{pt.organ}{pt.type ? ` • ${pt.type}` : ''}</span>
                   {pt.member_name && <span className="text-[11px] text-slate-400 block">Agente: {pt.member_name}</span>}
-                  {pt.accuracy && <span className="text-[10px] text-slate-500 block mt-1">Precisão ±{Math.round(pt.accuracy)}m</span>}
-                  <span className="text-[10px] text-slate-500 block mt-1">
+                  
+                  {/* Se houver ocorrências associadas/no local */}
+                  {nearbyOccs.length > 0 && (
+                    <div className="mt-2.5 pt-2 border-t border-white/10">
+                      <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider block mb-1">
+                        📍 {nearbyOccs.length} chamado(s) neste local:
+                      </span>
+                      <div className="flex flex-col gap-1">
+                        {nearbyOccs.map((no) => (
+                          <button
+                            key={no.id}
+                            type="button"
+                            onClick={() => onMarkerClick && onMarkerClick(no)}
+                            className="text-left text-xs text-blue-300 hover:text-white bg-white/5 hover:bg-blue-600/30 p-1.5 rounded-lg border border-white/10 transition-colors flex items-center justify-between cursor-pointer"
+                          >
+                            <span className="truncate max-w-[130px] font-semibold">{no.type}</span>
+                            <span className="text-[10px] text-slate-400 font-normal ml-1">Ver Chamado</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {pt.accuracy && <span className="text-[10px] text-slate-500 block mt-2">Precisão ±{Math.round(pt.accuracy)}m</span>}
+                  <span className="text-[10px] text-slate-500 block mt-0.5">
                     Atualizado {new Date(pt.sent_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
                   </span>
                 </div>

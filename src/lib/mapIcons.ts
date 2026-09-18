@@ -193,14 +193,17 @@ export function getOrganColor(organ: string): string {
 /**
  * Cria um L.divIcon pulsante para equipes com GPS ativo.
  */
-export function teamGpsIcon(organ: string, teamName?: string): L.DivIcon {
+export function teamGpsIcon(organ: string, teamName?: string, incidentCount?: number): L.DivIcon {
   const color = getOrganColor(organ);
+  const hasIncidents = typeof incidentCount === "number" && incidentCount > 0;
   return L.divIcon({
     className: "team-live-marker-wrapper",
     html: `
-      <div style="position:relative;display:flex;flex-direction:column;align-items:center;pointer-events:auto;z-index:9999;">
+      <div style="position:relative;display:flex;flex-direction:column;align-items:center;pointer-events:none;">
         ${teamName ? `
           <div style="
+            pointer-events: auto;
+            cursor: pointer;
             background: rgba(15, 23, 42, 0.95);
             color: #ffffff;
             font-size: 10px;
@@ -210,14 +213,39 @@ export function teamGpsIcon(organ: string, teamName?: string): L.DivIcon {
             border: 1.5px solid ${color};
             box-shadow: 0 2px 10px rgba(0,0,0,0.7), 0 0 10px ${color}66;
             white-space: nowrap;
-            margin-bottom: 4px;
+            margin-bottom: 2px;
             letter-spacing: 0.3px;
             text-shadow: 0 1px 2px rgba(0,0,0,0.8);
           ">
             ${teamName}
           </div>
         ` : ''}
+        ${hasIncidents ? `
+          <div style="
+            pointer-events: auto;
+            cursor: pointer;
+            background: rgba(220, 38, 38, 0.95);
+            color: #ffffff;
+            font-size: 9px;
+            font-weight: 800;
+            padding: 1px 6px;
+            border-radius: 10px;
+            border: 1px solid #fca5a5;
+            box-shadow: 0 2px 8px rgba(220,38,38,0.5);
+            white-space: nowrap;
+            margin-bottom: 3px;
+            letter-spacing: 0.2px;
+            display: flex;
+            align-items: center;
+            gap: 3px;
+          ">
+            <span>🚨</span>
+            <span>${incidentCount} chamado(s) aqui</span>
+          </div>
+        ` : ''}
         <div style="
+          pointer-events: auto;
+          cursor: pointer;
           width:22px;height:22px;
           background:${color};
           border-radius:50%;
@@ -226,9 +254,9 @@ export function teamGpsIcon(organ: string, teamName?: string): L.DivIcon {
           animation:teamPulse 1.5s infinite;
         "></div>
       </div>`,
-    iconSize: [120, 52],
-    iconAnchor: [60, teamName ? 40 : 11],
-    popupAnchor: [0, -28],
+    iconSize: [140, hasIncidents ? 66 : (teamName ? 52 : 24)],
+    iconAnchor: [70, hasIncidents ? 54 : (teamName ? 40 : 11)],
+    popupAnchor: [0, -32],
   });
 }
 

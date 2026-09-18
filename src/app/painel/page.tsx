@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import { useEffect, useState, useMemo, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { ShieldAlert, Flame, HardHat, HeartHandshake, X, MapPin, ExternalLink, RefreshCw, CheckCircle2, Layers, Radio, Boxes, Users, AlertOctagon, Check, PhoneCall, Target } from "lucide-react";
+import { ShieldAlert, Flame, HardHat, HeartHandshake, X, MapPin, ExternalLink, RefreshCw, CheckCircle2, Layers, Radio, Boxes, Users, AlertOctagon, Check, PhoneCall, Target, FileText, Search, Clock } from "lucide-react";
 import { parseCoordinates, getGoogleMapsUrl, formatCoordinates, findClosestEntity } from "@/lib/geoUtils";
 import { formatOpenedAgo } from "@/lib/dateUtils";
 import { MUNICIPIO } from "@/modules/core/ui";
@@ -46,6 +46,9 @@ function PainelContent() {
   // Estados de Despacho e Apoio
   const [showSupportSelector, setShowSupportSelector] = useState(false);
   const [realtimeAlert, setRealtimeAlert] = useState<any | null>(null);
+  const [showOccList, setShowOccList] = useState(false);
+  const [occSearch, setOccSearch] = useState("");
+  const [occStatusFilter, setOccStatusFilter] = useState<string>("TODOS");
 
   // ---------- Estado: Dados dos módulos ----------
   const [shelters, setShelters] = useState<MapShelter[]>([]);
@@ -276,6 +279,41 @@ function PainelContent() {
     return occurrences;
   }, [occurrences, selectedFilter]);
 
+  // Filtragem para a gaveta lateral de chamados
+  const listFilteredOccurrences = useMemo(() => {
+    return occurrences.filter((occ) => {
+      if (occStatusFilter !== "TODOS" && (occ.status || "Aberto") !== occStatusFilter) {
+        return false;
+      }
+      if (occSearch.trim()) {
+        const q = occSearch.toLowerCase();
+        const matchType = occ.type?.toLowerCase().includes(q);
+        const matchDesc = occ.description?.toLowerCase().includes(q);
+        const matchRep = occ.reporter_name?.toLowerCase().includes(q);
+        if (!matchType && !matchDesc && !matchRep) return false;
+      }
+      return true;
+    });
+  }, [occurrences, occStatusFilter, occSearch]);
+
+  // Identificar equipe mais próxima de qualquer ocorrência para exibir na listagem
+  const getNearestTeamForOcc = useCallback((occ: any): { team: MapTeamLive; distKm: number } | null => {
+    const coords = parseCoordinates(occ.location);
+    if (!coords || liveTeams.length === 0) return null;
+    let closest: MapTeamLive | null = null;
+    let minD = Infinity;
+    liveTeams.forEach((t) => {
+      const dLat = (t.lat - coords.lat) * 111;
+      const dLng = (t.lng - coords.lng) * 111 * Math.cos((coords.lat * Math.PI) / 180);
+      const dist = Math.sqrt(dLat * dLat + dLng * dLng);
+      if (dist < minD) {
+        minD = dist;
+        closest = t;
+      }
+    });
+    return closest ? { team: closest, distKm: Number(minD.toFixed(2)) } : null;
+  }, [liveTeams]);
+
   const updateOccurrence = async (id: string, updates: any) => {
     setUpdating(true);
     try {
@@ -434,6 +472,19 @@ function PainelContent() {
               <HeartHandshake size={14} className={selectedFilter === "ASSISTENCIA" ? "text-fuchsia-400" : "text-fuchsia-600"} /> Social
             </button>
 
+            <button 
+              onClick={() => setShowOccList(prev => !prev)}
+              title="Abrir Central de Chamados e Requisições"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all duration-200 shrink-0 cursor-pointer ${
+                showOccList 
+                  ? 'bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)] border border-blue-400' 
+                  : 'bg-white/5 hover:bg-white/10 text-slate-200 border border-white/10'
+              }`}
+            >
+              <FileText size={14} className={showOccList ? "text-white" : "text-blue-400"} />
+              <span>Chamados ({occurrences.length})</span>
+            </button>
+
             <div className="w-[1px] h-6 bg-white/10 mx-1 shrink-0"></div>
 
             <button 
@@ -505,6 +556,173 @@ function PainelContent() {
           dispatchVector={dispatchVector}
         />
         
+        {/* Backdrop para fechar no mobile */}
+        {(selectedOccurrence || showOccList) && (
+          <div 
+            onClick={() => {
+              setSelectedOccurrence(null);
+              setShowOccList(false);
+            }} 
+            className="sm:hidden fixed inset-0 bg-black/60 backdrop-blur-xs z-[940]"
+          />
+        )}
+
+        {/* Drawer Esquerdo: Central de Chamados / Requisições */}
+        {showOccList && (
+          <div className="fixed inset-x-0 bottom-0 max-h-[85vh] sm:max-h-full sm:absolute sm:top-0 sm:left-0 sm:w-[410px] sm:h-full bg-slate-900/98 border-t sm:border-t-0 sm:border-r border-slate-700/80 shadow-2xl z-[950] flex flex-col rounded-t-2xl sm:rounded-none animate-in slide-in-from-bottom sm:slide-in-from-left duration-300 backdrop-blur-xl">
+            {/* Cabeçalho */}
+            <div className="p-4 sm:p-5 border-b border-slate-800 flex justify-between items-center shrink-0">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <FileText size={18} className="text-blue-400" />
+                  Central de Chamados
+                </h3>
+                <span className="text-xs text-slate-400">
+                  {listFilteredOccurrences.length} de {occurrences.length} solicitações cadastradas
+                </span>
+              </div>
+              <button
+                onClick={() => setShowOccList(false)}
+                className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                title="Fechar lista de chamados"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Barra de Busca e Filtros Rápidos */}
+            <div className="p-3 border-b border-slate-800/80 bg-slate-900/60 flex flex-col gap-2 shrink-0">
+              <div className="relative">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                <input
+                  type="text"
+                  placeholder="Buscar por tipo, descrição ou relator..."
+                  value={occSearch}
+                  onChange={(e) => setOccSearch(e.target.value)}
+                  className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-800/80 text-white placeholder-slate-500 border border-slate-700 rounded-lg focus:outline-hidden focus:border-blue-500 transition-colors"
+                />
+              </div>
+
+              {/* Status pills */}
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+                {[
+                  { key: "TODOS", label: "Todos" },
+                  { key: "Aberto", label: "Abertos" },
+                  { key: "Em Atendimento", label: "Em Atendimento" },
+                  { key: "Resolvido", label: "Resolvidos" },
+                ].map((st) => (
+                  <button
+                    key={st.key}
+                    type="button"
+                    onClick={() => setOccStatusFilter(st.key)}
+                    className={`px-2.5 py-1 rounded-md text-[11px] font-bold whitespace-nowrap transition-colors cursor-pointer ${
+                      occStatusFilter === st.key
+                        ? "bg-blue-600 text-white"
+                        : "bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700"
+                    }`}
+                  >
+                    {st.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Lista de Cards */}
+            <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2.5 custom-scrollbar">
+              {listFilteredOccurrences.length === 0 ? (
+                <div className="p-8 text-center text-slate-500 text-xs">
+                  Nenhum chamado encontrado para este filtro.
+                </div>
+              ) : (
+                listFilteredOccurrences.map((occ) => {
+                  const nearest = getNearestTeamForOcc(occ);
+                  const isAtTeamLocation = nearest && nearest.distKm < 0.1;
+                  const isSelected = selectedOccurrence?.id === occ.id;
+
+                  return (
+                    <div
+                      key={occ.id}
+                      onClick={() => {
+                        setSelectedOccurrence(occ);
+                        window.dispatchEvent(new CustomEvent("flyToMarker", { detail: occ.id }));
+                      }}
+                      className={`p-3 rounded-xl border transition-all cursor-pointer ${
+                        isSelected
+                          ? "bg-blue-600/15 border-blue-500/60 shadow-[0_0_15px_rgba(59,130,246,0.2)]"
+                          : isAtTeamLocation
+                          ? "bg-amber-500/10 border-amber-500/30 hover:border-amber-500/60"
+                          : "bg-slate-800/60 hover:bg-slate-800 border-slate-700/70 hover:border-slate-600"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2 mb-1.5">
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className="w-2.5 h-2.5 rounded-full shrink-0"
+                            style={{ background: occ.type?.includes("Alagamento") ? "#38bdf8" : occ.type?.includes("Desabrigados") ? "#f59e0b" : "#ef4444" }}
+                          />
+                          <strong className="text-white text-xs font-bold leading-snug">
+                            {occ.type}
+                          </strong>
+                        </div>
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold border shrink-0 ${
+                            occ.status === "Resolvido"
+                              ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                              : occ.status === "Em Atendimento"
+                              ? "bg-blue-500/20 text-blue-400 border-blue-500/30"
+                              : "bg-amber-500/20 text-amber-400 border-amber-500/30"
+                          }`}
+                        >
+                          {occ.status || "Aberto"}
+                        </span>
+                      </div>
+
+                      {/* Informações complementares */}
+                      <div className="flex items-center gap-2 text-[11px] text-slate-400 mb-1.5">
+                        <span>{occ.reporter_name || "Cidadão Anônimo"}</span>
+                        <span>•</span>
+                        <span>{formatOpenedAgo(occ.created_at)}</span>
+                      </div>
+
+                      {occ.description && (
+                        <p className="text-xs text-slate-300 line-clamp-2 mb-2 bg-black/20 p-1.5 rounded-md">
+                          {occ.description}
+                        </p>
+                      )}
+
+                      {/* Indicador de Equipe Próxima / No Local */}
+                      <div className="flex items-center justify-between pt-1 border-t border-white/5">
+                        {nearest ? (
+                          <span
+                            className={`text-[10px] font-semibold flex items-center gap-1 ${
+                              isAtTeamLocation
+                                ? "text-amber-300 font-bold"
+                                : "text-slate-400"
+                            }`}
+                          >
+                            <span>🚒</span>
+                            {isAtTeamLocation ? (
+                              <span className="text-amber-300 font-bold">📍 No local da {nearest.team.team_name}</span>
+                            ) : (
+                              <span>{nearest.team.team_name} ({nearest.distKm.toLocaleString("pt-BR")} km)</span>
+                            )}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-slate-500">Sem equipe próxima</span>
+                        )}
+
+                        <span className="text-[10px] text-blue-400 hover:text-blue-300 font-bold flex items-center gap-0.5">
+                          Ver no Mapa →
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Backdrop para fechar no mobile */}
         {selectedOccurrence && (
           <div 
