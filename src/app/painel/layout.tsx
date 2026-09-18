@@ -20,6 +20,17 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { formatTimeAgo } from "@/lib/dateUtils";
+import { getEnabledModules } from "@/modules/registry";
+import { MapPin, Boxes, Truck } from "lucide-react";
+
+const MODULE_ICONS: Record<string, React.ReactNode> = {
+  monitoramento: <MapPin size={18} />,
+  tabela: <List size={18} />,
+  recursos: <Boxes size={18} />,
+  abrigos: <Building2 size={18} />,
+  equipes: <Truck size={18} />,
+  voluntarios: <HeartHandshake size={18} />,
+};
 
 export default function PainelLayout({ children }: { children: React.ReactNode }) {
   const [unread, setUnread] = useState(0);
@@ -122,18 +133,18 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
         </div>
         
         <nav className="flex-1 px-4 py-6 flex flex-col gap-2">
-          <Link 
-            href="/painel" 
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 ${pathname === '/painel' ? 'bg-primary/10 text-primary border border-primary/20 font-semibold shadow-[0_0_15px_rgba(59,130,246,0.15)]' : 'text-slate-400 hover:text-white hover:bg-white/5 font-medium'}`}
-          >
-            <MapIcon size={18} /> Mapa Tático
-          </Link>
-          <Link 
-            href="/painel/tabela" 
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 ${pathname === '/painel/tabela' ? 'bg-primary/10 text-primary border border-primary/20 font-semibold shadow-[0_0_15px_rgba(59,130,246,0.15)]' : 'text-slate-400 hover:text-white hover:bg-white/5 font-medium'}`}
-          >
-            <List size={18} /> Tabela Operacional
-          </Link>
+          {getEnabledModules().map((m) => {
+            const active = m.href === "/painel" ? pathname === "/painel" : pathname.startsWith(m.href);
+            return (
+              <Link
+                key={m.slug}
+                href={m.href}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 ${active ? 'bg-primary/10 text-primary border border-primary/20 font-semibold shadow-[0_0_15px_rgba(59,130,246,0.15)]' : 'text-slate-400 hover:text-white hover:bg-white/5 font-medium'}`}
+              >
+                {MODULE_ICONS[m.slug]} {m.label}
+              </Link>
+            );
+          })}
         </nav>
 
         <div className="p-6 border-t border-white/5">
@@ -176,20 +187,19 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
             </div>
 
             <nav className="my-5 flex flex-col gap-2">
-              <Link 
-                href="/painel" 
-                onClick={() => setMobileMenuOpen(false)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${pathname === '/painel' ? 'bg-primary/20 text-primary border border-primary/30' : 'text-slate-300 hover:bg-white/5'}`}
-              >
-                <MapIcon size={18} /> Mapa Tático
-              </Link>
-              <Link 
-                href="/painel/tabela" 
-                onClick={() => setMobileMenuOpen(false)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${pathname === '/painel/tabela' ? 'bg-primary/20 text-primary border border-primary/30' : 'text-slate-300 hover:bg-white/5'}`}
-              >
-                <List size={18} /> Tabela Operacional
-              </Link>
+              {getEnabledModules().map((m) => {
+                const active = m.href === "/painel" ? pathname === "/painel" : pathname.startsWith(m.href);
+                return (
+                  <Link
+                    key={m.slug}
+                    href={m.href}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${active ? 'bg-primary/20 text-primary border border-primary/30' : 'text-slate-300 hover:bg-white/5'}`}
+                  >
+                    {MODULE_ICONS[m.slug]} {m.label}
+                  </Link>
+                );
+              })}
             </nav>
 
             {/* Contatos Rápidos no Mobile */}

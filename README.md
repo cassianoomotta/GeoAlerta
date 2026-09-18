@@ -48,4 +48,4 @@ npm run dev
 
 ## 🗄️ Estrutura do Banco de Dados
 
-Para configurar um novo banco de dados Supabase, basta executar o script [`../supabase.sql`](../supabase.sql) no **SQL Editor** do Supabase. O script provisiona a extensão PostGIS, a tabela `occurrences`, os buckets de storage e as políticas RLS.
+Para configurar um novo banco de dados Supabase, basta executar o script [`../supabase.sql`](../supabase.sql) no **SQL Editor** do Supabase. O script provisiona a extensão PostGIS, o módulo de ocorrências, buckets de storage, realtime, os módulos do ecossistema (Recursos, Abrigos, Equipes, Voluntários, Settings) e todas as políticas de segurança RLS.
