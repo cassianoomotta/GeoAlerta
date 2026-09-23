@@ -1,16 +1,17 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useState, useMemo, useCallback, Suspense } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { ShieldAlert, Flame, HardHat, HeartHandshake, X, MapPin, ExternalLink, RefreshCw, CheckCircle2, Layers, Radio, Boxes, Users, AlertOctagon, Check, PhoneCall, Target, FileText, Search, Clock } from "lucide-react";
+import { ShieldAlert, Flame, HardHat, HeartHandshake, X, MapPin, ExternalLink, RefreshCw, CheckCircle2, Layers, Radio, Boxes, Users, AlertOctagon, Check, PhoneCall, Target, FileText, Search, Clock, PenTool, ChevronDown, Compass, CheckSquare, Square } from "lucide-react";
 import { parseCoordinates, getGoogleMapsUrl, formatCoordinates, findClosestEntity } from "@/lib/geoUtils";
 import { formatOpenedAgo } from "@/lib/dateUtils";
 import { MUNICIPIO } from "@/modules/core/ui";
 import { floodZonesGeoJSON } from "@/data/geo";
 import { findSmartRecommendedTeam, checkOccurrenceInRiskZone } from "@/lib/dispatchIntelligence";
 import type { MapShelter, MapTeamLive, MapResource, MapVolunteerSummary } from "@/components/MapComponent";
+import type { RiskZone } from "@/components/MapDrawingTool";
 
 // Leaflet precisa ser carregado dinamicamente para evitar erro de 'window is not defined' no SSR
 const MapComponent = dynamic(() => import("@/components/MapComponent"), {
@@ -56,6 +57,17 @@ function PainelContent() {
   const [resources, setResources] = useState<MapResource[]>([]);
   const [volunteerSummary, setVolunteerSummary] = useState<MapVolunteerSummary>({ total: 0, available: 0, bySpecialty: [] });
 
+  // ---------- Estado: Áreas de Risco Delimitadas (Desenho Tático) ----------
+  const [riskZones, setRiskZones] = useState<RiskZone[]>([]);
+  const [showRiskZones, setShowRiskZones] = useState(true);
+  const [isDrawingRiskZone, setIsDrawingRiskZone] = useState(false);
+  const [pendingPolygonPoints, setPendingPolygonPoints] = useState<[number, number][] | null>(null);
+  const [showSaveZoneModal, setShowSaveZoneModal] = useState(false);
+  const [zoneName, setZoneName] = useState("");
+  const [zoneRiskLevel, setZoneRiskLevel] = useState<"Crítico" | "Alto" | "Médio">("Alto");
+  const [zoneDescription, setZoneDescription] = useState("");
+  const [savingZone, setSavingZone] = useState(false);
+
   // ---------- Estado: Visibilidade das camadas ----------
   const [showOccurrences, setShowOccurrences] = useState(true);
   const [showFloodZones, setShowFloodZones] = useState(false);
@@ -64,6 +76,46 @@ function PainelContent() {
   const [showTeams, setShowTeams] = useState(true);
   const [showResources, setShowResources] = useState(true);
   const [showVolunteers, setShowVolunteers] = useState(true);
+  const [showLayersDropdown, setShowLayersDropdown] = useState(false);
+  const layersDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Fechar menu de camadas ao clicar fora
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (layersDropdownRef.current && !layersDropdownRef.current.contains(event.target as Node)) {
+        setShowLayersDropdown(false);
+      }
+    }
+    if (showLayersDropdown) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [showLayersDropdown]);
+
+  // Contagem de camadas ativas no mapa
+  const activeLayersCount = useMemo(() => {
+    return [
+      showOccurrences,
+      showFloodZones,
+      showAutoFloodZones,
+      showRiskZones,
+      showShelters,
+      showTeams,
+      showResources,
+      showVolunteers,
+    ].filter(Boolean).length;
+  }, [showOccurrences, showFloodZones, showAutoFloodZones, showRiskZones, showShelters, showTeams, showResources, showVolunteers]);
+
+  const toggleAllLayers = (enable: boolean) => {
+    setShowOccurrences(enable);
+    setShowFloodZones(enable);
+    setShowAutoFloodZones(enable);
+    setShowRiskZones(enable);
+    setShowShelters(enable);
+    setShowTeams(enable);
+    setShowResources(enable);
+    setShowVolunteers(enable);
+  };
 
   // Atualiza o contador de tempo relativo periodicamente a cada 15 segundos
   useEffect(() => {
@@ -112,11 +164,17 @@ function PainelContent() {
       .select("*")
       .order("sent_at", { ascending: false });
 
-    // Guardar a coordenada mais recente de cada equipe
+    // Guardar a coordenada mais recente de cada equipe (apenas se transmitida nos últimos 10 minutos)
     const latestLocMap = new Map<string, any>();
+    const nowMs = Date.now();
+    const MAX_STALE_MS = 10 * 60 * 1000;
+
     (locData || []).forEach((loc: any) => {
       if (!latestLocMap.has(loc.team_id)) {
-        latestLocMap.set(loc.team_id, loc);
+        const diffMs = nowMs - new Date(loc.sent_at).getTime();
+        if (diffMs <= MAX_STALE_MS) {
+          latestLocMap.set(loc.team_id, loc);
+        }
       }
     });
 
@@ -198,6 +256,117 @@ function PainelContent() {
     setVolunteerSummary({ total, available, bySpecialty });
   }, []);
 
+  // ---------- Fetch: Áreas de Risco Delimitadas (do Supabase) ----------
+  const fetchRiskZones = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('risk_zones')
+        .select('*')
+        .eq('municipio', MUNICIPIO)
+        .order('created_at', { ascending: false });
+      if (!error && data) {
+        setRiskZones(data);
+      }
+    } catch (e) {
+      console.error('Erro ao buscar risk_zones:', e);
+    }
+  }, []);
+
+  // ---------- Ações de Delimitação de Áreas de Risco ----------
+  const handleDeleteRiskZone = async (id: string) => {
+    try {
+      const { error } = await supabase.from('risk_zones').delete().eq('id', id);
+      if (error) throw error;
+      setRiskZones((prev) => prev.filter((z) => z.id !== id));
+    } catch (e) {
+      console.error('Erro ao deletar área de risco:', e);
+      alert('Erro ao excluir área de risco.');
+    }
+  };
+
+  const handleStopTeamGPS = async (teamId: string) => {
+    try {
+      await supabase.from("team_locations").delete().eq("team_id", teamId);
+      setLiveTeams((prev) => prev.filter((t) => t.team_id !== teamId));
+      fetchLiveTeams();
+    } catch (e) {
+      console.error("Erro ao encerrar GPS da viatura:", e);
+      alert("Erro ao desconectar GPS da viatura.");
+    }
+  };
+
+  const handleDrawingComplete = (points: [number, number][]) => {
+    setIsDrawingRiskZone(false);
+    setPendingPolygonPoints(points);
+    setZoneName(`Área de Risco - ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`);
+    setZoneDescription("");
+    setZoneRiskLevel("Alto");
+    setShowSaveZoneModal(true);
+  };
+
+  const handleSaveRiskZone = async () => {
+    if (!pendingPolygonPoints || pendingPolygonPoints.length < 3) return;
+    if (!zoneName.trim()) {
+      alert("Por favor, informe o nome da área de risco.");
+      return;
+    }
+
+    setSavingZone(true);
+    try {
+      // Construir anel GeoJSON [lng, lat]
+      const ring = pendingPolygonPoints.map((p) => [p[1], p[0]]);
+      if (ring[0][0] !== ring[ring.length - 1][0] || ring[0][1] !== ring[ring.length - 1][1]) {
+        ring.push(ring[0]);
+      }
+
+      const color =
+        zoneRiskLevel === 'Crítico' ? '#ef4444' :
+        zoneRiskLevel === 'Alto' ? '#f97316' : '#eab308';
+
+      const geojson = {
+        type: "Feature",
+        properties: {
+          name: zoneName.trim(),
+          riskLevel: zoneRiskLevel,
+          color: color,
+          description: zoneDescription.trim() || undefined,
+        },
+        geometry: {
+          type: "Polygon",
+          coordinates: [ring],
+        },
+      };
+
+      const { data, error } = await supabase
+        .from('risk_zones')
+        .insert([{
+          name: zoneName.trim(),
+          description: zoneDescription.trim() || null,
+          risk_level: zoneRiskLevel,
+          color: color,
+          coordinates: pendingPolygonPoints,
+          geojson: geojson,
+          municipio: MUNICIPIO,
+        }])
+        .select();
+
+      if (error) throw error;
+
+      if (data && data[0]) {
+        setRiskZones((prev) => [data[0], ...prev]);
+      }
+
+      setShowSaveZoneModal(false);
+      setPendingPolygonPoints(null);
+      setShowRiskZones(true);
+    } catch (e) {
+      console.error("Erro ao salvar área de risco:", e);
+      alert("Erro ao salvar área de risco no Supabase.");
+    } finally {
+      setSavingZone(false);
+    }
+  };
+
   // ---------- Fetch inicial + Real-time ----------
   useEffect(() => {
     fetchOccurrences();
@@ -205,6 +374,7 @@ function PainelContent() {
     fetchLiveTeams();
     fetchResources();
     fetchVolunteers();
+    fetchRiskZones();
 
     // Real-time: ocorrências
     const occChannel = supabase
@@ -220,10 +390,10 @@ function PainelContent() {
       })
       .subscribe();
 
-    // Real-time: equipes GPS (atualiza a cada insert)
+    // Real-time: equipes GPS (atualiza a cada insert, update ou delete imediato)
     const teamChannel = supabase
       .channel('team-locations-map')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'team_locations' }, () => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'team_locations' }, () => {
         fetchLiveTeams();
       })
       .subscribe();
@@ -236,6 +406,14 @@ function PainelContent() {
       })
       .subscribe();
 
+    // Real-time: áreas de risco delimitadas
+    const riskZoneChannel = supabase
+      .channel('risk-zones-map')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'risk_zones' }, () => {
+        fetchRiskZones();
+      })
+      .subscribe();
+
     // Heartbeat: atualizar GPS e recursos a cada 15s
     const heartbeat = setInterval(() => {
       fetchLiveTeams();
@@ -245,9 +423,10 @@ function PainelContent() {
       supabase.removeChannel(occChannel);
       supabase.removeChannel(teamChannel);
       supabase.removeChannel(shelterChannel);
+      supabase.removeChannel(riskZoneChannel);
       clearInterval(heartbeat);
     };
-  }, [fetchShelters, fetchLiveTeams, fetchResources, fetchVolunteers]);
+  }, [fetchShelters, fetchLiveTeams, fetchResources, fetchVolunteers, fetchRiskZones]);
 
   useEffect(() => {
     if (focusId && occurrences.length > 0) {
@@ -358,11 +537,11 @@ function PainelContent() {
     };
   }, [occurrenceCoords, recommendedTeam]);
 
-  // Verificação Point-in-Polygon: alerta se o chamado caiu dentro de uma mancha de inundação ativa
+  // Verificação Point-in-Polygon: alerta se o chamado caiu dentro de uma mancha de inundação ou área de risco ativa
   const riskZoneCheck = useMemo(() => {
     if (!occurrenceCoords) return null;
-    return checkOccurrenceInRiskZone(occurrenceCoords, floodZonesGeoJSON);
-  }, [occurrenceCoords]);
+    return checkOccurrenceInRiskZone(occurrenceCoords, floodZonesGeoJSON, undefined, riskZones);
+  }, [occurrenceCoords, riskZones]);
 
   // Equipe recomendada para o chamado em tempo real
   const realtimeAlertClosest = useMemo(() => {
@@ -382,124 +561,360 @@ function PainelContent() {
     fetchLiveTeams();
     fetchResources();
     fetchVolunteers();
+    fetchRiskZones();
   };
 
   return (
     <div className="flex flex-col h-full gap-4 relative">
       
-      {/* Barra de Topo com Título e Filtros dos 4 Órgãos */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 shrink-0">
-        <div>
-          <h1 className="text-xl md:text-2xl font-extrabold text-white tracking-tight mb-0.5 drop-shadow-[0_0_10px_rgba(255,255,255,0.1)]">
-            Mapa Tático de Monitoramento
-          </h1>
-          <p className="text-slate-400 text-xs font-medium">
-            Visão em tempo real das equipes de resposta rápida
-          </p>
+      {/* 1. Header Estratégico & Ações Táticas Primárias (SEMPRE VISÍVEIS) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0 pb-1 border-b border-white/5">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500/20 to-amber-500/10 border border-red-500/30 flex items-center justify-center text-red-400 shadow-[0_0_15px_rgba(239,68,68,0.2)] shrink-0">
+            <Compass size={22} className="animate-pulse" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-lg md:text-2xl font-black text-white tracking-tight drop-shadow-[0_0_10px_rgba(255,255,255,0.1)]">
+                Mapa Tático de Monitoramento
+              </h1>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                Tempo Real
+              </span>
+            </div>
+            <p className="text-slate-400 text-xs font-medium flex items-center gap-2 mt-0.5">
+              <span>{occurrences.length} chamados registrados</span>
+              <span className="text-slate-600">•</span>
+              <span className="text-emerald-400 font-semibold">{liveTeamCount} viatura(s) ativa(s)</span>
+              {riskZones.length > 0 && (
+                <>
+                  <span className="text-slate-600 hidden sm:inline">•</span>
+                  <span className="text-red-400 font-semibold hidden sm:inline">{riskZones.length} área(s) de risco</span>
+                </>
+              )}
+            </p>
+          </div>
         </div>
 
-        {/* Filtros Rápidos por Órgão e Camadas */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full md:w-auto">
-          
-          {/* Controle de Camadas */}
-          <div className="glass-card flex items-center justify-between sm:justify-start gap-2.5 px-3 py-1.5 rounded-xl shrink-0 overflow-x-auto no-scrollbar">
-            <span className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1 tracking-wider shrink-0">
-              <Layers size={12} /> Camadas
+        {/* Lado Direito: Ações Táticas Primárias (Prioridade Fitts & Sem Cortes) */}
+        <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto flex-wrap">
+          {/* Botão de Delimitar Área de Risco - SUPER DESTACADO! */}
+          <button 
+            onClick={() => {
+              setIsDrawingRiskZone(prev => !prev);
+              if (!showRiskZones) setShowRiskZones(true);
+            }}
+            title="Delimitar nova área de risco ou mancha desenhando um polígono no mapa"
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all duration-300 shrink-0 cursor-pointer shadow-lg active:scale-95 ${
+              isDrawingRiskZone 
+                ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-[0_0_20px_rgba(239,68,68,0.6)] border border-red-300 ring-2 ring-red-500/50 animate-pulse' 
+                : 'bg-red-500/15 hover:bg-red-500/25 text-red-300 hover:text-white border border-red-500/40 hover:border-red-400 shadow-red-500/10'
+            }`}
+          >
+            <PenTool size={15} className={isDrawingRiskZone ? "text-white animate-spin" : "text-red-400"} />
+            <span>{isDrawingRiskZone ? "Mapeando (Clique no mapa)..." : "Delimitar Área de Risco"}</span>
+            {riskZones.length > 0 && !isDrawingRiskZone && (
+              <span className="text-[10px] bg-red-500/30 text-red-200 px-1.5 py-0.2 rounded-full font-bold border border-red-500/40">
+                {riskZones.length}
+              </span>
+            )}
+          </button>
+
+          {/* Botão de Lista de Chamados */}
+          <button 
+            onClick={() => setShowOccList(prev => !prev)}
+            title="Abrir Central de Chamados e Requisições"
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all duration-300 shrink-0 cursor-pointer shadow-lg active:scale-95 ${
+              showOccList 
+                ? 'bg-blue-600 text-white shadow-[0_0_20px_rgba(37,99,235,0.4)] border border-blue-400' 
+                : 'bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 hover:text-white border border-white/10'
+            }`}
+          >
+            <FileText size={15} className={showOccList ? "text-white" : "text-blue-400"} />
+            <span>Chamados ({occurrences.length})</span>
+          </button>
+
+          {/* Botão de Atualizar */}
+          <button 
+            onClick={refreshAll}
+            title="Atualizar dados operacionais"
+            className="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-slate-400 hover:text-white border border-white/10 transition-colors shrink-0 cursor-pointer active:scale-95"
+          >
+            <RefreshCw size={15} className={loading ? "animate-spin text-primary" : ""} />
+          </button>
+        </div>
+      </div>
+
+      {/* 2. Sub-Toolbar: Filtros Rápidos por Órgão & Popover de Camadas */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shrink-0">
+        
+        {/* Filtros Rápidos por Órgão */}
+        <div className="glass-card flex items-center gap-1.5 p-1.5 rounded-xl overflow-x-auto no-scrollbar w-full sm:w-auto">
+          <span className="text-[10px] font-bold text-slate-500 uppercase px-2 shrink-0 hidden md:inline">
+            Filtrar:
+          </span>
+          <button 
+            onClick={() => setSelectedFilter("TODOS")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-200 shrink-0 cursor-pointer ${
+              selectedFilter === "TODOS" ? 'bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.2)]' : 'text-slate-400 hover:bg-white/5 hover:text-white'
+            }`}
+          >
+            Todos ({occurrences.length})
+          </button>
+
+          <button 
+            onClick={() => setSelectedFilter("DEFESA_CIVIL")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-200 shrink-0 cursor-pointer ${
+              selectedFilter === "DEFESA_CIVIL" ? 'bg-amber-500/15 text-amber-300 border border-amber-500/40 shadow-[0_0_15px_rgba(245,158,11,0.15)]' : 'text-slate-400 border border-transparent hover:bg-white/5 hover:text-white'
+            }`}
+          >
+            <ShieldAlert size={14} className={selectedFilter === "DEFESA_CIVIL" ? "text-amber-400" : "text-amber-600"} /> Defesa Civil
+          </button>
+
+          <button 
+            onClick={() => setSelectedFilter("BOMBEIROS")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-200 shrink-0 cursor-pointer ${
+              selectedFilter === "BOMBEIROS" ? 'bg-red-500/15 text-red-300 border border-red-500/40 shadow-[0_0_15px_rgba(239,68,68,0.15)]' : 'text-slate-400 border border-transparent hover:bg-white/5 hover:text-white'
+            }`}
+          >
+            <Flame size={14} className={selectedFilter === "BOMBEIROS" ? "text-red-400" : "text-red-600"} /> Bombeiros
+          </button>
+
+          <button 
+            onClick={() => setSelectedFilter("OBRAS")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-200 shrink-0 cursor-pointer ${
+              selectedFilter === "OBRAS" ? 'bg-blue-500/15 text-blue-300 border border-blue-500/40 shadow-[0_0_15px_rgba(59,130,246,0.15)]' : 'text-slate-400 border border-transparent hover:bg-white/5 hover:text-white'
+            }`}
+          >
+            <HardHat size={14} className={selectedFilter === "OBRAS" ? "text-blue-400" : "text-blue-600"} /> Obras
+          </button>
+
+          <button 
+            onClick={() => setSelectedFilter("ASSISTENCIA")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-200 shrink-0 cursor-pointer ${
+              selectedFilter === "ASSISTENCIA" ? 'bg-fuchsia-500/15 text-fuchsia-300 border border-fuchsia-500/40 shadow-[0_0_15px_rgba(217,70,239,0.15)]' : 'text-slate-400 border border-transparent hover:bg-white/5 hover:text-white'
+            }`}
+          >
+            <HeartHandshake size={14} className={selectedFilter === "ASSISTENCIA" ? "text-fuchsia-400" : "text-fuchsia-600"} /> Social
+          </button>
+        </div>
+
+        {/* Menu Popover de Camadas do Mapa */}
+        <div className="relative shrink-0" ref={layersDropdownRef}>
+          <button
+            onClick={() => setShowLayersDropdown(prev => !prev)}
+            title="Gerenciar camadas ativas do mapa tático"
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer glass-card ${
+              showLayersDropdown
+                ? 'bg-slate-800 text-white border-primary/50 shadow-[0_0_15px_rgba(59,130,246,0.2)]'
+                : 'text-slate-300 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <Layers size={14} className="text-primary" />
+            <span>Camadas</span>
+            <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.2 rounded-full font-bold border border-primary/30">
+              {activeLayersCount}/8
             </span>
-            <div className="flex items-center gap-2">
-              <label className="flex items-center gap-1 text-[10px] cursor-pointer text-slate-300 hover:text-white transition-colors font-medium whitespace-nowrap">
-                <input type="checkbox" checked={showOccurrences} onChange={(e) => setShowOccurrences(e.target.checked)} className="accent-red-500 w-3 h-3" /> Ocorrências
-              </label>
-              <label className="flex items-center gap-1 text-[10px] cursor-pointer text-slate-300 hover:text-white transition-colors font-medium whitespace-nowrap">
-                <input type="checkbox" checked={showFloodZones} onChange={(e) => setShowFloodZones(e.target.checked)} className="accent-red-400 w-3 h-3" /> Manchas Oficiais
-              </label>
-              <label className="flex items-center gap-1.5 text-[10px] cursor-pointer text-sky-300 hover:text-white transition-colors font-medium whitespace-nowrap">
-                <input type="checkbox" checked={showAutoFloodZones} onChange={(e) => setShowAutoFloodZones(e.target.checked)} className="accent-sky-400 w-3 h-3" /> 
-                <span>Mancha IA</span>
-                <span className="text-[9px] bg-sky-500/20 text-sky-300 border border-sky-500/30 px-1 rounded-full font-bold">Auto</span>
-              </label>
-              <label className="flex items-center gap-1 text-[10px] cursor-pointer text-slate-300 hover:text-white transition-colors font-medium whitespace-nowrap">
-                <input type="checkbox" checked={showShelters} onChange={(e) => setShowShelters(e.target.checked)} className="accent-emerald-500 w-3 h-3" /> Abrigos
-              </label>
-              <label className="flex items-center gap-1 text-[10px] cursor-pointer text-slate-300 hover:text-white transition-colors font-medium whitespace-nowrap">
-                <input type="checkbox" checked={showTeams} onChange={(e) => setShowTeams(e.target.checked)} className="accent-blue-500 w-3 h-3" /> 
-                Equipes
-                {liveTeamCount > 0 && <span className="text-[9px] bg-emerald-500/20 text-emerald-400 px-1 rounded-full font-bold">{liveTeamCount}</span>}
-              </label>
-              <label className="flex items-center gap-1 text-[10px] cursor-pointer text-slate-300 hover:text-white transition-colors font-medium whitespace-nowrap">
-                <input type="checkbox" checked={showResources} onChange={(e) => setShowResources(e.target.checked)} className="accent-amber-500 w-3 h-3" /> Recursos
-              </label>
-              <label className="flex items-center gap-1 text-[10px] cursor-pointer text-slate-300 hover:text-white transition-colors font-medium whitespace-nowrap">
-                <input type="checkbox" checked={showVolunteers} onChange={(e) => setShowVolunteers(e.target.checked)} className="accent-pink-500 w-3 h-3" /> Voluntários
-              </label>
+            <ChevronDown size={14} className={`text-slate-400 transition-transform duration-200 ${showLayersDropdown ? 'rotate-180' : ''}`} />
+          </button>
+
+          {/* Painel Dropdown Flutuante de Camadas */}
+          {showLayersDropdown && (
+            <div className="absolute right-0 top-full mt-2 w-72 bg-slate-900/95 border border-slate-700/80 rounded-2xl shadow-2xl p-3 z-[600] backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
+              <div className="flex items-center justify-between pb-2 mb-2 border-b border-white/10">
+                <span className="text-xs font-black uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                  <Layers size={13} className="text-primary" /> Camadas Táticas
+                </span>
+                <div className="flex items-center gap-1 text-[10px]">
+                  <button
+                    onClick={() => toggleAllLayers(true)}
+                    className="text-primary hover:underline font-semibold cursor-pointer"
+                  >
+                    Todas
+                  </button>
+                  <span className="text-slate-600">•</span>
+                  <button
+                    onClick={() => toggleAllLayers(false)}
+                    className="text-slate-400 hover:text-white font-semibold cursor-pointer"
+                  >
+                    Nenhuma
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-1 max-h-[360px] overflow-y-auto pr-1">
+                {/* 1. Ocorrências */}
+                <label className="flex items-center justify-between p-2 rounded-xl hover:bg-white/5 cursor-pointer transition-colors text-xs">
+                  <span className="flex items-center gap-2 text-slate-200">
+                    <span className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
+                    Ocorrências
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-slate-500 font-mono">({occurrences.length})</span>
+                    <input
+                      type="checkbox"
+                      checked={showOccurrences}
+                      onChange={(e) => setShowOccurrences(e.target.checked)}
+                      className="accent-red-500 w-3.5 h-3.5 cursor-pointer"
+                    />
+                  </div>
+                </label>
+
+                {/* 2. Manchas Oficiais */}
+                <label className="flex items-center justify-between p-2 rounded-xl hover:bg-white/5 cursor-pointer transition-colors text-xs">
+                  <span className="flex items-center gap-2 text-slate-200">
+                    <span className="w-2.5 h-2.5 rounded-full bg-red-400/80" />
+                    Manchas Oficiais
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={showFloodZones}
+                    onChange={(e) => setShowFloodZones(e.target.checked)}
+                    className="accent-red-400 w-3.5 h-3.5 cursor-pointer"
+                  />
+                </label>
+
+                {/* 3. Mancha IA (Auto) */}
+                <label className="flex items-center justify-between p-2 rounded-xl hover:bg-white/5 cursor-pointer transition-colors text-xs">
+                  <span className="flex items-center gap-2 text-slate-200">
+                    <span className="w-2.5 h-2.5 rounded-full bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.8)]" />
+                    <span>Mancha IA</span>
+                    <span className="text-[9px] bg-sky-500/20 text-sky-300 border border-sky-500/30 px-1 rounded-full font-bold">Auto</span>
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={showAutoFloodZones}
+                    onChange={(e) => setShowAutoFloodZones(e.target.checked)}
+                    className="accent-sky-400 w-3.5 h-3.5 cursor-pointer"
+                  />
+                </label>
+
+                {/* 4. Áreas de Risco Manuais */}
+                <label className="flex items-center justify-between p-2 rounded-xl hover:bg-white/5 cursor-pointer transition-colors text-xs bg-red-500/10 border border-red-500/20">
+                  <span className="flex items-center gap-2 text-red-200 font-bold">
+                    <span className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
+                    Áreas de Risco (Desenho)
+                  </span>
+                  <div className="flex items-center gap-2">
+                    {riskZones.length > 0 && (
+                      <span className="text-[9px] bg-red-500/30 text-red-200 border border-red-500/40 px-1.5 py-0.2 rounded-full font-bold">
+                        {riskZones.length}
+                      </span>
+                    )}
+                    <input
+                      type="checkbox"
+                      checked={showRiskZones}
+                      onChange={(e) => setShowRiskZones(e.target.checked)}
+                      className="accent-red-500 w-3.5 h-3.5 cursor-pointer"
+                    />
+                  </div>
+                </label>
+
+                {/* 5. Abrigos */}
+                <label className="flex items-center justify-between p-2 rounded-xl hover:bg-white/5 cursor-pointer transition-colors text-xs">
+                  <span className="flex items-center gap-2 text-slate-200">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+                    Abrigos
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-slate-500 font-mono">({shelters.length})</span>
+                    <input
+                      type="checkbox"
+                      checked={showShelters}
+                      onChange={(e) => setShowShelters(e.target.checked)}
+                      className="accent-emerald-500 w-3.5 h-3.5 cursor-pointer"
+                    />
+                  </div>
+                </label>
+
+                {/* 6. Equipes */}
+                <label className="flex items-center justify-between p-2 rounded-xl hover:bg-white/5 cursor-pointer transition-colors text-xs">
+                  <span className="flex items-center gap-2 text-slate-200">
+                    <span className="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]" />
+                    Equipes em Campo
+                  </span>
+                  <div className="flex items-center gap-2">
+                    {liveTeamCount > 0 && (
+                      <span className="text-[9px] bg-emerald-500/20 text-emerald-400 px-1.5 rounded-full font-bold">
+                        {liveTeamCount}
+                      </span>
+                    )}
+                    <input
+                      type="checkbox"
+                      checked={showTeams}
+                      onChange={(e) => setShowTeams(e.target.checked)}
+                      className="accent-blue-500 w-3.5 h-3.5 cursor-pointer"
+                    />
+                  </div>
+                </label>
+
+                {/* 7. Recursos */}
+                <label className="flex items-center justify-between p-2 rounded-xl hover:bg-white/5 cursor-pointer transition-colors text-xs">
+                  <span className="flex items-center gap-2 text-slate-200">
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                    Recursos / Materiais
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={showResources}
+                    onChange={(e) => setShowResources(e.target.checked)}
+                    className="accent-amber-500 w-3.5 h-3.5 cursor-pointer"
+                  />
+                </label>
+
+                {/* 8. Voluntários */}
+                <label className="flex items-center justify-between p-2 rounded-xl hover:bg-white/5 cursor-pointer transition-colors text-xs">
+                  <span className="flex items-center gap-2 text-slate-200">
+                    <span className="w-2.5 h-2.5 rounded-full bg-pink-500" />
+                    Voluntários Ativos
+                  </span>
+                  <div className="flex items-center gap-2">
+                    {volunteerSummary.available > 0 && (
+                      <span className="text-[9px] bg-pink-500/20 text-pink-300 px-1.5 rounded-full font-bold">
+                        {volunteerSummary.available}
+                      </span>
+                    )}
+                    <input
+                      type="checkbox"
+                      checked={showVolunteers}
+                      onChange={(e) => setShowVolunteers(e.target.checked)}
+                      className="accent-pink-500 w-3.5 h-3.5 cursor-pointer"
+                    />
+                  </div>
+                </label>
+              </div>
             </div>
-          </div>
-
-          {/* Filtros de Órgão */}
-          <div className="glass-card flex items-center gap-1.5 px-2 py-1.5 rounded-xl overflow-x-auto no-scrollbar w-full sm:w-auto">
-            <button 
-              onClick={() => setSelectedFilter("TODOS")}
-              className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-200 shrink-0 ${selectedFilter === "TODOS" ? 'bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.2)]' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}
-            >
-              Todos ({occurrences.length})
-            </button>
-
-            <button 
-              onClick={() => setSelectedFilter("DEFESA_CIVIL")}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-200 shrink-0 ${selectedFilter === "DEFESA_CIVIL" ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.15)]' : 'text-slate-400 border border-transparent hover:bg-white/5 hover:text-white'}`}
-            >
-              <ShieldAlert size={14} className={selectedFilter === "DEFESA_CIVIL" ? "text-amber-400" : "text-amber-600"} /> Defesa Civil
-            </button>
-
-            <button 
-              onClick={() => setSelectedFilter("BOMBEIROS")}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-200 shrink-0 ${selectedFilter === "BOMBEIROS" ? 'bg-red-500/10 text-red-400 border border-red-500/30 shadow-[0_0_15px_rgba(239,68,68,0.15)]' : 'text-slate-400 border border-transparent hover:bg-white/5 hover:text-white'}`}
-            >
-              <Flame size={14} className={selectedFilter === "BOMBEIROS" ? "text-red-400" : "text-red-600"} /> Bombeiros
-            </button>
-
-            <button 
-              onClick={() => setSelectedFilter("OBRAS")}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-200 shrink-0 ${selectedFilter === "OBRAS" ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.15)]' : 'text-slate-400 border border-transparent hover:bg-white/5 hover:text-white'}`}
-            >
-              <HardHat size={14} className={selectedFilter === "OBRAS" ? "text-blue-400" : "text-blue-600"} /> Obras
-            </button>
-
-            <button 
-              onClick={() => setSelectedFilter("ASSISTENCIA")}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-200 shrink-0 ${selectedFilter === "ASSISTENCIA" ? 'bg-fuchsia-500/10 text-fuchsia-400 border border-fuchsia-500/30 shadow-[0_0_15px_rgba(217,70,239,0.15)]' : 'text-slate-400 border border-transparent hover:bg-white/5 hover:text-white'}`}
-            >
-              <HeartHandshake size={14} className={selectedFilter === "ASSISTENCIA" ? "text-fuchsia-400" : "text-fuchsia-600"} /> Social
-            </button>
-
-            <button 
-              onClick={() => setShowOccList(prev => !prev)}
-              title="Abrir Central de Chamados e Requisições"
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all duration-200 shrink-0 cursor-pointer ${
-                showOccList 
-                  ? 'bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)] border border-blue-400' 
-                  : 'bg-white/5 hover:bg-white/10 text-slate-200 border border-white/10'
-              }`}
-            >
-              <FileText size={14} className={showOccList ? "text-white" : "text-blue-400"} />
-              <span>Chamados ({occurrences.length})</span>
-            </button>
-
-            <div className="w-[1px] h-6 bg-white/10 mx-1 shrink-0"></div>
-
-            <button 
-              onClick={refreshAll}
-              title="Atualizar todos os dados"
-              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors shrink-0"
-            >
-              <RefreshCw size={14} className={loading ? "animate-spin text-primary" : ""} />
-            </button>
-          </div>
+          )}
         </div>
       </div>
 
       {/* Container do Mapa Tático */}
       <div className="glass-card flex-1 min-h-[300px] p-1 overflow-hidden relative group rounded-2xl">
+        
+        {/* ===== BARRA FLUTUANTE TÁTICA DO MAPA (CONTROLES GIS / JAKOB'S LAW) ===== */}
+        <div className="absolute top-4 left-14 sm:left-16 z-[400] flex items-center gap-2 pointer-events-auto">
+          <button
+            onClick={() => {
+              setIsDrawingRiskZone(prev => !prev);
+              if (!showRiskZones) setShowRiskZones(true);
+            }}
+            title="Clique para desenhar manualmente polígonos de área de risco no mapa"
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold backdrop-blur-xl transition-all duration-300 shadow-2xl cursor-pointer active:scale-95 ${
+              isDrawingRiskZone
+                ? 'bg-red-600 text-white border-2 border-red-300 ring-2 ring-red-500/50 shadow-[0_0_25px_rgba(239,68,68,0.7)] animate-pulse'
+                : 'bg-slate-900/90 hover:bg-slate-800 text-slate-100 hover:text-white border border-red-500/50 hover:border-red-400 shadow-xl'
+            }`}
+          >
+            <PenTool size={14} className={isDrawingRiskZone ? "text-white animate-spin" : "text-red-400"} />
+            <span>{isDrawingRiskZone ? "Cancelar Mapeamento (Esc)" : "Desenhar Polígono / Área de Risco"}</span>
+            {riskZones.length > 0 && !isDrawingRiskZone && (
+              <span className="text-[10px] bg-red-500/20 text-red-300 border border-red-500/30 px-1.5 py-0.2 rounded-full font-bold">
+                {riskZones.length} salva(s)
+              </span>
+            )}
+          </button>
+        </div>
         {/* Banner de Alerta em Tempo Real quando nova ocorrência entra */}
         {realtimeAlert && (
           <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[500] glass-card px-4 py-3 rounded-2xl shadow-2xl border border-red-500/50 bg-slate-900/95 flex items-center gap-3 animate-in slide-in-from-top duration-300 max-w-lg w-[92%]">
@@ -554,7 +969,133 @@ function PainelContent() {
           resources={resources}
           volunteerSummary={volunteerSummary}
           dispatchVector={dispatchVector}
+          // Áreas de Risco Delimitadas e Ferramenta de Desenho
+          riskZones={riskZones}
+          showRiskZones={showRiskZones}
+          onDeleteRiskZone={handleDeleteRiskZone}
+          isDrawingRiskZone={isDrawingRiskZone}
+          onDrawingComplete={handleDrawingComplete}
+          onDrawingCancel={() => setIsDrawingRiskZone(false)}
+          onStopTeamGPS={handleStopTeamGPS}
         />
+
+        {/* Modal Tático: Salvar Nova Área de Risco Delimitada */}
+        {showSaveZoneModal && pendingPolygonPoints && (
+          <div className="fixed inset-0 bg-black/75 backdrop-blur-md z-[1200] flex items-center justify-center p-4 animate-in fade-in duration-200">
+            <div className="bg-slate-900 border border-slate-700/80 rounded-2xl shadow-2xl max-w-md w-full p-6 text-white relative animate-in zoom-in-95 duration-200">
+              <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-red-500/20 border border-red-500/30 flex items-center justify-center text-red-400">
+                    <PenTool size={16} />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-white">Salvar Área de Risco</h3>
+                    <p className="text-xs text-slate-400">{pendingPolygonPoints.length} vértices mapeados no terreno</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowSaveZoneModal(false);
+                    setPendingPolygonPoints(null);
+                  }}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+                    Nome da Área / Região *
+                  </label>
+                  <input
+                    type="text"
+                    value={zoneName}
+                    onChange={(e) => setZoneName(e.target.value)}
+                    placeholder="Ex: Margem do Rio - Bairro Menino Deus"
+                    className="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white text-sm focus:outline-hidden focus:border-red-500 transition-colors"
+                    autoFocus
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+                    Nível de Severidade de Risco
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { level: "Crítico", color: "#ef4444", bg: "bg-red-500/20 border-red-500 text-red-300" },
+                      { level: "Alto", color: "#f97316", bg: "bg-orange-500/20 border-orange-500 text-orange-300" },
+                      { level: "Médio", color: "#eab308", bg: "bg-amber-500/20 border-amber-500 text-amber-300" },
+                    ].map((opt) => (
+                      <button
+                        key={opt.level}
+                        type="button"
+                        onClick={() => setZoneRiskLevel(opt.level as any)}
+                        className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all flex flex-col items-center gap-1 cursor-pointer ${
+                          zoneRiskLevel === opt.level
+                            ? `${opt.bg} shadow-[0_0_12px_rgba(239,68,68,0.2)]`
+                            : "bg-slate-800/80 border-slate-700 text-slate-400 hover:bg-slate-800"
+                        }`}
+                      >
+                        <span className="w-2.5 h-2.5 rounded-full" style={{ background: opt.color }} />
+                        {opt.level}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+                    Observações Operacionais (Opcional)
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={zoneDescription}
+                    onChange={(e) => setZoneDescription(e.target.value)}
+                    placeholder="Ex: Rio transbordou cerca de 50m além da calha. Evacuação preventiva recomendada."
+                    className="w-full px-3.5 py-2 bg-slate-800 border border-slate-700 rounded-xl text-white text-xs focus:outline-hidden focus:border-red-500 transition-colors resize-none"
+                  />
+                </div>
+
+                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-xs text-red-200/90 leading-relaxed flex items-center gap-2">
+                  <AlertOctagon size={16} className="text-red-400 shrink-0" />
+                  <span>
+                    Chamados de cidadãos que caírem dentro deste polígono serão classificados automaticamente como <b>Prioridade Alta</b>.
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowSaveZoneModal(false);
+                      setPendingPolygonPoints(null);
+                    }}
+                    className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                  >
+                    Descartar
+                  </button>
+                  <button
+                    type="button"
+                    disabled={savingZone || !zoneName.trim()}
+                    onClick={handleSaveRiskZone}
+                    className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white text-xs font-bold transition-all shadow-[0_0_15px_rgba(239,68,68,0.4)] flex items-center gap-1.5 cursor-pointer"
+                  >
+                    {savingZone ? (
+                      <RefreshCw size={14} className="animate-spin" />
+                    ) : (
+                      <Check size={14} />
+                    )}
+                    <span>Salvar Área de Risco</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         
         {/* Backdrop para fechar no mobile */}
         {(selectedOccurrence || showOccList) && (

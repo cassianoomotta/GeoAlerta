@@ -14,6 +14,7 @@ function TrackerContent() {
   const [error, setError] = useState<string | null>(null);
   
   const [isSharing, setIsSharing] = useState(false);
+  const isSharingRef = useRef(false);
   const [lastSent, setLastSent] = useState<Date | null>(null);
   const watchIdRef = useRef<number | null>(null);
   const intervalIdRef = useRef<NodeJS.Timeout | null>(null);
@@ -40,6 +41,21 @@ function TrackerContent() {
     }
   };
 
+  const deleteLocationBeacon = (targetTeamId: string) => {
+    try {
+      const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/team_locations?team_id=eq.${targetTeamId}`;
+      const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+      fetch(url, {
+        method: 'DELETE',
+        headers: {
+          'apikey': key,
+          'Authorization': `Bearer ${key}`
+        },
+        keepalive: true
+      }).catch(() => {});
+    } catch (e) {}
+  };
+
   useEffect(() => {
     async function loadTeam() {
       if (!teamId) {
@@ -64,9 +80,19 @@ function TrackerContent() {
     loadTeam();
   }, [teamId]);
 
-  // Limpa recursos ao desmontar
+  // Limpa recursos ao desmontar ou fechar a aba
   useEffect(() => {
+    const handleUnload = () => {
+      if (teamId) {
+        deleteLocationBeacon(teamId);
+      }
+    };
+    window.addEventListener("pagehide", handleUnload);
+    window.addEventListener("beforeunload", handleUnload);
+
     return () => {
+      window.removeEventListener("pagehide", handleUnload);
+      window.removeEventListener("beforeunload", handleUnload);
       if (watchIdRef.current !== null) {
         navigator.geolocation.clearWatch(watchIdRef.current);
       }
@@ -74,11 +100,17 @@ function TrackerContent() {
         clearInterval(intervalIdRef.current);
       }
       releaseWakeLock();
+      if (teamId) {
+        supabase.from("team_locations").delete().eq("team_id", teamId);
+        deleteLocationBeacon(teamId);
+      }
     };
-  }, []);
+  }, [teamId]);
 
   const sendPosition = async (latitude: number, longitude: number, accuracy: number) => {
-    if (!team) return;
+    // Se o compartilhamento foi desligado, NUNCA insere no banco
+    if (!team || !isSharingRef.current) return;
+
     const { error } = await supabase.from("team_locations").insert([
       {
         team_id: team.id,
@@ -89,7 +121,7 @@ function TrackerContent() {
         sent_at: new Date().toISOString(),
       },
     ]);
-    if (!error) {
+    if (!error && isSharingRef.current) {
       setLastSent(new Date());
     }
   };
@@ -100,10 +132,12 @@ function TrackerContent() {
       return;
     }
 
+    isSharingRef.current = true;
     setIsSharing(true);
     requestWakeLock();
 
     const handleSuccess = (pos: GeolocationPosition) => {
+      if (!isSharingRef.current) return;
       const { latitude, longitude, accuracy } = pos.coords;
       sendPosition(latitude, longitude, accuracy);
     };
@@ -129,7 +163,6 @@ function TrackerContent() {
           alert("Permissão de GPS negada. O compartilhamento foi encerrado.");
           stopSharing();
         }
-        // Se for timeout temporário ou perda momentânea de sinal, NÃO interrompe o compartilhamento
       },
       {
         enableHighAccuracy: true,
@@ -140,6 +173,10 @@ function TrackerContent() {
 
     // Heartbeat periódico (a cada 15 segundos) para garantir transmissão ininterrupta
     intervalIdRef.current = setInterval(() => {
+      if (!isSharingRef.current) {
+        if (intervalIdRef.current) clearInterval(intervalIdRef.current);
+        return;
+      }
       navigator.geolocation.getCurrentPosition(
         handleSuccess,
         (err) => console.warn("Heartbeat GPS:", err.message),
@@ -148,7 +185,12 @@ function TrackerContent() {
     }, 15000);
   };
 
-  const stopSharing = () => {
+  const stopSharing = async () => {
+    // 1. Bloqueia imediatamente qualquer callback de GPS em trânsito
+    isSharingRef.current = false;
+    setIsSharing(false);
+
+    // 2. Cancela listeners de hardware
     if (watchIdRef.current !== null) {
       navigator.geolocation.clearWatch(watchIdRef.current);
       watchIdRef.current = null;
@@ -158,7 +200,16 @@ function TrackerContent() {
       intervalIdRef.current = null;
     }
     releaseWakeLock();
-    setIsSharing(false);
+
+    // 3. Remove imediatamente a posição ativa do Supabase (via client e via beacon)
+    if (team?.id) {
+      try {
+        await supabase.from("team_locations").delete().eq("team_id", team.id);
+        deleteLocationBeacon(team.id);
+      } catch (e) {
+        console.error("Erro ao remover localização ativa do GPS:", e);
+      }
+    }
   };
 
   if (loading) {

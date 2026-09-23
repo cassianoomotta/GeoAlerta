@@ -55,8 +55,14 @@ export default function EquipesPage() {
       .order("sent_at", { ascending: true });
     if (!data) return;
     const latest = new Map<string, LivePoint>();
+    const nowMs = Date.now();
+    const MAX_STALE_MS = 10 * 60 * 1000;
+
     data.forEach((row: any) => {
-      latest.set(row.team_id, { team_id: row.team_id, team_name: row.team_name || row.member_name || "Equipe", lat: row.lat, lng: row.lng, accuracy: row.accuracy, sent_at: row.sent_at, member_name: row.member_name });
+      // Exibir apenas sinais ativos enviados nos últimos 10 minutos
+      if (nowMs - new Date(row.sent_at).getTime() <= MAX_STALE_MS) {
+        latest.set(row.team_id, { team_id: row.team_id, team_name: row.team_name || row.member_name || "Equipe", lat: row.lat, lng: row.lng, accuracy: row.accuracy, sent_at: row.sent_at, member_name: row.member_name });
+      }
     });
     setLive(Array.from(latest.values()));
   }, []);
@@ -64,7 +70,7 @@ export default function EquipesPage() {
     fetchLive();
     const iv = setInterval(() => { setNow(Date.now()); fetchLive(); }, 10000);
     const channel = supabase.channel("team-locations-live")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "team_locations" }, () => fetchLive())
+      .on("postgres_changes", { event: "*", schema: "public", table: "team_locations" }, () => fetchLive())
       .subscribe();
     return () => { clearInterval(iv); supabase.removeChannel(channel); };
   }, [fetchLive]);
@@ -86,11 +92,28 @@ export default function EquipesPage() {
       if (err.code === 1) { setShareFor(null); stopSharing(); }
     }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
   };
-  const stopSharing = () => {
-    if (watchIdRef.current !== null) { navigator.geolocation.clearWatch(watchIdRef.current); watchIdRef.current = null; }
+  const stopSharing = async (teamId?: string) => {
+    const targetId = teamId || shareFor?.id;
+    if (watchIdRef.current !== null) { 
+      navigator.geolocation.clearWatch(watchIdRef.current); 
+      watchIdRef.current = null; 
+    }
+    if (targetId) {
+      try {
+        await supabase.from("team_locations").delete().eq("team_id", targetId);
+      } catch (e) {
+        console.error("Erro ao remover localização ativa:", e);
+      }
+    }
     setShareFor(null);
+    fetchLive();
   };
-  useEffect(() => () => { if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current); }, []);
+  useEffect(() => () => { 
+    if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current);
+    if (shareFor) {
+      supabase.from("team_locations").delete().eq("team_id", shareFor.id);
+    }
+  }, [shareFor]);
 
   const submitTeam = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -284,7 +307,7 @@ export default function EquipesPage() {
                       <MessageCircle size={14} />
                     </button>
                     {isLive ? (
-                      <button onClick={stopSharing} className="inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 hover:bg-emerald-500/20 cursor-pointer">
+                      <button onClick={() => stopSharing(t.id)} className="inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 hover:bg-emerald-500/20 cursor-pointer">
                         <LocateFixed size={13} /> Parar GPS
                       </button>
                     ) : (

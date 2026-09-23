@@ -181,14 +181,49 @@ export function findSmartRecommendedTeam(
 export function checkOccurrenceInRiskZone(
   coords: { lat: number; lng: number } | null,
   officialFloodZonesGeoJson: any,
-  dynamicFloodGeoJson?: any
+  dynamicFloodGeoJson?: any,
+  customRiskZones?: any[]
 ): RiskZoneCheckResult {
   if (!coords) return { inRiskZone: false };
 
   try {
     const pt = turf.point([coords.lng, coords.lat]);
 
-    // 1. Verificar polígonos oficiais
+    // 1. Verificar áreas de risco delimitadas pelos gestores (prioridade máxima)
+    if (customRiskZones && customRiskZones.length > 0) {
+      for (const zone of customRiskZones) {
+        if (zone.geojson) {
+          const feat = zone.geojson;
+          if (feat.geometry && (feat.geometry.type === 'Polygon' || feat.geometry.type === 'MultiPolygon')) {
+            if (turf.booleanPointInPolygon(pt, feat as any)) {
+              return {
+                inRiskZone: true,
+                zoneName: zone.name,
+                riskLevel: zone.risk_level || 'Alto',
+                isDynamicZone: false,
+              };
+            }
+          }
+        } else if (zone.coordinates && zone.coordinates.length >= 3) {
+          // Criar polígono Turf a partir de coordinates [[lat, lng], ...] (Turf espera [lng, lat])
+          const ring = zone.coordinates.map((c: [number, number]) => [c[1], c[0]]);
+          if (ring[0][0] !== ring[ring.length - 1][0] || ring[0][1] !== ring[ring.length - 1][1]) {
+            ring.push(ring[0]);
+          }
+          const poly = turf.polygon([ring]);
+          if (turf.booleanPointInPolygon(pt, poly)) {
+            return {
+              inRiskZone: true,
+              zoneName: zone.name,
+              riskLevel: zone.risk_level || 'Alto',
+              isDynamicZone: false,
+            };
+          }
+        }
+      }
+    }
+
+    // 2. Verificar polígonos oficiais
     if (officialFloodZonesGeoJson?.features) {
       for (const feat of officialFloodZonesGeoJson.features) {
         if (feat.geometry && (feat.geometry.type === 'Polygon' || feat.geometry.type === 'MultiPolygon')) {

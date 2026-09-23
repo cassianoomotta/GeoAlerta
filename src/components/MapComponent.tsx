@@ -1,8 +1,10 @@
 "use client";
 
 import { useRef, useEffect, useMemo } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap, GeoJSON, Polyline } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap, GeoJSON, Polyline, Polygon } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
+import MapDrawingTool, { RiskZone } from './MapDrawingTool';
+import { Radio } from 'lucide-react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
@@ -116,6 +118,14 @@ export default function MapComponent({
   resources = [],
   volunteerSummary,
   dispatchVector,
+  // Áreas de Risco e Ferramenta de Desenho
+  riskZones = [],
+  showRiskZones = true,
+  onDeleteRiskZone,
+  isDrawingRiskZone = false,
+  onDrawingComplete,
+  onDrawingCancel,
+  onStopTeamGPS,
 }: { 
   occurrences: any[];
   onMarkerClick?: (occ: any) => void;
@@ -132,6 +142,13 @@ export default function MapComponent({
   resources?: MapResource[];
   volunteerSummary?: MapVolunteerSummary;
   dispatchVector?: { from: [number, number]; to: [number, number]; teamName: string; distanceKm: number } | null;
+  riskZones?: RiskZone[];
+  showRiskZones?: boolean;
+  onDeleteRiskZone?: (id: string) => void;
+  isDrawingRiskZone?: boolean;
+  onDrawingComplete?: (points: [number, number][]) => void;
+  onDrawingCancel?: () => void;
+  onStopTeamGPS?: (teamId: string) => void;
 }) {
   const markerRefs = useRef<{[key: string]: L.Marker}>({});
 
@@ -310,6 +327,80 @@ export default function MapComponent({
             }}
           />
         )}
+
+        {/* ===== CAMADA 1C: Áreas de Risco Delimitadas (Cadastradas pelos Gestores via Supabase) ===== */}
+        {showRiskZones && riskZones.map((zone) => {
+          if (!zone.coordinates || zone.coordinates.length < 3) return null;
+          const zoneColor = zone.color || (
+            zone.risk_level === 'Crítico' ? '#ef4444' :
+            zone.risk_level === 'Alto' ? '#f97316' :
+            zone.risk_level === 'Médio' ? '#eab308' : '#3b82f6'
+          );
+
+          return (
+            <Polygon
+              key={`risk-zone-${zone.id}`}
+              positions={zone.coordinates}
+              pathOptions={{
+                color: zoneColor,
+                fillColor: zoneColor,
+                fillOpacity: 0.32,
+                weight: 2.5,
+                dashArray: "6, 6",
+              }}
+            >
+              <Popup className="dark-popup">
+                <div className="min-w-[210px] text-foreground p-1">
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <span 
+                      className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border"
+                      style={{
+                        backgroundColor: `${zoneColor}20`,
+                        color: zoneColor,
+                        borderColor: `${zoneColor}40`,
+                      }}
+                    >
+                      ⚠️ Risco {zone.risk_level}
+                    </span>
+                    {zone.created_at && (
+                      <span className="text-[10px] text-slate-400">
+                        {new Date(zone.created_at).toLocaleDateString('pt-BR')}
+                      </span>
+                    )}
+                  </div>
+                  <strong className="text-sm text-white block mb-1">{zone.name}</strong>
+                  {zone.description && (
+                    <p className="text-xs text-slate-300 mb-2.5 bg-white/5 p-2 rounded-lg border border-white/10 leading-relaxed">
+                      {zone.description}
+                    </p>
+                  )}
+                  {onDeleteRiskZone && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (confirm(`Deseja remover a área de risco "${zone.name}"?`)) {
+                          onDeleteRiskZone(zone.id);
+                        }
+                      }}
+                      className="w-full mt-1 py-1.5 px-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-300 hover:text-red-200 border border-red-500/30 text-[11px] font-bold transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                    >
+                      <span>🗑️</span>
+                      <span>Remover Área de Risco</span>
+                    </button>
+                  )}
+                </div>
+              </Popup>
+            </Polygon>
+          );
+        })}
+
+        {/* Ferramenta de Desenho Interativo de Polígonos */}
+        <MapDrawingTool
+          isActive={!!isDrawingRiskZone}
+          color="#ef4444"
+          onComplete={(pts) => onDrawingComplete && onDrawingComplete(pts)}
+          onCancel={() => onDrawingCancel && onDrawingCancel()}
+        />
 
         {/* ===== CAMADA TÁTICA: Vetor de Despacho (Linha Ocorrência ↔ Equipe Recomendada) ===== */}
         {dispatchVector && (
@@ -536,6 +627,18 @@ export default function MapComponent({
                   <span className="text-[10px] text-slate-500 block mt-0.5">
                     Atualizado {new Date(pt.sent_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
                   </span>
+
+                  {onStopTeamGPS && (
+                    <button
+                      type="button"
+                      onClick={() => onStopTeamGPS(pt.team_id)}
+                      className="mt-2.5 w-full py-1.5 px-2.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/30 text-[11px] font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
+                      title="Desconectar viatura e remover localização ativa do mapa"
+                    >
+                      <Radio size={13} className="text-red-400" />
+                      <span>Encerrar GPS desta Viatura</span>
+                    </button>
+                  )}
                 </div>
               </Popup>
             </Marker>

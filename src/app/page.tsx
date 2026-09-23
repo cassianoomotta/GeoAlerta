@@ -290,15 +290,21 @@ export default function Home() {
         const locCandidates: { name: string; organ: string; lat: number; lng: number }[] = [];
         const seen = new Set<string>();
 
+        const nowMs = Date.now();
+        const MAX_STALE_MS = 10 * 60 * 1000;
+
         (teamLocs || []).forEach((loc: any) => {
           if (!seen.has(loc.team_id)) {
             seen.add(loc.team_id);
-            locCandidates.push({
-              name: loc.team_name || 'Equipe de Resgate',
-              organ: teamMap.get(loc.team_id) || 'Defesa Civil',
-              lat: loc.lat,
-              lng: loc.lng,
-            });
+            const diffMs = nowMs - new Date(loc.sent_at).getTime();
+            if (diffMs <= MAX_STALE_MS) {
+              locCandidates.push({
+                name: loc.team_name || 'Equipe de Resgate',
+                organ: teamMap.get(loc.team_id) || 'Defesa Civil',
+                lat: loc.lat,
+                lng: loc.lng,
+              });
+            }
           }
         });
 
