@@ -1,0 +1,9 @@
+export type Role = 'CONSULTA' | 'OPERADOR' | 'GESTOR' | 'ADMINISTRADOR';
+export type AccessState = 'PENDENTE' | 'ATIVO' | 'SUSPENSO' | 'DESATIVADO';
+export type Actor = { userId: string; role: Role; groupIds: string[]; municipalityId: string; state: AccessState };
+export type Group = { id: string; municipalityId: string; name: string; isDefault: boolean };
+export type AdminProfile = { userId: string; name: string; phone: string | null; role: Role; state: AccessState; municipalityId: string; version: number };
+export type GroupMembership = { userId: string; groupId: string };
+export type UserPreferences = { userId: string; columns: string[] };
+export type ProfilePatch = { name?: string; phone?: string; columns?: string[] };
+export type ProfileView = AdminProfile & { email: string; groupIds: string[]; columns: string[] };

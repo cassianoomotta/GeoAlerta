@@ -16,7 +16,7 @@ Este documento atua como a **constituição inegociável** do projeto GeoAlerta.
 
 ## 2. Variáveis de Ambiente e Credenciais
 
-* **Arquivo Único Local:** O projeto adota a convenção de utilizar única e exclusivamente o arquivo `.env` dentro da pasta `sistema/` (`sistema/.env`).
+* **Arquivo Único Local:** O projeto adota a convenção de utilizar única e exclusivamente o arquivo `.env` dentro da pasta `sistema/` (`.env` na raiz do repositório).
 * **Segurança de Chaves:**
   * O `.env` está no `.gitignore` e **nunca** deve ser commitado.
   * Jamais injete `service_role_key` no código cliente (apenas `NEXT_PUBLIC_SUPABASE_ANON_KEY` pode ser exposta no navegador).

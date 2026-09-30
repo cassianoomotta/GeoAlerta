@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { ShieldAlert } from "lucide-react";
+const subscribe=()=>()=>{};
 
 export default function Login() {
+  const ready=useSyncExternalStore(subscribe,()=>true,()=>false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -26,7 +28,15 @@ export default function Login() {
       setError(error.message);
       setLoading(false);
     } else {
-      router.push("/painel");
+      const access=await fetch('/api/core/session',{cache:'no-store'});
+      if(!access.ok) {
+        await supabase.auth.signOut();
+        setError(access.status===403?'Conta sem autorização para acessar o painel.':'Não foi possível verificar o acesso.');
+        setLoading(false);
+        return;
+      }
+      router.replace("/painel");
+      router.refresh();
     }
   };
 
@@ -45,7 +55,7 @@ export default function Login() {
         <form onSubmit={handleLogin} className="bg-white/5 border border-white/10 p-6 rounded-2xl backdrop-blur-xl">
           {error && (
             <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm p-3 rounded-lg mb-4 text-center">
-              E-mail ou senha incorretos.
+              {error}
             </div>
           )}
 
@@ -80,7 +90,7 @@ export default function Login() {
 
             <button 
               type="submit"
-              disabled={loading}
+              disabled={loading || !ready}
               className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition-colors mt-2 disabled:opacity-50"
             >
               {loading ? "Autenticando..." : "Entrar no Painel"}

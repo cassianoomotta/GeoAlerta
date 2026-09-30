@@ -31,7 +31,7 @@ tests/
   load/              # carga, métricas e restauração isolada
 ```
 
-Scripts a serem criados em `package.json`, executados na raiz e carregando somente `sistema/.env` pelo carregador comum:
+Scripts a serem criados em `package.json`, executados na raiz e carregando somente `.env` na raiz do repositório pelo carregador comum:
 
 | Comando futuro | Implementação do script |
 |---|---|
@@ -48,7 +48,7 @@ O setup da tarefa de fundação fixa versão do Playwright e instala browsers co
 ## 3. Ambiente e fixtures
 
 - Usar somente Supabase/PostgreSQL isolado, com PostGIS, Auth, Storage e Realtime reais nos testes de integração. Os testes abortam antes de escrever se o destino não estiver na lista explícita de ambientes de teste, se estiver ausente ou se coincidir com produção.
-- Não criar credenciais nem consultar dados de produção. Localmente, todas as variáveis ficam em `sistema/.env`; CI recebe variáveis injetadas, sem outro arquivo local de ambiente.
+- Não criar credenciais nem consultar dados de produção. Localmente, todas as variáveis ficam em `.env` na raiz do repositório; CI recebe variáveis injetadas, sem outro arquivo local de ambiente.
 - Gerar usuários sintéticos para Consulta, Operador, Gestor e Administrador, grupos A/B e contas `PENDENTE`, `ATIVO`, `SUSPENSO`, `DESATIVADO`. Testar cada capacidade concedida e negada, inclusive conta sem grupo e usuário com múltiplos grupos.
 - Cada execução recebe `runId`; cada teste usa dados próprios. Sessões de usuários distintos ficam em contextos distintos; arquivos de `storageState` ficam ignorados pelo Git e nunca em relatório público.
 - Fixture espacial: quadrado ativo em SRID 4326 com vértices `[[-51,-30],[-50,-30],[-50,-29],[-51,-29],[-51,-30]]`; ponto interno `latitude=-29.5, longitude=-50.5`, externo `latitude=-28.5, longitude=-50.5` e borda `latitude=-29.5, longitude=-51`. Acrescentar zona inativa, vencida, futura, sobreposta e polígono com buraco. Precisão sintética padrão `10` metros.

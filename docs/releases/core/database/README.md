@@ -1,6 +1,6 @@
 # Banco de dados — Prisma e Supabase
 
-**Estado:** decisão de arquitetura para implementação futura. Não foram instaladas dependências, criados schemas executáveis nem aplicadas migrations nesta revisão.
+**Estado:** fundação do ticket 01 implementada e testada localmente com Prisma 7.10.0 e PostgreSQL/PostGIS isolado. Fonte histórica autorizada pelo usuário: `supabase.sql` e `supabase_migrations/`. Baseline e expansão estão em `prisma/migrations/`; autorização operacional e integração dos serviços Supabase permanecem nos tickets posteriores. Ver [evidência de execução](../testing/results/ticket-01-2026-09-30.md).
 
 Esta pasta define a organização dos dados e das migrations da [release Core](../PRD.md). Prisma será o ORM do servidor e Prisma Migrate será o histórico único de alterações do esquema da aplicação no PostgreSQL do Supabase. Auth, Storage, Realtime e PostGIS continuam sendo serviços/extensões do Supabase.
 
@@ -12,17 +12,17 @@ Os caminhos abaixo são relativos à raiz; ainda serão criados pelos agentes.
 |---|---|
 | `prisma/schema.prisma` | Modelo relacional Core e mapeamento das tabelas existentes que precisam ser preservadas. |
 | `prisma/migrations/<identificador>/migration.sql` | Alterações geradas pelo Prisma e SQL complementar para PostGIS, RLS, grants, funções, Storage e Realtime. |
-| `prisma.config.ts` | Caminhos do schema/migrations e conexão de migrations; carrega exclusivamente `sistema/.env` em desenvolvimento. |
+| `prisma.config.ts` | Caminhos do schema/migrations e conexão de migrations; carrega exclusivamente `.env` na raiz do repositório em desenvolvimento. |
 | `src/server/database/prisma.ts` | Cliente Prisma apenas no servidor, com conexão de execução sem privilégios de migration. |
 | `src/server/database/actor-transaction.ts` | Contexto de identidade restrito à transação, para RLS e isolamento de sessões. |
-| `scripts/with-env.mjs` | Carregador comum de `sistema/.env` para comandos locais; não escreve credenciais. |
+| `scripts/with-env.mjs` | Carregador comum de `.env` na raiz do repositório para comandos locais; não escreve credenciais. |
 | `tests/database/` | Fixtures sintéticas e verificações de migrations, políticas e consultas espaciais. |
 
 Usar a família Prisma ORM 7 e adapter PostgreSQL; antes da instalação, o agente valida compatibilidade de Node/TypeScript e fixa as versões exatas de `prisma`, `@prisma/client` e adapter, mantendo CLI e client alinhados. O lockfile registra a resolução. A versão instalada determina o formato de `prisma.config.ts` e a geração do client; não copiar configuração antiga sem conferir a documentação.
 
 ## Conexões e ambiente
 
-| Variável em `sistema/.env` | Uso |
+| Variável em `.env` na raiz do repositório | Uso |
 |---|---|
 | `DATABASE_URL` | Execução do Prisma no servidor com usuário de privilégio mínimo; pooler apropriado ao ambiente. |
 | `DIRECT_URL` | Conexão de migrations via conexão direta ou pooler em modo sessão, com role de migration. Não usar modo transação para migrations. |
@@ -32,7 +32,7 @@ Usar a família Prisma ORM 7 e adapter PostgreSQL; antes da instalação, o agen
 | `SUPABASE_SERVICE_ROLE_KEY` | Somente servidor e setup de testes/administração de Auth/Storage quando necessário; não é conexão Prisma nem vai ao navegador. |
 | `TEST_DATABASE_URL` | Banco isolado da suíte; os scripts exigem alvo de teste explicitamente permitido antes de escrever fixtures. |
 
-As URLs e senhas são fornecidas pelo usuário no ambiente, sem valores reais nos documentos. O código permanece na raiz; comandos locais carregam `sistema/.env` explicitamente. Não usar `.env.local`, `.env.test` ou outro arquivo de variáveis local. CI injeta variáveis na execução e não publica estado de autenticação, traces ou segredos.
+As URLs e senhas são fornecidas pelo usuário no ambiente, sem valores reais nos documentos. O código permanece na raiz; comandos locais carregam `.env` na raiz do repositório explicitamente. Não usar `.env.local`, `.env.test` ou outro arquivo de variáveis local. CI injeta variáveis na execução e não publica estado de autenticação, traces ou segredos.
 
 O guia oficial explica as opções de conexão e a configuração Prisma do Supabase. A separação entre credenciais de execução e migration é uma decisão deste projeto para preservar RLS: [Prisma no Supabase](https://supabase.com/docs/guides/database/prisma).
 

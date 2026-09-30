@@ -1,0 +1,333 @@
+generator client {
+  provider        = "prisma-client"
+  output          = "./generated/client"
+  previewFeatures = ["partialIndexes"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model occurrences {
+  id                              String                            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  type                            String
+  description                     String?
+  location                        Unsupported("geography")
+  photo_url                       String?
+  status                          String                            @default("NOVA")
+  reporter_name                   String?
+  assigned_to                     String?
+  created_at                      DateTime                          @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  legacy_status                   String?
+  protocol                        String                            @unique(map: "occurrences_protocol_unique")
+  accuracy                        Float?
+  priority                        String                            @default("NORMAL")
+  group_id                        String                            @db.Uuid
+  version                         Int                               @default(1)
+  updated_at                      DateTime                          @default(now()) @db.Timestamptz(6)
+  deleted_at                      DateTime?                         @db.Timestamptz(6)
+  needs_sanitation                Boolean                           @default(false)
+  idempotency_keys                idempotency_keys?
+  occurrence_alerts               occurrence_alerts[]
+  occurrence_classification_zones occurrence_classification_zones[]
+  occurrence_events               occurrence_events[]
+  occurrence_private_data         occurrence_private_data?
+  groups                          groups                            @relation(fields: [group_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([group_id, created_at(sort: Desc), id], map: "occurrences_group_created")
+  @@index([location], map: "occurrences_location", type: Gist)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model resource_movements {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  resource_id String    @db.Uuid
+  type        String
+  quantity    Decimal   @db.Decimal
+  note        String?
+  created_by  String?
+  created_at  DateTime? @default(now()) @db.Timestamptz(6)
+  resources   resources @relation(fields: [resource_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model resources {
+  id                 String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  municipio          String               @default("sa_patrulha")
+  name               String
+  category           String               @default("Outros")
+  quantity           Decimal              @default(0) @db.Decimal
+  unit               String               @default("un")
+  expiry_date        DateTime?            @db.Date
+  shelter_id         String?              @db.Uuid
+  status             String               @default("Disponível")
+  notes              String?
+  created_at         DateTime?            @default(now()) @db.Timestamptz(6)
+  resource_movements resource_movements[]
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model settings {
+  key        String    @id
+  value      Json      @default("{}")
+  updated_at DateTime? @default(now()) @db.Timestamptz(6)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model shelter_people {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  shelter_id   String    @db.Uuid
+  full_name    String
+  cpf          String?
+  age          Int?
+  phone        String?
+  has_pet      Boolean   @default(false)
+  pet_details  String?
+  notes        String?
+  check_in_at  DateTime? @default(now()) @db.Timestamptz(6)
+  check_out_at DateTime? @db.Timestamptz(6)
+  created_at   DateTime? @default(now()) @db.Timestamptz(6)
+  shelters     shelters  @relation(fields: [shelter_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model shelters {
+  id             String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  municipio      String           @default("sa_patrulha")
+  name           String
+  type           String           @default("humano")
+  address        String?
+  lat            Float?
+  lng            Float?
+  capacity       Int              @default(0)
+  occupied       Int              @default(0)
+  phone          String?
+  manager        String?
+  status         String           @default("Aberto")
+  notes          String?
+  created_at     DateTime?        @default(now()) @db.Timestamptz(6)
+  shelter_people shelter_people[]
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model team_locations {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  team_id     String    @db.Uuid
+  team_name   String?
+  member_name String?
+  lat         Float
+  lng         Float
+  accuracy    Float?
+  sent_at     DateTime? @default(now()) @db.Timestamptz(6)
+  created_at  DateTime? @default(now()) @db.Timestamptz(6)
+  teams       teams     @relation(fields: [team_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([team_id, sent_at(sort: Desc)], map: "idx_team_locations_team_sent")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model team_members {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  team_id    String    @db.Uuid
+  full_name  String
+  role       String    @default("Agente")
+  phone      String?
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  teams      teams     @relation(fields: [team_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model teams {
+  id             String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  municipio      String           @default("sa_patrulha")
+  name           String
+  organ          String           @default("Defesa Civil")
+  type           String           @default("Resgate")
+  leader         String?
+  phone          String?
+  vehicle        String?
+  capacity       String?
+  status         String           @default("Disponível")
+  notes          String?
+  created_at     DateTime?        @default(now()) @db.Timestamptz(6)
+  team_locations team_locations[]
+  team_members   team_members[]
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model volunteers {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  municipio  String    @default("sa_patrulha")
+  full_name  String
+  specialty  String    @default("Logística")
+  phone      String?
+  email      String?
+  vehicle    String?
+  capacity   String?
+  available  Boolean   @default(true)
+  status     String    @default("Ativo")
+  notes      String?
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model admin_profiles {
+  user_id                String                   @id @db.Uuid
+  municipality_id        String
+  name                   String
+  phone                  String?
+  role                   String
+  state                  String                   @default("PENDENTE")
+  version                Int                      @default(1)
+  user_group_memberships user_group_memberships[]
+  user_preferences       user_preferences?
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model audit_events {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  actor_id  String?  @db.Uuid
+  entity_id String   @db.Uuid
+  kind      String
+  at        DateTime @default(now()) @db.Timestamptz(6)
+  reason    String?
+  changes   Json     @default("{}")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model groups {
+  id                     String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  municipality_id        String                   @unique(map: "groups_one_default", where: raw("is_default"))
+  name                   String
+  is_default             Boolean                  @default(false)
+  occurrence_alerts      occurrence_alerts[]
+  occurrences            occurrences[]
+  user_group_memberships user_group_memberships[]
+
+  @@unique([municipality_id, name])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model idempotency_keys {
+  key           String       @id
+  request_hash  String
+  occurrence_id String?      @unique @db.Uuid
+  response      Json
+  created_at    DateTime     @default(now()) @db.Timestamptz(6)
+  occurrences   occurrences? @relation(fields: [occurrence_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model occurrence_alerts {
+  event_id             String               @id @db.Uuid
+  occurrence_id        String               @db.Uuid
+  group_id             String               @db.Uuid
+  priority             String
+  status               String
+  at                   DateTime             @default(now()) @db.Timestamptz(6)
+  occurrence_events    occurrence_events    @relation(fields: [event_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  groups               groups               @relation(fields: [group_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  occurrences          occurrences          @relation(fields: [occurrence_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  status_presentations status_presentations @relation(fields: [status], references: [code], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([group_id, at, event_id], map: "occurrence_alerts_group_at")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model occurrence_classification_zones {
+  occurrence_id String      @db.Uuid
+  zone_id       String      @db.Uuid
+  zone_version  Int
+  classified_at DateTime    @default(now()) @db.Timestamptz(6)
+  occurrences   occurrences @relation(fields: [occurrence_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  risk_zones    risk_zones  @relation(fields: [zone_id, zone_version], references: [zone_id, version], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([occurrence_id, zone_id, zone_version])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model occurrence_events {
+  id                String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  occurrence_id     String             @db.Uuid
+  kind              String
+  actor_id          String?            @db.Uuid
+  at                DateTime           @default(now()) @db.Timestamptz(6)
+  reason            String?
+  changes           Json               @default("{}")
+  occurrence_alerts occurrence_alerts?
+  occurrences       occurrences        @relation(fields: [occurrence_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([occurrence_id, at, id], map: "occurrence_events_history")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model occurrence_private_data {
+  occurrence_id    String      @id @db.Uuid
+  reporter_name    String?
+  reporter_contact String?
+  photo_object_key String?
+  occurrences      occurrences @relation(fields: [occurrence_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model risk_zones {
+  zone_id                         String                            @db.Uuid
+  version                         Int
+  name                            String
+  type                            String
+  active                          Boolean                           @default(false)
+  valid_from                      DateTime?                         @db.Timestamptz(6)
+  valid_to                        DateTime?                         @db.Timestamptz(6)
+  geometry                        Unsupported("geometry")
+  occurrence_classification_zones occurrence_classification_zones[]
+
+  @@id([zone_id, version])
+  @@index([geometry], map: "risk_zones_geometry", type: Gist)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model status_presentations {
+  code                                                                    String               @id
+  label                                                                   String
+  display_order                                                           Int
+  occurrence_alerts                                                       occurrence_alerts[]
+  status_transitions_status_transitions_from_statusTostatus_presentations status_transitions[] @relation("status_transitions_from_statusTostatus_presentations")
+  status_transitions_status_transitions_to_statusTostatus_presentations   status_transitions[] @relation("status_transitions_to_statusTostatus_presentations")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model status_transitions {
+  from_status                                                               String
+  to_status                                                                 String
+  enabled                                                                   Boolean              @default(true)
+  roles                                                                     Json                 @default("[]")
+  reason_required                                                           Boolean              @default(false)
+  status_presentations_status_transitions_from_statusTostatus_presentations status_presentations @relation("status_transitions_from_statusTostatus_presentations", fields: [from_status], references: [code], onDelete: NoAction, onUpdate: NoAction)
+  status_presentations_status_transitions_to_statusTostatus_presentations   status_presentations @relation("status_transitions_to_statusTostatus_presentations", fields: [to_status], references: [code], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([from_status, to_status])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model user_group_memberships {
+  user_id        String         @db.Uuid
+  group_id       String         @db.Uuid
+  groups         groups         @relation(fields: [group_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  admin_profiles admin_profiles @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([user_id, group_id])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model user_preferences {
+  user_id        String         @id @db.Uuid
+  columns        Json           @default("[]")
+  admin_profiles admin_profiles @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+}

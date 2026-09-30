@@ -1,0 +1,1362 @@
+{
+  "baselineReady": true,
+  "missingLegacyTables": [],
+  "tables": [
+    {
+      "table_name": "occurrences"
+    },
+    {
+      "table_name": "resource_movements"
+    },
+    {
+      "table_name": "resources"
+    },
+    {
+      "table_name": "settings"
+    },
+    {
+      "table_name": "shelter_people"
+    },
+    {
+      "table_name": "shelters"
+    },
+    {
+      "table_name": "spatial_ref_sys"
+    },
+    {
+      "table_name": "team_locations"
+    },
+    {
+      "table_name": "team_members"
+    },
+    {
+      "table_name": "teams"
+    },
+    {
+      "table_name": "volunteers"
+    }
+  ],
+  "columns": [
+    {
+      "table_name": "geography_columns",
+      "column_name": "f_table_catalog",
+      "data_type": "name",
+      "udt_name": "name",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "geography_columns",
+      "column_name": "f_table_schema",
+      "data_type": "name",
+      "udt_name": "name",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "geography_columns",
+      "column_name": "f_table_name",
+      "data_type": "name",
+      "udt_name": "name",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "geography_columns",
+      "column_name": "f_geography_column",
+      "data_type": "name",
+      "udt_name": "name",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "geography_columns",
+      "column_name": "coord_dimension",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "geography_columns",
+      "column_name": "srid",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "geography_columns",
+      "column_name": "type",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "geometry_columns",
+      "column_name": "f_table_catalog",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "geometry_columns",
+      "column_name": "f_table_schema",
+      "data_type": "name",
+      "udt_name": "name",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "geometry_columns",
+      "column_name": "f_table_name",
+      "data_type": "name",
+      "udt_name": "name",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "geometry_columns",
+      "column_name": "f_geometry_column",
+      "data_type": "name",
+      "udt_name": "name",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "geometry_columns",
+      "column_name": "coord_dimension",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "geometry_columns",
+      "column_name": "srid",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "geometry_columns",
+      "column_name": "type",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "occurrences",
+      "column_name": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()"
+    },
+    {
+      "table_name": "occurrences",
+      "column_name": "type",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "occurrences",
+      "column_name": "description",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "occurrences",
+      "column_name": "location",
+      "data_type": "USER-DEFINED",
+      "udt_name": "geography",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "occurrences",
+      "column_name": "photo_url",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "occurrences",
+      "column_name": "status",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'Aberto'::text"
+    },
+    {
+      "table_name": "occurrences",
+      "column_name": "reporter_name",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "occurrences",
+      "column_name": "assigned_to",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "occurrences",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "timezone('utc'::text, now())"
+    },
+    {
+      "table_name": "resource_movements",
+      "column_name": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()"
+    },
+    {
+      "table_name": "resource_movements",
+      "column_name": "resource_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "resource_movements",
+      "column_name": "type",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "resource_movements",
+      "column_name": "quantity",
+      "data_type": "numeric",
+      "udt_name": "numeric",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "resource_movements",
+      "column_name": "note",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "resource_movements",
+      "column_name": "created_by",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "resource_movements",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": "now()"
+    },
+    {
+      "table_name": "resources",
+      "column_name": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()"
+    },
+    {
+      "table_name": "resources",
+      "column_name": "municipio",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'sa_patrulha'::text"
+    },
+    {
+      "table_name": "resources",
+      "column_name": "name",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "resources",
+      "column_name": "category",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'Outros'::text"
+    },
+    {
+      "table_name": "resources",
+      "column_name": "quantity",
+      "data_type": "numeric",
+      "udt_name": "numeric",
+      "is_nullable": "NO",
+      "column_default": "0"
+    },
+    {
+      "table_name": "resources",
+      "column_name": "unit",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'un'::text"
+    },
+    {
+      "table_name": "resources",
+      "column_name": "expiry_date",
+      "data_type": "date",
+      "udt_name": "date",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "resources",
+      "column_name": "shelter_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "resources",
+      "column_name": "status",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'Disponível'::text"
+    },
+    {
+      "table_name": "resources",
+      "column_name": "notes",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "resources",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": "now()"
+    },
+    {
+      "table_name": "settings",
+      "column_name": "key",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "settings",
+      "column_name": "value",
+      "data_type": "jsonb",
+      "udt_name": "jsonb",
+      "is_nullable": "NO",
+      "column_default": "'{}'::jsonb"
+    },
+    {
+      "table_name": "settings",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": "now()"
+    },
+    {
+      "table_name": "shelter_people",
+      "column_name": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()"
+    },
+    {
+      "table_name": "shelter_people",
+      "column_name": "shelter_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "shelter_people",
+      "column_name": "full_name",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "shelter_people",
+      "column_name": "cpf",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "shelter_people",
+      "column_name": "age",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "shelter_people",
+      "column_name": "phone",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "shelter_people",
+      "column_name": "has_pet",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "NO",
+      "column_default": "false"
+    },
+    {
+      "table_name": "shelter_people",
+      "column_name": "pet_details",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "shelter_people",
+      "column_name": "notes",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "shelter_people",
+      "column_name": "check_in_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": "now()"
+    },
+    {
+      "table_name": "shelter_people",
+      "column_name": "check_out_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "shelter_people",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": "now()"
+    },
+    {
+      "table_name": "shelters",
+      "column_name": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()"
+    },
+    {
+      "table_name": "shelters",
+      "column_name": "municipio",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'sa_patrulha'::text"
+    },
+    {
+      "table_name": "shelters",
+      "column_name": "name",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "shelters",
+      "column_name": "type",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'humano'::text"
+    },
+    {
+      "table_name": "shelters",
+      "column_name": "address",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "shelters",
+      "column_name": "lat",
+      "data_type": "double precision",
+      "udt_name": "float8",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "shelters",
+      "column_name": "lng",
+      "data_type": "double precision",
+      "udt_name": "float8",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "shelters",
+      "column_name": "capacity",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": "0"
+    },
+    {
+      "table_name": "shelters",
+      "column_name": "occupied",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": "0"
+    },
+    {
+      "table_name": "shelters",
+      "column_name": "phone",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "shelters",
+      "column_name": "manager",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "shelters",
+      "column_name": "status",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'Aberto'::text"
+    },
+    {
+      "table_name": "shelters",
+      "column_name": "notes",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "shelters",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": "now()"
+    },
+    {
+      "table_name": "spatial_ref_sys",
+      "column_name": "srid",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "spatial_ref_sys",
+      "column_name": "auth_name",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "spatial_ref_sys",
+      "column_name": "auth_srid",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "spatial_ref_sys",
+      "column_name": "srtext",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "spatial_ref_sys",
+      "column_name": "proj4text",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "team_locations",
+      "column_name": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()"
+    },
+    {
+      "table_name": "team_locations",
+      "column_name": "team_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "team_locations",
+      "column_name": "team_name",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "team_locations",
+      "column_name": "member_name",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "team_locations",
+      "column_name": "lat",
+      "data_type": "double precision",
+      "udt_name": "float8",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "team_locations",
+      "column_name": "lng",
+      "data_type": "double precision",
+      "udt_name": "float8",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "team_locations",
+      "column_name": "accuracy",
+      "data_type": "double precision",
+      "udt_name": "float8",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "team_locations",
+      "column_name": "sent_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": "now()"
+    },
+    {
+      "table_name": "team_locations",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": "now()"
+    },
+    {
+      "table_name": "team_members",
+      "column_name": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()"
+    },
+    {
+      "table_name": "team_members",
+      "column_name": "team_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "team_members",
+      "column_name": "full_name",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "team_members",
+      "column_name": "role",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'Agente'::text"
+    },
+    {
+      "table_name": "team_members",
+      "column_name": "phone",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "team_members",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": "now()"
+    },
+    {
+      "table_name": "teams",
+      "column_name": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()"
+    },
+    {
+      "table_name": "teams",
+      "column_name": "municipio",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'sa_patrulha'::text"
+    },
+    {
+      "table_name": "teams",
+      "column_name": "name",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "teams",
+      "column_name": "organ",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'Defesa Civil'::text"
+    },
+    {
+      "table_name": "teams",
+      "column_name": "type",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'Resgate'::text"
+    },
+    {
+      "table_name": "teams",
+      "column_name": "leader",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "teams",
+      "column_name": "phone",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "teams",
+      "column_name": "vehicle",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "teams",
+      "column_name": "capacity",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "teams",
+      "column_name": "status",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'Disponível'::text"
+    },
+    {
+      "table_name": "teams",
+      "column_name": "notes",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "teams",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": "now()"
+    },
+    {
+      "table_name": "volunteers",
+      "column_name": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()"
+    },
+    {
+      "table_name": "volunteers",
+      "column_name": "municipio",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'sa_patrulha'::text"
+    },
+    {
+      "table_name": "volunteers",
+      "column_name": "full_name",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "volunteers",
+      "column_name": "specialty",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'Logística'::text"
+    },
+    {
+      "table_name": "volunteers",
+      "column_name": "phone",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "volunteers",
+      "column_name": "email",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "volunteers",
+      "column_name": "vehicle",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "volunteers",
+      "column_name": "capacity",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "volunteers",
+      "column_name": "available",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "NO",
+      "column_default": "true"
+    },
+    {
+      "table_name": "volunteers",
+      "column_name": "status",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'Ativo'::text"
+    },
+    {
+      "table_name": "volunteers",
+      "column_name": "notes",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "volunteers",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": "now()"
+    }
+  ],
+  "constraints": [
+    {
+      "table_name": "occurrences",
+      "conname": "occurrences_pkey",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "resource_movements",
+      "conname": "resource_movements_pkey",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "resource_movements",
+      "conname": "resource_movements_resource_id_fkey",
+      "definition": "FOREIGN KEY (resource_id) REFERENCES resources(id) ON DELETE CASCADE"
+    },
+    {
+      "table_name": "resources",
+      "conname": "resources_pkey",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "settings",
+      "conname": "settings_pkey",
+      "definition": "PRIMARY KEY (key)"
+    },
+    {
+      "table_name": "shelter_people",
+      "conname": "shelter_people_pkey",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "shelter_people",
+      "conname": "shelter_people_shelter_id_fkey",
+      "definition": "FOREIGN KEY (shelter_id) REFERENCES shelters(id) ON DELETE CASCADE"
+    },
+    {
+      "table_name": "shelters",
+      "conname": "shelters_pkey",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "spatial_ref_sys",
+      "conname": "spatial_ref_sys_pkey",
+      "definition": "PRIMARY KEY (srid)"
+    },
+    {
+      "table_name": "spatial_ref_sys",
+      "conname": "spatial_ref_sys_srid_check",
+      "definition": "CHECK (((srid > 0) AND (srid <= 998999)))"
+    },
+    {
+      "table_name": "team_locations",
+      "conname": "team_locations_pkey",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "team_locations",
+      "conname": "team_locations_team_id_fkey",
+      "definition": "FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE"
+    },
+    {
+      "table_name": "team_members",
+      "conname": "team_members_pkey",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "team_members",
+      "conname": "team_members_team_id_fkey",
+      "definition": "FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE"
+    },
+    {
+      "table_name": "teams",
+      "conname": "teams_pkey",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "volunteers",
+      "conname": "volunteers_pkey",
+      "definition": "PRIMARY KEY (id)"
+    }
+  ],
+  "indexes": [
+    {
+      "tablename": "occurrences",
+      "indexname": "occurrences_pkey",
+      "indexdef": "CREATE UNIQUE INDEX occurrences_pkey ON public.occurrences USING btree (id)"
+    },
+    {
+      "tablename": "resource_movements",
+      "indexname": "resource_movements_pkey",
+      "indexdef": "CREATE UNIQUE INDEX resource_movements_pkey ON public.resource_movements USING btree (id)"
+    },
+    {
+      "tablename": "resources",
+      "indexname": "resources_pkey",
+      "indexdef": "CREATE UNIQUE INDEX resources_pkey ON public.resources USING btree (id)"
+    },
+    {
+      "tablename": "settings",
+      "indexname": "settings_pkey",
+      "indexdef": "CREATE UNIQUE INDEX settings_pkey ON public.settings USING btree (key)"
+    },
+    {
+      "tablename": "shelter_people",
+      "indexname": "shelter_people_pkey",
+      "indexdef": "CREATE UNIQUE INDEX shelter_people_pkey ON public.shelter_people USING btree (id)"
+    },
+    {
+      "tablename": "shelters",
+      "indexname": "shelters_pkey",
+      "indexdef": "CREATE UNIQUE INDEX shelters_pkey ON public.shelters USING btree (id)"
+    },
+    {
+      "tablename": "spatial_ref_sys",
+      "indexname": "spatial_ref_sys_pkey",
+      "indexdef": "CREATE UNIQUE INDEX spatial_ref_sys_pkey ON public.spatial_ref_sys USING btree (srid)"
+    },
+    {
+      "tablename": "team_locations",
+      "indexname": "idx_team_locations_team_sent",
+      "indexdef": "CREATE INDEX idx_team_locations_team_sent ON public.team_locations USING btree (team_id, sent_at DESC)"
+    },
+    {
+      "tablename": "team_locations",
+      "indexname": "team_locations_pkey",
+      "indexdef": "CREATE UNIQUE INDEX team_locations_pkey ON public.team_locations USING btree (id)"
+    },
+    {
+      "tablename": "team_members",
+      "indexname": "team_members_pkey",
+      "indexdef": "CREATE UNIQUE INDEX team_members_pkey ON public.team_members USING btree (id)"
+    },
+    {
+      "tablename": "teams",
+      "indexname": "teams_pkey",
+      "indexdef": "CREATE UNIQUE INDEX teams_pkey ON public.teams USING btree (id)"
+    },
+    {
+      "tablename": "volunteers",
+      "indexname": "volunteers_pkey",
+      "indexdef": "CREATE UNIQUE INDEX volunteers_pkey ON public.volunteers USING btree (id)"
+    }
+  ],
+  "extensions": [
+    {
+      "extname": "fuzzystrmatch",
+      "extversion": "1.2"
+    },
+    {
+      "extname": "pgcrypto",
+      "extversion": "1.3"
+    },
+    {
+      "extname": "plpgsql",
+      "extversion": "1.0"
+    },
+    {
+      "extname": "postgis",
+      "extversion": "3.4.3"
+    },
+    {
+      "extname": "postgis_tiger_geocoder",
+      "extversion": "3.4.3"
+    },
+    {
+      "extname": "postgis_topology",
+      "extversion": "3.4.3"
+    }
+  ],
+  "policies": [
+    {
+      "schemaname": "public",
+      "tablename": "occurrences",
+      "policyname": "Permitir apenas gestores autenticados alterarem",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "(auth.uid() IS NOT NULL)",
+      "with_check": "(auth.uid() IS NOT NULL)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "occurrences",
+      "policyname": "Permitir apenas gestores autenticados deletarem",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "(auth.uid() IS NOT NULL)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "occurrences",
+      "policyname": "Permitir inserção anônima",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "true"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "occurrences",
+      "policyname": "Permitir leitura pública",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "true",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "resource_movements",
+      "policyname": "movimentacoes_escrita",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "ALL",
+      "qual": "(auth.uid() IS NOT NULL)",
+      "with_check": "(auth.uid() IS NOT NULL)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "resource_movements",
+      "policyname": "movimentacoes_leitura",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "true",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "resources",
+      "policyname": "recursos_escrita",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "ALL",
+      "qual": "(auth.uid() IS NOT NULL)",
+      "with_check": "(auth.uid() IS NOT NULL)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "resources",
+      "policyname": "recursos_leitura",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "true",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "settings",
+      "policyname": "settings_escrita_autenticada",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "ALL",
+      "qual": "(auth.uid() IS NOT NULL)",
+      "with_check": "(auth.uid() IS NOT NULL)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "settings",
+      "policyname": "settings_leitura_autenticada",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "true",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "shelter_people",
+      "policyname": "pessoas_escrita",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "ALL",
+      "qual": "(auth.uid() IS NOT NULL)",
+      "with_check": "(auth.uid() IS NOT NULL)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "shelter_people",
+      "policyname": "pessoas_leitura",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "true",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "shelters",
+      "policyname": "abrigos_escrita",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "ALL",
+      "qual": "(auth.uid() IS NOT NULL)",
+      "with_check": "(auth.uid() IS NOT NULL)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "shelters",
+      "policyname": "abrigos_leitura",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "true",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "team_locations",
+      "policyname": "localizacao_escrita",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "ALL",
+      "qual": "(auth.uid() IS NOT NULL)",
+      "with_check": "(auth.uid() IS NOT NULL)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "team_locations",
+      "policyname": "localizacao_inserida_anonima",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "true"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "team_locations",
+      "policyname": "localizacao_leitura",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "true",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "team_members",
+      "policyname": "membros_escrita",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "ALL",
+      "qual": "(auth.uid() IS NOT NULL)",
+      "with_check": "(auth.uid() IS NOT NULL)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "team_members",
+      "policyname": "membros_leitura",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "true",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "teams",
+      "policyname": "equipes_escrita",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "ALL",
+      "qual": "(auth.uid() IS NOT NULL)",
+      "with_check": "(auth.uid() IS NOT NULL)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "teams",
+      "policyname": "equipes_leitura",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "true",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "volunteers",
+      "policyname": "voluntarios_escrita",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "ALL",
+      "qual": "(auth.uid() IS NOT NULL)",
+      "with_check": "(auth.uid() IS NOT NULL)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "volunteers",
+      "policyname": "voluntarios_leitura",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "true",
+      "with_check": null
+    }
+  ],
+  "publications": [
+    {
+      "pubname": "supabase_realtime",
+      "schemaname": "public",
+      "tablename": "occurrences"
+    }
+  ]
+}

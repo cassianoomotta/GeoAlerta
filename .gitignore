@@ -12,6 +12,10 @@
 
 # testing
 /coverage
+/test-results/
+/playwright-report/
+/.cache/
+/prisma/generated/
 
 # next.js
 /.next/

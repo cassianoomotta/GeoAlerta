@@ -104,7 +104,7 @@ Recursos/estoques, abrigos, equipes/GPS e voluntários permanecem no repositóri
 
 ## 9. Ponto de atenção antes da implementação
 
-`AGENTS.md` exige `.env` em `sistema/`, mas o checkout atual tem `package.json` na raiz `GeoAlerta/` e não possui a pasta `sistema/`. A decisão de planejamento é manter os caminhos de código da raiz e carregar explicitamente `sistema/.env` nos comandos locais de Next.js, Prisma e Playwright. A tarefa de fundação cria o carregador comum; nenhuma credencial é criada, movida ou versionada implicitamente. CI usa variáveis injetadas, sem criar um segundo arquivo de ambiente local.
+`AGENTS.md` exige `.env` em `sistema/`, mas o checkout atual tem `package.json` na raiz `GeoAlerta/` e não possui a pasta `sistema/`. A decisão de planejamento é manter os caminhos de código da raiz e carregar explicitamente `.env` na raiz do repositório nos comandos locais de Next.js, Prisma e Playwright. A tarefa de fundação cria o carregador comum; nenhuma credencial é criada, movida ou versionada implicitamente. CI usa variáveis injetadas, sem criar um segundo arquivo de ambiente local.
 
 Os guias locais de Next.js em `node_modules/next/dist/docs/` não estão disponíveis neste checkout sem dependências instaladas. Os agentes deverão instalar as dependências conforme o lockfile e ler os guias da versão efetiva antes de escrever código Next.js.
 

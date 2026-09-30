@@ -18,5 +18,5 @@
 - **Controle Exclusivo do Usuário:** A IA apenas escreve, refatora e testa o código localmente. Apenas o USUÁRIO tem permissão para revisar, commitar (`git commit`) e subir (`git push` / deploy) as alterações.
 
 ## 5. Configuração de Ambiente
-- **Arquivo de Variáveis:** O projeto adota a convenção de utilizar única e exclusivamente o arquivo `.env` dentro de `sistema/` para variáveis locais de ambiente (não versionado e protegido pelo `.gitignore`).
+- **Arquivo de Variáveis:** O projeto adota a convenção de utilizar única e exclusivamente o arquivo `.env` na raiz do repositório para variáveis locais de ambiente (não versionado e protegido pelo `.gitignore`).
 
