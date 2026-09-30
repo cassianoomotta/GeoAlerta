@@ -1,5 +1,7 @@
 # 🛡️ GeoAlerta — Ecossistema Integrado de Gestão de Desastres e Defesa Civil
 
+> **Próxima release em definição:** o escopo proposto para GeoAlerta Core está em [docs/releases/core/README.md](docs/releases/core/README.md). Os recursos e instruções abaixo descrevem a base anterior; o PRD novo ainda não representa funcionalidades implementadas.
+
 O **GeoAlerta** é uma plataforma modular e resiliente de resposta rápida a eventos climáticos extremos (inundações, enxurradas, deslizamentos e tempestades). O sistema conecta a população vulnerável aos órgãos municipais de emergência (Defesa Civil, Bombeiros, SAMU, Secretarias de Obras e Habitação), automatizando a triagem geoespacial, a alocação de socorro e o monitoramento em tempo real.
 
 ---
