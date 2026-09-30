@@ -5,7 +5,7 @@ const revoked=new Set<string>();
 function user(id:string){return {id,aud:'authenticated',role:'authenticated',email:`${accounts.find(a=>a.id===id)!.name}@fixture.invalid`,app_metadata:{provider:'email'},user_metadata:{role:'ADMINISTRADOR',groups:['forged']},created_at:'2026-09-30T00:00:00Z'};}
 function token(id:string){return [Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT'})).toString('base64url'),Buffer.from(JSON.stringify({sub:id,aud:'authenticated',role:'authenticated',exp:Math.floor(Date.now()/1000)+3600})).toString('base64url'),'fixture'].join('.');}
 createServer(async(req,res)=>{
-  res.setHeader('Access-Control-Allow-Origin','http://127.0.0.1:3100');res.setHeader('Access-Control-Allow-Headers',req.headers['access-control-request-headers']||'authorization,apikey,content-type,x-client-info,x-supabase-api-version');res.setHeader('Access-Control-Allow-Methods','GET,POST,OPTIONS');res.setHeader('Content-Type','application/json');
+  res.setHeader('Access-Control-Allow-Origin','http://127.0.0.1:3102');res.setHeader('Access-Control-Allow-Headers',req.headers['access-control-request-headers']||'authorization,apikey,content-type,x-client-info,x-supabase-api-version');res.setHeader('Access-Control-Allow-Methods','GET,POST,OPTIONS');res.setHeader('Content-Type','application/json');
   if(req.method==='OPTIONS'){res.writeHead(204);res.end();return;}
   const path=new URL(req.url!,'http://localhost').pathname;
   if(path==='/health'){res.end('{}');return;}

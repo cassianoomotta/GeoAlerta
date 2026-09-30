@@ -8,6 +8,8 @@
 
 Manter um único aplicativo Next.js com API própria (Route Handlers ou funções de servidor adequadas à versão instalada), Prisma ORM/Prisma Migrate, Supabase Auth, PostgreSQL/PostGIS, Storage privado e Realtime autorizado. Não criar um segundo serviço de API, container exclusivo por módulo, fila ou worker para a carga de planejamento de 100 novas ocorrências/hora. Isso reduz pontos de operação sem impedir extração posterior.
 
+**Entrada de rede confirmada por Cassiano em 30/09/2026:** Vercel. A API pública aceita `x-vercel-forwarded-for` somente em processo com `VERCEL=1`, valida e normaliza o IP e usa seu hash como chave do contador compartilhado PostgreSQL. Não aceita headers alternativos de IP. Limite: 20 novas tentativas por minuto civil UTC/origem; replay da mesma chave/corpo não consome o contador. Fora do ingresso identificado, a ingestão falha fechada. Referência: [request headers da Vercel](https://vercel.com/docs/headers/request-headers). Testes locais modelam esse ingresso explicitamente; não comprovam a plataforma remota.
+
 O mapa e a geolocalização continuam no navegador porque usam APIs de dispositivo e Leaflet. Comandos operacionais entram por uma fronteira de servidor; o banco aplica restrições adicionais. A confirmação ao cidadão só ocorre depois de persistir ocorrência, classificação e protocolo.
 
 ```mermaid
@@ -100,13 +102,13 @@ Recursos/estoques, abrigos, equipes/GPS e voluntários permanecem no repositóri
 - **Mudanças versionadas:** Prisma Migrate organiza schema e SQL complementar em um histórico único; nenhuma alteração manual no banco é fonte exclusiva de verdade. Erros são retornados de forma estável e observável.
 - **Documentação:** cada pasta documental e nova unidade relevante terá `README.md` curto com propósito, interface, dependências e comandos de teste. Atualizar os índices quando o desenho mudar.
 - **Execução por agentes:** implementar tarefas do plano com um agente responsável e um revisor independente; interfaces compartilhadas são definidas antes das tarefas dependentes. Não iniciar desenvolvimento nesta revisão documental.
-- **Governança:** a IA pode escrever e testar localmente. Apenas o usuário revisa, faz commit, push, merge e deploy, conforme `AGENTS.md`.
+- **Governança:** o `AGENTS.md` fornecido mais recentemente reserva commit, push, merge e deploy ao usuário. A IA implementa/testa localmente e registra evidências no Notion. Mudanças compartilhadas de banco permanecem sob controle do usuário.
 
 ## 9. Ponto de atenção antes da implementação
 
-`AGENTS.md` exige `.env` em `sistema/`, mas o checkout atual tem `package.json` na raiz `GeoAlerta/` e não possui a pasta `sistema/`. A decisão de planejamento é manter os caminhos de código da raiz e carregar explicitamente `.env` na raiz do repositório nos comandos locais de Next.js, Prisma e Playwright. A tarefa de fundação cria o carregador comum; nenhuma credencial é criada, movida ou versionada implicitamente. CI usa variáveis injetadas, sem criar um segundo arquivo de ambiente local.
+O `AGENTS.md` atual exige `.env` na raiz `GeoAlerta/`, onde também está `package.json`; não existe pasta `sistema/`. Next.js, Prisma e Playwright usam o carregador comum da fundação para ler esse único arquivo. Nenhuma credencial é criada, movida ou versionada implicitamente. CI usa variáveis injetadas, sem criar um segundo arquivo de ambiente local.
 
-Os guias locais de Next.js em `node_modules/next/dist/docs/` não estão disponíveis neste checkout sem dependências instaladas. Os agentes deverão instalar as dependências conforme o lockfile e ler os guias da versão efetiva antes de escrever código Next.js.
+Os guias da versão instalada de Next.js estão em `node_modules/next/dist/docs/` e devem ser lidos antes de escrever código Next.js.
 
 ## 10. Limites e contratos propostos para implementação
 

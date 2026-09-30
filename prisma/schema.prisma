@@ -4,6 +4,14 @@ generator client {
   previewFeatures = ["partialIndexes"]
 }
 
+/// Shared fixed-minute counter; scoped to the trusted ingestion origin by RLS.
+model intake_rate_limits {
+  origin_hash String
+  minute DateTime @db.Timestamptz(6)
+  attempts Int
+  @@id([origin_hash, minute])
+}
+
 datasource db {
   provider = "postgresql"
 }

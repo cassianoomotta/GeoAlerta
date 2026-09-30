@@ -32,7 +32,7 @@ export async function prepareAccessTests() {
     const password=randomBytes(32).toString('hex');
     // Generated fixture credentials remain in memory, never in .env/artifacts.
     await db.query(`CREATE ROLE ${role} LOGIN PASSWORD '${password}' NOSUPERUSER NOBYPASSRLS NOINHERIT`);
-    await db.query(`GRANT geoalerta_runtime,authenticated,anon TO ${role}`);
+    await db.query(`GRANT geoalerta_runtime,geoalerta_ingest,authenticated,anon TO ${role}`);
     const url=new URL(process.env.TEST_DATABASE_URL!); url.username=role;url.password=password;url.searchParams.set('options','-c role=geoalerta_runtime');
     await db.query(`INSERT INTO public.groups(id,municipality_id,name) VALUES ($1,'sa_patrulha','Fixture A'),($2,'sa_patrulha','Fixture B'),($3,'other','Fixture other') ON CONFLICT(id) DO NOTHING`,[groupA,groupB,groupOther]);
     for(const a of accounts) {
