@@ -3,6 +3,7 @@ import { randomUUID, randomBytes } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { assertTestTarget } from './database';
 import { resolveExecutable } from '../../scripts/with-env.mjs';
+import {prepareListTests} from './list';
 
 export const groupA='20000000-0000-4000-8000-000000000001';
 export const groupB='20000000-0000-4000-8000-000000000002';
@@ -45,6 +46,7 @@ export async function prepareAccessTests() {
       const event=(await db.query(`INSERT INTO public.occurrence_events(occurrence_id,kind) VALUES($1,'fixture') RETURNING id`,[id])).rows[0].id;
       await db.query(`INSERT INTO public.occurrence_alerts(event_id,occurrence_id,group_id,priority,status) VALUES($1,$2,$3,'NORMAL','NOVA')`,[event,id,g]);
     }
+    await prepareListTests(db);
     return url.toString();
   }finally{await db.end();}
 }

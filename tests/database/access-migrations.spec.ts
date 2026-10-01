@@ -9,7 +9,7 @@ test('RNF-007 histórico completo de acesso reproduz RLS em schema vazio sem alt
   test.setTimeout(120000);assertTestTarget(process.env.TEST_DATABASE_URL);
   const scope=`core_test_access_${randomUUID().replaceAll('-','')}`;
   const db=new pg.Client({connectionString:process.env.TEST_DATABASE_URL});await db.connect();
-  const names=['0_legacy','202609300001_core_foundation','202609300002_legacy_provenance','202609300003_access_rls','202609300004_access_field_guards','202609300005_access_reopen_guard','202609300006_public_intake'];
+  const names=['0_legacy','202609300001_core_foundation','202609300002_legacy_provenance','202609300003_access_rls','202609300004_access_field_guards','202609300005_access_reopen_guard','202609300006_public_intake','202609300007_list_preferences'];
   const rewrite=(sql:string)=>sql.replace(/\bpublic\./g,`${scope}.`).replaceAll("'public'",`'${scope}'`).replace(/\bauth\./g,`${scope}_auth.`).replace(/\bstorage\./g,`${scope}_storage.`).replaceAll('supabase_realtime',`${scope}_publication`).replaceAll('ON SCHEMA public,auth',`ON SCHEMA ${scope},${scope}_auth`);
   try{
     const before=(await db.query('SELECT id,reporter_name,photo_url,status FROM public.occurrences ORDER BY id')).rows;

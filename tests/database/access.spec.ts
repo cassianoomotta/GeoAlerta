@@ -1,6 +1,6 @@
 import { test,expect } from '@playwright/test';
 import pg from 'pg';
-import { accounts,groupA,groupB,groupOther,occurrenceA } from '../fixtures/access';
+import { accounts,groupA,groupB,groupOther,occurrenceA,occurrenceB,occurrenceOther } from '../fixtures/access';
 import { PrismaClient } from '../../prisma/generated/client/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 test('RNF-001 Prisma real com pool restrito limpa contexto ao concluir ou abortar',async()=>{
@@ -9,7 +9,7 @@ test('RNF-001 Prisma real com pool restrito limpa contexto ao concluir ou aborta
     for(const mode of ['commit','rollback','sqlerror']){
       const operation=prisma.$transaction(async tx=>{
         await tx.$queryRaw`SELECT set_config('request.jwt.claim.sub',${accounts[1].id},true)`;
-        expect(await tx.$queryRaw`SELECT id FROM public.occurrences WHERE group_id=${groupA}::uuid`).toHaveLength(1);
+        expect(await tx.$queryRaw`SELECT id FROM public.occurrences WHERE group_id=${groupA}::uuid AND id=${occurrenceA}::uuid`).toHaveLength(1);
         if(mode==='rollback')throw new Error('fixture rollback');
         if(mode==='sqlerror')await tx.$queryRaw`SELECT 1/0`;
       });
@@ -41,7 +41,7 @@ test('RNF-001 RLS real com LOGIN restrito aplica papéis estados grupos múltipl
     expect(r.current_user).toBe('geoalerta_runtime');expect(r.session_user).toMatch(/^core_test_login_/);expect(r.rolsuper).toBe(false);expect(r.rolbypassrls).toBe(false);
     expect((await db.query("SELECT count(*)::int AS n FROM pg_class c JOIN pg_roles r ON c.relowner=r.oid WHERE r.rolname IN(current_user,session_user)")).rows[0].n).toBe(0);
     for(const a of accounts){await identity(db,a.name);
-      const rows=(await db.query('SELECT id FROM public.occurrences WHERE group_id=ANY($1::uuid[]) ORDER BY group_id',[[groupA,groupB,groupOther]])).rows;
+      const rows=(await db.query('SELECT id FROM public.occurrences WHERE group_id=ANY($1::uuid[]) AND id=ANY($2::uuid[]) ORDER BY group_id',[[groupA,groupB,groupOther],[occurrenceA,occurrenceB,occurrenceOther]])).rows;
       expect(rows.length,a.name).toBe(a.name==='admin'||a.name==='gestor'?2:['consulta','operador'].includes(a.name)?1:0);
       for(const capability of ['read','privateData','operate','reclassify','export','administer']){
         const ok=(await db.query('SELECT public.core_has_access($1,$2) AS ok',[groupA,capability])).rows[0].ok;
@@ -68,8 +68,10 @@ test('RNF-001 grants bloqueiam colunas privadas legadas e escrita Data API; Real
 test('RNF-001 commit rollback erro e pool reutilizado não deixam identidade residual',async()=>{
   const pool=new pg.Pool({connectionString:process.env.CORE_ACCESS_RUNTIME_URL,max:1});try{
     for(const finish of ['COMMIT','ROLLBACK','error']){
-      const db=await pool.connect();await identity(db,'operador');expect((await db.query('SELECT id FROM public.occurrences WHERE group_id=$1',[groupA])).rows).toHaveLength(1);
-      if(finish==='error'){await expect(db.query('SELECT 1/0')).rejects.toMatchObject({code:'22012'});await db.query('ROLLBACK');}else await db.query(finish);db.release();
+      const db=await pool.connect();
+      try{await identity(db,'operador');expect((await db.query('SELECT id FROM public.occurrences WHERE group_id=$1 AND id=$2',[groupA,occurrenceA])).rows).toHaveLength(1);
+        if(finish==='error'){await expect(db.query('SELECT 1/0')).rejects.toMatchObject({code:'22012'});await db.query('ROLLBACK');}else await db.query(finish);
+      }finally{await db.query('ROLLBACK');db.release();}
       const next=await pool.connect();expect((await next.query("SELECT nullif(current_setting('request.jwt.claim.sub',true),'') AS identity")).rows[0].identity).toBeNull();expect((await next.query('SELECT id FROM public.occurrences')).rows).toHaveLength(0);next.release();
     }
   }finally{await pool.end();}

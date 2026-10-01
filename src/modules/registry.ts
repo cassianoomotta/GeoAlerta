@@ -22,8 +22,8 @@ export const MODULES: ModuleDef[] = [
   },
   {
     slug: "tabela",
-    label: "Tabela Operacional",
-    href: "/painel/tabela",
+    label: "Ocorrências",
+    href: "/painel/ocorrencias",
     description: "Relatórios e exportação CSV",
     enabled: true,
   },

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
+import {ListStatusMenu} from '@/features/occurrences/ui/ListStatusMenu';
 import { supabase } from "@/lib/supabase";
 import { 
   Bell, 
@@ -145,6 +146,7 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
               </Link>
             );
           })}
+          <Suspense><ListStatusMenu/></Suspense>
         </nav>
 
         <div className="p-6 border-t border-white/5">
@@ -200,6 +202,7 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
                   </Link>
                 );
               })}
+              <Suspense><ListStatusMenu/></Suspense>
             </nav>
 
             {/* Contatos Rápidos no Mobile */}
