@@ -65,6 +65,7 @@ export function AdminPanel() {
   return <main className="mx-auto w-full max-w-6xl space-y-6 p-4 sm:p-6" aria-labelledby="admin-title">
     <header><h1 id="admin-title" className="text-2xl font-bold text-white">Administração de usuários e grupos</h1><p className="mt-1 text-sm text-slate-300">Gerencie papéis, escopos e estados de acesso. Cada mudança fica registrada em auditoria.</p></header>
     <Link href="/painel/admin/status" className="inline-flex rounded border border-blue-400/30 px-3 py-2 text-sm text-blue-100">Configurar rótulos e transições de status</Link>
+    <Link href="/painel/admin/risk-zones" className="ml-2 inline-flex rounded border border-amber-400/30 px-3 py-2 text-sm text-amber-100">Administrar zonas de risco</Link>
     {error && <p role="alert" className="rounded-lg border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-100">{error}</p>}
     {message && <p role="status" className="rounded-lg border border-emerald-400/30 bg-emerald-500/10 p-3 text-sm text-emerald-100">{message}</p>}
     {link && <section className="glass-card space-y-2 p-4"><label htmlFor="provision-link" className="text-sm font-semibold text-white">Link de acesso temporário</label><input id="provision-link" readOnly value={link} className="w-full rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 text-xs text-white"/><p className="text-xs text-amber-200">O link é exibido somente após salvar a conta PENDENTE. O sistema não envia e-mail.</p></section>}

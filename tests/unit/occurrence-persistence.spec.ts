@@ -13,8 +13,10 @@ const input: PublicOccurrenceInput = {
 
 test('US-05 classificador comum deriva prioridade e versões das zonas retornadas', async () => {
   let values: unknown[] = [];
+  let query = '';
   const tx = {
-    $queryRaw: async (_parts: TemplateStringsArray, ...parameters: unknown[]) => {
+    $queryRaw: async (parts: TemplateStringsArray, ...parameters: unknown[]) => {
+      query = Array.from(parts).join('?');
       values = parameters;
       return [{ zone_id: '00000000-0000-4000-8000-000000000002', version: 2 }];
     },
@@ -25,6 +27,11 @@ test('US-05 classificador comum deriva prioridade e versões das zonas retornada
     zones: [{ zoneId: '00000000-0000-4000-8000-000000000002', version: 2 }],
   });
   expect(values).toEqual([-50.5, -29.5]);
+  expect(query).toContain('max(current_zone.version)');
+  expect(query).toContain('z.active');
+  expect(query).toContain('z.valid_from<=transaction_timestamp()');
+  expect(query).toContain('z.valid_to>transaction_timestamp()');
+  expect(query).toContain('ST_Intersects');
 });
 
 test('US-05 persistência comum inclui protocolo, trilha com ator, alerta e idempotência numa transação', async () => {

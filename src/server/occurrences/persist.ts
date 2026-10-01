@@ -9,12 +9,13 @@ export async function classifyOccurrence(
   position: PublicOccurrenceInput['position'],
 ): Promise<OccurrenceClassification> {
   const zones = await tx.$queryRaw<{ zone_id: string; version: number }[]>`
-    SELECT zone_id::text AS zone_id,version FROM public.risk_zones
-    WHERE active
-      AND (valid_from IS NULL OR valid_from<=transaction_timestamp())
-      AND (valid_to IS NULL OR valid_to>transaction_timestamp())
-      AND ST_Intersects(geometry,ST_SetSRID(ST_MakePoint(${position.longitude},${position.latitude}),4326))
-    ORDER BY zone_id,version
+    SELECT z.zone_id::text AS zone_id,z.version FROM public.risk_zones z
+    WHERE z.version=(SELECT max(current_zone.version) FROM public.risk_zones current_zone WHERE current_zone.zone_id=z.zone_id)
+      AND z.active
+      AND (z.valid_from IS NULL OR z.valid_from<=transaction_timestamp())
+      AND (z.valid_to IS NULL OR z.valid_to>transaction_timestamp())
+      AND ST_Intersects(z.geometry,ST_SetSRID(ST_MakePoint(${position.longitude},${position.latitude}),4326))
+    ORDER BY z.zone_id,z.version
   `;
   return {
     priority: zones.length ? 'ALTA' : 'NORMAL',
