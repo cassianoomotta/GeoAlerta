@@ -6,7 +6,7 @@ export type Column = typeof publicColumns[number] | typeof privateColumns[number
 export const columnLabels: Record<Column,string> = {protocol:'Protocolo',createdAt:'Registro',status:'Status',priority:'Prioridade',type:'Tipo',groupId:'Grupo',reporterName:'Nome do cidadão',reporterContact:'Contato do cidadão'};
 export type ListFilters = OccurrenceFilters & {page:number;pageSize:number;sort:'createdAt'|'priority'|'status';direction:'asc'|'desc';columns?:string[]};
 export type ListItem = OccurrenceRow & {groupName:string;reporterName?:string|null;reporterContact?:string|null};
-export type ListResult = {items:ListItem[];total:number;page:number;pageSize:number;filters:ListFilters;columns:Column[];availableColumns:Column[];groups:{id:string;name:string}[]};
+export type ListResult = {items:ListItem[];total:number;page:number;pageSize:number;filters:ListFilters;columns:Column[];availableColumns:Column[];groups:{id:string;name:string}[];statusPresentations:{code:Status;label:string;displayOrder:number}[]};
 export class ListInputError extends Error {constructor(public status:422|403=422){super('INVALID_LIST_INPUT');}}
 export function availableColumns(privateData:boolean):Column[]{return privateData?[...publicColumns,...privateColumns]:[...publicColumns];}
 export function validateColumns(value:unknown,allowed:readonly string[]):Column[]{

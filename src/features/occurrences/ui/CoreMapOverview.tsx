@@ -9,6 +9,7 @@ const CoreMapCanvas=dynamic(()=>import('./CoreMapCanvas'),{ssr:false,loading:()=
 type Bounds=Pick<DashboardMapQuery,'west'|'south'|'east'|'north'>;
 type DashboardResponse=DashboardView&{window:DashboardMapQuery};
 const statusNames:Record<keyof DashboardView['counts']['byStatus'],string>={NOVA:'Novas',EM_TRIAGEM:'Em triagem',EM_ATENDIMENTO:'Em atendimento',RESOLVIDA:'Resolvidas',CANCELADA:'Canceladas'};
+type StatusPresentation={code:keyof DashboardView['counts']['byStatus'];label:string;displayOrder:number};
 
 export function CoreMapOverview(){
   const [view,setView]=useState<DashboardResponse|null>(null);
@@ -17,7 +18,10 @@ export function CoreMapOverview(){
   const [to,setTo]=useState('');
   const [error,setError]=useState('');
   const [loading,setLoading]=useState(true);
+  const [presentations,setPresentations]=useState<StatusPresentation[]>(Object.entries(statusNames).map(([code,label],index)=>({code:code as StatusPresentation['code'],label,displayOrder:index+1})));
   const onViewportChange=useCallback((next:Bounds)=>setBounds(current=>current&&Object.keys(next).every(key=>current[key as keyof Bounds]===next[key as keyof Bounds])?current:next),[]);
+
+  useEffect(()=>{let mounted=true;void fetch('/api/core/status-presentations',{cache:'no-store'}).then(response=>response.ok?response.json():Promise.reject()).then((body:{items:StatusPresentation[]})=>{if(mounted)setPresentations(body.items)}).catch(()=>{});return()=>{mounted=false}},[]);
 
   useEffect(()=>{
     const controller=new AbortController();
@@ -48,7 +52,7 @@ export function CoreMapOverview(){
     {loading&&!view&&<p role="status">Carregando mapa e contagens…</p>}
     {view&&<>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-7">
-        {Object.entries(view.counts.byStatus).map(([status,count])=><div key={status} className="rounded-lg bg-slate-800 p-3"><p className="text-xs text-slate-300">{statusNames[status as keyof typeof statusNames]}</p><p className="text-lg font-bold">{count}</p></div>)}
+        {[...presentations].sort((a,b)=>a.displayOrder-b.displayOrder).map(({code,label})=><div key={code} className="rounded-lg bg-slate-800 p-3"><p className="text-xs text-slate-300">{label}</p><p className="text-lg font-bold">{view.counts.byStatus[code]}</p></div>)}
         <div className="rounded-lg bg-slate-800 p-3"><p className="text-xs text-slate-300">Prioridade alta</p><p className="text-lg font-bold">{view.counts.byPriority.ALTA}</p></div>
         <div className="rounded-lg bg-slate-800 p-3"><p className="text-xs text-slate-300">Prioridade normal</p><p className="text-lg font-bold">{view.counts.byPriority.NORMAL}</p></div>
       </div>
