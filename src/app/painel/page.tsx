@@ -12,6 +12,7 @@ import { floodZonesGeoJSON } from "@/data/geo";
 import { findSmartRecommendedTeam, checkOccurrenceInRiskZone } from "@/lib/dispatchIntelligence";
 import type { MapShelter, MapTeamLive, MapResource, MapVolunteerSummary } from "@/components/MapComponent";
 import type { RiskZone } from "@/components/MapDrawingTool";
+import { CoreMapOverview } from "@/features/occurrences/ui/CoreMapOverview";
 
 // Leaflet precisa ser carregado dinamicamente para evitar erro de 'window is not defined' no SSR
 const MapComponent = dynamic(() => import("@/components/MapComponent"), {
@@ -566,6 +567,7 @@ function PainelContent() {
 
   return (
     <div className="flex flex-col h-full gap-4 relative">
+      <CoreMapOverview />
       
       {/* 1. Header Estratégico & Ações Táticas Primárias (SEMPRE VISÍVEIS) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0 pb-1 border-b border-white/5">
