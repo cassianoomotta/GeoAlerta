@@ -21,7 +21,7 @@ interface OccurrenceDetail {
   classification: { zones: { id: string; name: string; version: number }[] } | null;
   events: { id: string; kind: string; actorId: string | null; at: string }[];
   privateData?: {hasPhoto: boolean};
-  actions: { canOperate: boolean; availableTransitions: {target: Status; reasonRequired: boolean}[] };
+  actions: { canOperate: boolean; canReclassify: boolean; availableTransitions: {target: Status; reasonRequired: boolean}[] };
   availableGroups: { id: string; name: string }[];
 }
 
@@ -179,6 +179,7 @@ function OccurrenceMutationControls({
   const [description, setDescription] = useState(detail.description ?? '');
   const [groupId, setGroupId] = useState(detail.group.id);
   const [reason, setReason] = useState('');
+  const [priority, setPriority] = useState<Priority>(detail.priority);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [conflict, setConflict] = useState(false);
@@ -272,6 +273,23 @@ function OccurrenceMutationControls({
           ))}
         </div>
       </div>}
+
+      {detail.actions.canReclassify && <div className="space-y-3 border-t border-white/10 pt-4">
+        <h3 className="text-sm font-semibold text-white">Reclassificar prioridade</h3>
+        <label className="block space-y-1 text-sm text-slate-200">
+          <span>Nova prioridade</span>
+          <select value={priority} onChange={(event) => setPriority(event.target.value as Priority)} className="w-full rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 text-white">
+            <option value="NORMAL">Normal</option>
+            <option value="ALTA">Alta</option>
+          </select>
+        </label>
+        <label className="block space-y-1 text-sm text-slate-200">
+          <span>Justificativa obrigatória</span>
+          <textarea required minLength={10} maxLength={500} rows={2} value={reason} onChange={(event) => setReason(event.target.value)} className="w-full rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 text-white" />
+        </label>
+        <button type="button" disabled={saving} onClick={() => void submit({ kind: 'reclassify', priority, reason: reason.trim() })} className="rounded-lg border border-amber-400/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-100 disabled:opacity-50">Salvar prioridade</button>
+      </div>}
+
 
       {message && <p role={conflict ? 'alert' : 'status'} className={conflict ? 'text-sm text-amber-200' : 'text-sm text-slate-200'}>{message}</p>}
       {conflict && <button type="button" disabled={saving} onClick={() => void reloadAfterConflict()} className="rounded-lg border border-amber-400/40 px-3 py-2 text-sm text-amber-100 disabled:opacity-50">Atualizar estado atual</button>}

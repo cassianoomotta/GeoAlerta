@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import type { Actor, Role } from '@/features/access/contracts';
 import type { Status } from '@/features/occurrences/contracts';
 import {
+  authorizeOccurrenceMutation,
   OccurrenceMutationError,
   parseOccurrenceMutation,
   type MutableOccurrence,
@@ -134,6 +135,23 @@ test('RF-015 disabled or role-denied transitions fail without saving', async () 
   expect(fake.saved).toHaveLength(0);
 });
 
+test('RF-015 only Gestor/Admin can reopen with a persisted justification requirement', async () => {
+  const terminal = occurrence({ status: 'RESOLVIDA' });
+  const fakeOperator = fakePorts(terminal);
+  fakeOperator.ports.getTransition = async () => transition(['GESTOR', 'ADMINISTRADOR'], { reasonRequired: true });
+  await expect(mutateOccurrence(actor(), occurrenceId, 4, { kind: 'transition', target: 'EM_TRIAGEM', reason: 'Motivo suficiente' }, fakeOperator.ports))
+    .rejects.toMatchObject({ status: 403, code: 'ACCESS_DENIED' });
+  expect(fakeOperator.saved).toHaveLength(0);
+
+  const fakeManager = fakePorts(terminal);
+  fakeManager.ports.getTransition = async () => transition(['GESTOR', 'ADMINISTRADOR'], { reasonRequired: true });
+  await expect(mutateOccurrence(actor('GESTOR'), occurrenceId, 4, { kind: 'transition', target: 'EM_TRIAGEM', reason: 'Motivo' }, fakeManager.ports))
+    .rejects.toMatchObject({ status: 422, code: 'REASON_REQUIRED' });
+  const result = await mutateOccurrence(actor('GESTOR'), occurrenceId, 4, { kind: 'transition', target: 'EM_TRIAGEM', reason: 'Equipe confirmou reabertura' }, fakeManager.ports);
+  expect(result.status).toBe('EM_TRIAGEM');
+  expect(fakeManager.saved[0].reason).toBe('Equipe confirmou reabertura');
+});
+
 test('RNF-005 stale concurrent version returns 409 and exposes no overwrite', async () => {
   const fake = fakePorts();
   const writes = await Promise.allSettled([
@@ -160,4 +178,50 @@ test('wrong expected version returns 409 before attempting a write', async () =>
   await expect(mutateOccurrence(actor(), occurrenceId, 3, { kind: 'edit', type: 'Enchente' }, fake.ports))
     .rejects.toMatchObject({ status: 409, code: 'VERSION_CONFLICT' });
   expect(fake.saved).toHaveLength(0);
+});
+
+test('RF-011 gestor reclassifies priority with a required reason and increments one version', async () => {
+  const fake = fakePorts();
+  const result = await mutateOccurrence(actor('GESTOR'), occurrenceId, 4,
+    { kind: 'reclassify', priority: 'ALTA', reason: 'Risco confirmado pela equipe' }, fake.ports);
+  expect(result).toEqual({ id: occurrenceId, version: 5, status: 'NOVA', priority: 'ALTA', groupId: groupA, deletedAt: false });
+  expect(fake.saved[0]).toMatchObject({
+    actorId: userId,
+    eventKind: 'PRIORITY_RECLASSIFIED',
+    reason: 'Risco confirmado pela equipe',
+    changes: { priority: { from: 'NORMAL', to: 'ALTA' } },
+  });
+});
+
+test('RF-011 Consulta/Operador cannot reclassify; short reason and unchanged priority do not mutate', async () => {
+  for (const role of ['CONSULTA', 'OPERADOR'] as const) {
+    const fake = fakePorts();
+    await expect(mutateOccurrence(actor(role), occurrenceId, 4,
+      { kind: 'reclassify', priority: 'ALTA', reason: 'Justificativa válida' }, fake.ports))
+      .rejects.toMatchObject({ status: 403, code: 'ACCESS_DENIED' });
+    expect(fake.saved).toHaveLength(0);
+  }
+
+  const manager = fakePorts();
+  await expect(mutateOccurrence(actor('GESTOR'), occurrenceId, 4,
+    { kind: 'reclassify', priority: 'ALTA', reason: 'Curto' }, manager.ports))
+    .rejects.toMatchObject({ status: 422, code: 'REASON_REQUIRED' });
+  await expect(mutateOccurrence(actor('GESTOR'), occurrenceId, 4,
+    { kind: 'reclassify', priority: 'NORMAL', reason: 'Mesmo valor sem mudança' }, manager.ports))
+    .rejects.toMatchObject({ status: 422, code: 'NO_CHANGES' });
+  expect(manager.saved).toHaveLength(0);
+});
+
+test('RNF-005 priority reclassification audit failure leaves priority and version unchanged', async () => {
+  const fake = fakePorts(occurrence(), { auditFails: true });
+  await expect(mutateOccurrence(actor('ADMINISTRADOR'), occurrenceId, 4,
+    { kind: 'reclassify', priority: 'ALTA', reason: 'Classificação revisada' }, fake.ports)).rejects.toThrow('audit insert failed');
+  expect(fake.state.current.priority).toBe('NORMAL');
+  expect(fake.state.current.version).toBe(4);
+});
+
+test('role capability guards reopen even if a transition rule accidentally grants the role', () => {
+  expect(() => authorizeOccurrenceMutation(actor(), occurrence({ status: 'CANCELADA' }),
+    { kind: 'transition', target: 'EM_TRIAGEM', reason: 'Justificativa válida' }, transition()))
+    .toThrow(OccurrenceMutationError);
 });

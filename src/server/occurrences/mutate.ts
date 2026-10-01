@@ -55,21 +55,41 @@ export async function mutateOccurrenceInTransaction(
       return row ? { enabled: row.enabled, roles: parseRoles(row.roles), reasonRequired: row.reason_required } : undefined;
     },
     saveAtomically: async (mutation) => {
-      if (mutation.status !== undefined) {
-        await tx.$queryRaw`SELECT set_config('core.mutation_reason', ${mutation.reason ?? ''}, true)`;
-        const updated = await tx.$executeRaw`
-          UPDATE public.occurrences SET status=${mutation.status},version=version+1,updated_at=transaction_timestamp()
-          WHERE id=${mutation.occurrence.id}::uuid AND version=${mutation.expectedVersion} AND deleted_at IS NULL
-        `;
+      if (mutation.priority !== undefined || mutation.status !== undefined) {
+        await tx.$queryRaw`SELECT set_config('core.mutation_reason',${mutation.reason ?? ''},true)`;
+        const updated = mutation.priority !== undefined
+          ? await tx.$executeRaw`
+              UPDATE public.occurrences
+              SET priority=${mutation.priority},version=version+1,updated_at=transaction_timestamp()
+              WHERE id=${mutation.occurrence.id}::uuid
+                AND version=${mutation.expectedVersion}
+                AND deleted_at IS NULL
+            `
+          : await tx.$executeRaw`
+              UPDATE public.occurrences
+              SET status=${mutation.status!},version=version+1,updated_at=transaction_timestamp()
+              WHERE id=${mutation.occurrence.id}::uuid
+                AND version=${mutation.expectedVersion}
+                AND deleted_at IS NULL
+            `;
+        // A trigger validates protected changes and writes their history and audit rows atomically.
         return updated === 1;
       }
+
       const updated = await tx.$executeRaw`
-        UPDATE public.occurrences SET type=COALESCE(${mutation.type ?? null},type),
-          description=COALESCE(${mutation.description ?? null},description),group_id=${mutation.groupId}::uuid,
-          version=version+1,updated_at=transaction_timestamp()
-        WHERE id=${mutation.occurrence.id}::uuid AND version=${mutation.expectedVersion} AND deleted_at IS NULL
+        UPDATE public.occurrences
+        SET type=COALESCE(${mutation.type ?? null},type),
+            description=COALESCE(${mutation.description ?? null},description),
+            status=COALESCE(${mutation.status ?? null},status),
+            group_id=${mutation.groupId}::uuid,
+            version=version+1,
+            updated_at=transaction_timestamp()
+        WHERE id=${mutation.occurrence.id}::uuid
+          AND version=${mutation.expectedVersion}
+          AND deleted_at IS NULL
       `;
       if (updated !== 1) return false;
+
       await tx.$executeRaw`
         INSERT INTO public.occurrence_events(occurrence_id,kind,actor_id,reason,changes)
         VALUES(${mutation.occurrence.id}::uuid,${mutation.eventKind},${mutation.actorId}::uuid,${mutation.reason},${JSON.stringify(mutation.changes)}::jsonb)

@@ -75,12 +75,13 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
         return photos[0]?.photo_object_key ?? null;
       });
       const canOperate = can(actor, 'operate', {municipalityId: 'sa_patrulha', groupId: occurrence.group_id});
+      const canReclassify = can(actor, 'reclassify', {municipalityId: 'sa_patrulha', groupId: occurrence.group_id});
       const transitionRows = canOperate ? await tx.$queryRaw<{to_status: string; enabled: boolean; roles: unknown; reason_required: boolean}[]>`
         SELECT to_status,enabled,roles,reason_required FROM public.status_transitions WHERE from_status=${occurrence.status}
       ` : [];
       const availableTransitions = transitionRows
         .filter((rule) => rule.enabled && Array.isArray(rule.roles) && rule.roles.includes(actor.role) &&
-          occurrence.status !== 'RESOLVIDA' && occurrence.status !== 'CANCELADA')
+          ((occurrence.status !== 'RESOLVIDA' && occurrence.status !== 'CANCELADA') || canReclassify))
         .map((rule) => ({ target: rule.to_status, reasonRequired: rule.reason_required }));
       const availableGroups = canOperate ? await tx.$queryRaw<{id: string; name: string}[]>`
         SELECT id::text AS id,name FROM public.groups
@@ -103,7 +104,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
         version: occurrence.version,
         classification: zones.length ? { zones } : null,
         events,
-        actions: { canOperate, availableTransitions },
+        actions: { canOperate, canReclassify, availableTransitions },
         availableGroups,
         ...(hasPhoto ? {privateData: {hasPhoto: true}} : {}),
       };

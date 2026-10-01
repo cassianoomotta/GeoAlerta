@@ -5,6 +5,7 @@ import type { Priority, Status } from '../contracts';
 export type OccurrenceMutationCommand =
   | { kind: 'edit'; type?: string; description?: string; groupId?: string }
   | { kind: 'transition'; target: Status; reason?: string }
+  | { kind: 'reclassify'; priority: Priority; reason: string };
 
 export type OccurrenceMutationPayload = {
   expectedVersion: number;
@@ -86,7 +87,18 @@ export function parseOccurrenceMutation(value: unknown): OccurrenceMutationPaylo
     return { expectedVersion: Number(value.expectedVersion), command: transition };
   }
 
+  if (command.kind === 'reclassify' && (command.priority === 'NORMAL' || command.priority === 'ALTA')) {
+    if (typeof command.reason !== 'string') throw new OccurrenceMutationError(422, 'REASON_REQUIRED');
+    const reason = command.reason.trim();
+    if (reason.length > 500) throw new OccurrenceMutationError(422, 'INVALID_INPUT');
+    return { expectedVersion: Number(value.expectedVersion), command: { kind: 'reclassify', priority: command.priority, reason } };
+  }
+
   throw new OccurrenceMutationError(422, 'INVALID_INPUT');
+}
+
+export function transitionRequiresElevatedCapability(from: Status, to: Status): boolean {
+  return (from === 'RESOLVIDA' || from === 'CANCELADA') && to === 'EM_TRIAGEM';
 }
 
 export function authorizeOccurrenceMutation(
@@ -114,7 +126,24 @@ export function authorizeOccurrenceMutation(
     return { changes, eventKind: 'OCCURRENCE_EDITED', reason: null, groupId: command.groupId ?? occurrence.groupId };
   }
 
-  if ((occurrence.status === 'RESOLVIDA' || occurrence.status === 'CANCELADA') && command.target === 'EM_TRIAGEM') throw new OccurrenceMutationError(403, 'ACCESS_DENIED');
+  if (command.kind === 'reclassify') {
+    if (!can(actor, 'reclassify', { municipalityId: actor.municipalityId, groupId: occurrence.groupId })) {
+      throw new OccurrenceMutationError(403, 'ACCESS_DENIED');
+    }
+    if (command.reason.trim().length < 10) throw new OccurrenceMutationError(422, 'REASON_REQUIRED');
+    if (command.priority === occurrence.priority) throw new OccurrenceMutationError(422, 'NO_CHANGES');
+    return {
+      changes: { priority: { from: occurrence.priority, to: command.priority } },
+      eventKind: 'PRIORITY_RECLASSIFIED',
+      reason: command.reason.trim(),
+      groupId: occurrence.groupId,
+    };
+  }
+
+  if (transitionRequiresElevatedCapability(occurrence.status, command.target) &&
+      !can(actor, 'reclassify', { municipalityId: actor.municipalityId, groupId: occurrence.groupId })) {
+    throw new OccurrenceMutationError(403, 'ACCESS_DENIED');
+  }
   if (!rule?.enabled || !rule.roles.includes(actor.role)) throw new OccurrenceMutationError(422, 'TRANSITION_NOT_ALLOWED');
   if (rule.reasonRequired && (!command.reason || command.reason.trim().length < 10)) {
     throw new OccurrenceMutationError(422, 'REASON_REQUIRED');
@@ -122,7 +151,7 @@ export function authorizeOccurrenceMutation(
   if (command.target === occurrence.status) throw new OccurrenceMutationError(422, 'NO_CHANGES');
   return {
     changes: { status: { from: occurrence.status, to: command.target } },
-    eventKind: 'STATUS_TRANSITIONED',
+    eventKind: transitionRequiresElevatedCapability(occurrence.status, command.target) ? 'STATUS_REOPENED' : 'STATUS_TRANSITIONED',
     reason: command.reason?.trim() || null,
     groupId: occurrence.groupId,
   };
