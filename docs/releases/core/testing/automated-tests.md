@@ -55,7 +55,7 @@ Scripts existentes em `package.json`, executados na raiz e carregando exclusivam
 | `npm run build` | `node scripts/with-env.mjs next build` |
 | `npm exec -- tsc --noEmit` | TypeScript CLI existente; não há script `typecheck`. |
 
-`test:load`, `test:restore` e `typecheck` não são scripts atualmente disponíveis. Não os trate como comandos prontos; os trabalhos associados a carga e recuperação estão explicitados nas histórias 19 e 20. O Playwright atual configura `webServer` para API/navegadores, `baseURL` explícita, locale `pt-BR`, timezone `America/Sao_Paulo`, retries locais `0` e CI `1`. Suites de banco/restauração não devem rodar em paralelo com suites que dependem do mesmo banco.
+`test:restore` está disponível em `scripts/test-restore.ts` e exige `pg_dump`/`pg_restore`, origem sintética e dois alvos PostgreSQL descartáveis na allowlist; ainda não foi executado em alvos reais. `test:load` e `typecheck` não são scripts atualmente disponíveis. O Playwright atual configura `webServer` para API/navegadores, `baseURL` explícita, locale `pt-BR`, timezone `America/Sao_Paulo`, retries locais `0` e CI `1`. Suites de banco/restauração não devem rodar em paralelo com suites que dependem do mesmo banco.
 
 ## 3. Ambiente e fixtures da validação integrada
 
@@ -95,7 +95,7 @@ Os caminhos são futuros e relativos à raiz. As verificações abaixo constitue
 | RNF-004 | `tests/load/core-load.ts`: executar o cenário de capacidade e registrar p95, erros, contagens, consultas e atraso Realtime. |
 | RNF-005 | Todos os projetos; cada cenário BDD do PRD tem caso automatizado com ID e resultado verificável. |
 | RNF-006 | `tests/e2e/dashboard.spec.ts`, `occurrence-list.spec.ts`: alertas in-app e exportação local; nenhuma etapa operacional depende de e-mail ou sincronização de planilha. |
-| RNF-007 | `tests/database/migrations.spec.ts`, `legacy-preservation.spec.ts`, `tests/load/restore.ts`: banco vazio, baseline em cópia existente, rollback transacional e restauração. |
+| RNF-007 | `tests/database/migrations.spec.ts`, `legacy-preservation.spec.ts`, `scripts/test-restore.ts`: banco vazio, baseline em cópia existente, rollback transacional e restauração. |
 
 ## 5. Concorrência, migrations e falhas
 
@@ -112,7 +112,7 @@ Os caminhos são futuros e relativos à raiz. As verificações abaixo constitue
 
 **Metas propostas:** p95 de confirmação sem foto ≤ 3 segundos, p95 de primeira página da lista ≤ 3 segundos, alertas visuais ≤ 5 segundos após persistência. Registrar latência das fotos separadamente, erros, duplicações, conflitos esperados, volume consultado, Realtime e crescimento do Storage. Não transformar essas metas em capacidade comprovada até executar o cenário completo.
 
-O executor de carga ainda precisa ser implementado na história 20; quando disponível, usará clientes HTTP para entrada e dez sessões de backoffice com observação do painel, separando métricas de rede, servidor e renderização. Exportação deve conter o conjunto completo sem truncamento e sem alterar dados. A história 19 deve implementar/adaptar e executar a restauração de backup sintético em segundo alvo descartável, reaplicar verificações de integridade e documentar tempo/resultado. Nenhum teste de restauração escreve no alvo de origem.
+O executor de carga ainda precisa ser implementado na história 20; quando disponível, usará clientes HTTP para entrada e dez sessões de backoffice com observação do painel, separando métricas de rede, servidor e renderização. Exportação deve conter o conjunto completo sem truncamento e sem alterar dados. A história 19 implementa a restauração de backup sintético em segundo alvo descartável por `scripts/test-restore.ts`; sua execução real, conferência de integridade e registro do resultado continuam pendentes até que existam dois alvos autorizados, isolados e não Docker. Nenhum teste de restauração escreve no alvo de origem.
 
 ## 7. Evidências e aceite
 
