@@ -33,7 +33,7 @@ export default async function Occurrences({searchParams}:{searchParams:Promise<R
   return <section className="space-y-5 p-4 md:p-6">
     <h1 className="text-2xl font-bold">Ocorrências</h1>
     {canExport&&<a className="inline-flex rounded border border-emerald-400/30 px-3 py-2 text-sm text-emerald-100" href={exportHref(filters)}>Baixar CSV das ocorrências filtradas</a>}
-    {canAdminister&&<Link className="inline-flex rounded border border-amber-400/30 px-3 py-2 text-sm text-amber-100" href="/painel/ocorrencias/excluidas">Excluídas e restauração</Link>}
+    {canAdminister&&<><Link className="inline-flex rounded border border-amber-400/30 px-3 py-2 text-sm text-amber-100" href="/painel/ocorrencias/excluidas">Excluídas e restauração</Link><Link className="inline-flex rounded border border-blue-400/30 px-3 py-2 text-sm text-blue-100" href="/painel/admin">Administrar usuários e grupos</Link></>}
     {canCreate&&groups.length>0&&<ManualOccurrenceForm groups={groups}/>}
     <nav aria-label="Atalhos por status" className="flex flex-wrap gap-3"><Link href={listHref(filters,{status:undefined,page:1})}>Todos os status</Link>{statuses.map(status=><Link key={status} href={listHref(filters,{status,page:1})}>{labels[status]}</Link>)}</nav>
     <form key={JSON.stringify(filters)} aria-label="Filtros de ocorrências" action="/painel/ocorrencias" method="get" className="grid gap-3 rounded border border-slate-600 p-4 sm:grid-cols-2 lg:grid-cols-4">
