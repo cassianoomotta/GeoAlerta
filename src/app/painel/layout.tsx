@@ -16,7 +16,8 @@ import {
   AlertTriangle,
   Menu,
   X,
-  PhoneCall
+  PhoneCall,
+  UserRound,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -104,6 +105,9 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
             );
           })}
           <Suspense><ListStatusMenu/></Suspense>
+          <Link href="/painel/perfil" className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all ${pathname.startsWith('/painel/perfil') ? 'bg-primary/10 text-primary border border-primary/20 font-semibold' : 'text-slate-400 hover:text-white hover:bg-white/5 font-medium'}`}>
+            <UserRound size={18} /> Meu perfil
+          </Link>
         </nav>
 
         <div className="p-6 border-t border-white/5">
@@ -160,6 +164,9 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
                 );
               })}
               <Suspense><ListStatusMenu/></Suspense>
+              <Link href="/painel/perfil" onClick={() => setMobileMenuOpen(false)} className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${pathname.startsWith('/painel/perfil') ? 'bg-primary/20 text-primary border border-primary/30' : 'text-slate-300 hover:bg-white/5'}`}>
+                <UserRound size={18} /> Meu perfil
+              </Link>
             </nav>
 
             {/* Contatos Rápidos no Mobile */}

@@ -3,7 +3,7 @@ import {useState,useSyncExternalStore,type FormEvent} from 'react';
 import {useRouter} from 'next/navigation';
 import {columnLabels,listHref,type Column,type ListFilters} from '../list-input';
 const subscribe=()=>()=>{};
-export function ColumnPreferences({columns,available,filters}:{columns:Column[];available:Column[];filters:ListFilters}){
+export function ColumnPreferences({columns,available,filters,returnTo}:{columns:Column[];available:Column[];filters:ListFilters;returnTo?:string}){
   const router=useRouter();const [selected,setSelected]=useState(columns);const [busy,setBusy]=useState(false);const [message,setMessage]=useState('');
   const ready=useSyncExternalStore(subscribe,()=>true,()=>false);
   async function save(event:FormEvent){
@@ -11,7 +11,7 @@ export function ColumnPreferences({columns,available,filters}:{columns:Column[];
     try{
       const response=await fetch('/api/core/preferences/columns',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({columns:selected})});
       if(!response.ok)throw new Error();
-      setMessage('Colunas salvas para sua conta.');router.replace(listHref(filters,{columns:undefined}));router.refresh();
+      setMessage('Colunas salvas para sua conta.');router.replace(returnTo??listHref(filters,{columns:undefined}));router.refresh();
     }catch{setMessage('Não foi possível salvar as colunas. Tente novamente.');}finally{setBusy(false);}
   }
   return <details className="rounded border border-slate-600 p-3"><summary>Minhas colunas</summary><form onSubmit={save} className="mt-3 flex flex-wrap items-center gap-4">

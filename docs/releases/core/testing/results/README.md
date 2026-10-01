@@ -13,3 +13,4 @@ Resumos sanitizados de verificações realmente executadas. Falhas, impedimentos
 - [Ticket 11 — exportação CSV, validação básica aprovada](ticket-11-2026-10-01.md): aceite integrado pendente na história 20.
 - [Ticket 12 — mapa e contagens delimitados, validação básica aprovada](ticket-12-2026-10-01.md): aceite integrado pendente na história 20.
 - [Ticket 13 — alertas in-app e reconexão, validação básica aprovada](ticket-13-2026-10-01.md): aceite integrado pendente na história 20.
+- [Ticket 14 — perfil próprio, validação básica aprovada](ticket-14-2026-10-01.md): aceite integrado pendente na história 20.
