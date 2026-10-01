@@ -6,7 +6,11 @@ loadLocalEnv();
 const baseURL = 'http://127.0.0.1:3102';
 const browsers = ['chromium', 'firefox', 'webkit', 'mobile-chromium', 'mobile-webkit'];
 const requestedProjects = process.argv.flatMap((arg, index) => arg.startsWith('--project=') ? [arg.slice(10)] : arg === '--project' ? [process.argv[index + 1]] : []);
-const needsServer = (requestedProjects.length === 0 || requestedProjects.some((name) => browsers.includes(name) || name === 'api')) && !process.argv.includes('--list');
+// Workers reload this config without CLI project arguments. Persist unit-only
+// intent so a basic unit run never provisions or connects to a database.
+if (requestedProjects.length) process.env.CORE_TEST_UNIT_ONLY = requestedProjects.every(name => name === 'unit') ? '1' : '0';
+const unitOnly = process.env.CORE_TEST_UNIT_ONLY === '1';
+const needsServer = !unitOnly && (requestedProjects.length === 0 || requestedProjects.some((name) => browsers.includes(name) || name === 'api')) && !process.argv.includes('--list');
 const needsAccessDatabase=needsServer || requestedProjects.includes('database');
 // Workers reload this config without the CLI project filter and inherit the prepared environment.
 if(process.env.TEST_WORKER_INDEX === undefined && needsAccessDatabase && !process.argv.includes('--list')) process.env.CORE_ACCESS_RUNTIME_URL=await prepareAccessTests();

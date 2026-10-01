@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import pg from 'pg';
-import { groupA, groupB, occurrenceA, occurrenceB, occurrenceOther } from '../fixtures/access';
+import { groupA, occurrenceA, occurrenceB, occurrenceOther } from '../fixtures/access';
 import { fixtureCookies } from '../fixtures/session';
 
 const privateName = 'SENTINEL_CITIZEN_NAME_TICKET05';

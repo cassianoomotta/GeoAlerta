@@ -1,5 +1,6 @@
 import { withSession, accessResponse } from '@/server/access/session';
 import { AccessError } from '@/server/access/context';
+import {privatePhotoAvailable} from '@/features/occurrences/photos/service';
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -39,7 +40,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     const { id } = await params;
     if (!uuidPattern.test(id)) throw new AccessError(404, 'NOT_FOUND');
 
-    const result = await withSession(async (tx) => {
+    const result = await withSession(async (tx, actor) => {
       const rows = await tx.$queryRaw<OccurrenceRow[]>`
         SELECT o.id::text AS id,o.protocol,o.type,o.description,o.status,s.label AS status_label,
           o.priority,o.group_id::text AS group_id,g.name AS group_name,
@@ -66,6 +67,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
         FROM public.core_occurrence_history(${id}::uuid)
         ORDER BY at,id
       `;
+      const hasPhoto = await privatePhotoAvailable(actor, {municipalityId: 'sa_patrulha', groupId: occurrence.group_id}, async () => {
+        const photos = await tx.$queryRaw<{photo_object_key: string | null}[]>`SELECT photo_object_key FROM public.occurrence_private_data WHERE occurrence_id=${id}::uuid`;
+        return photos[0]?.photo_object_key ?? null;
+      });
 
       return {
         id: occurrence.id,
@@ -83,6 +88,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
         version: occurrence.version,
         classification: zones.length ? { zones } : null,
         events,
+        ...(hasPhoto ? {privateData: {hasPhoto: true}} : {}),
       };
     });
     return Response.json(result, { headers: { 'Cache-Control': 'no-store' } });

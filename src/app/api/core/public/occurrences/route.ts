@@ -1,6 +1,8 @@
 import {validatePublicInput,validateIdempotencyKey,PublicInputError} from '@/features/occurrences/public-input';
 import {openOccurrence,IntakeError} from '@/server/occurrences/intake';
 import {resolveOrigin} from '@/server/occurrences/origin';
+import {PhotoError} from '@/features/occurrences/photos/contracts';
+import {photoResponse} from '@/features/occurrences/photos/http';
 export const runtime='nodejs';
 async function readBody(request:Request){
   if(!request.headers.get('content-type')?.toLowerCase().startsWith('application/json'))throw new PublicInputError();
@@ -17,6 +19,7 @@ export async function POST(request:Request){
     const {result,replay}=await openOccurrence(input,key,resolveOrigin(request.headers));
     return Response.json(result,{status:replay?200:201,headers:{'Cache-Control':'no-store'}});
   }catch(error){
+    if(error instanceof PhotoError)return photoResponse(error);
     const status=error instanceof PublicInputError?422:error instanceof IntakeError?error.status:503;
     const code=error instanceof PublicInputError?error.code:error instanceof IntakeError?error.code:'SERVICE_UNAVAILABLE';
     const message=status===422?'Verifique os campos e a localização.':status===409?'Esta tentativa já foi usada com outros dados.':status===429?'Limite de tentativas atingido. Tente novamente no próximo minuto.':'Não foi possível confirmar o registro. Tente novamente com os mesmos dados.';

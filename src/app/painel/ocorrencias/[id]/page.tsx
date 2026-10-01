@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { use } from 'react';
 import { useEffect, useState } from 'react';
+import {OccurrencePhoto} from '@/features/occurrences/ui/OccurrencePhoto';
 
 interface OccurrenceDetail {
   id: string;
@@ -18,6 +19,7 @@ interface OccurrenceDetail {
   version: number;
   classification: { zones: { id: string; name: string; version: number }[] } | null;
   events: { id: string; kind: string; actorId: string | null; at: string }[];
+  privateData?: {hasPhoto: boolean};
 }
 
 function formatDate(value: string) {
@@ -34,14 +36,15 @@ function formatCoordinate(value: number) {
 
 export default function OccurrenceDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  return <OccurrenceDetailView key={id} id={id} />;
+}
+
+function OccurrenceDetailView({id}: {id: string}) {
   const [detail, setDetail] = useState<OccurrenceDetail | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const controller = new AbortController();
-    setLoading(true);
-    setDetail(null);
-
     fetch(`/api/core/occurrences/${encodeURIComponent(id)}`, {
       cache: 'no-store',
       signal: controller.signal,
@@ -122,6 +125,10 @@ export default function OccurrenceDetailPage({ params }: { params: Promise<{ id:
           </ul>
         ) : <p className="mt-3 text-sm text-slate-300">Nenhuma zona registrada na abertura.</p>}
       </section>
+
+      {detail.privateData?.hasPhoto && <section className="glass-card p-5 sm:p-7">
+        <OccurrencePhoto occurrenceId={detail.id} />
+      </section>}
 
       <section className="glass-card p-5 sm:p-7" aria-labelledby="occurrence-history-title">
         <h2 id="occurrence-history-title" className="text-lg font-semibold text-white">Histórico</h2>

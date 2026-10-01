@@ -24,6 +24,13 @@ export const accounts=[
 ].map((a,index)=>({...a,id:`10000000-0000-4000-8000-${String(index+1).padStart(12,'0')}`}));
 export async function prepareAccessTests() {
   assertTestTarget(process.env.TEST_DATABASE_URL);
+  // Extend only the synthetic platform before deploying the Storage migration.
+  // Unit-only runs do not call this function.
+  const platform=new pg.Client({connectionString:process.env.TEST_DATABASE_URL});
+  await platform.connect();
+  try {
+    await platform.query('ALTER TABLE storage.buckets ADD COLUMN IF NOT EXISTS file_size_limit bigint; ALTER TABLE storage.buckets ADD COLUMN IF NOT EXISTS allowed_mime_types text[]');
+  } finally { await platform.end(); }
   const migration=spawnSync(process.execPath,[resolveExecutable('prisma'),'migrate','deploy'],{env:process.env,encoding:'utf8',timeout:90000});
   if(migration.status!==0) throw new Error('Isolated Core access migration failed.');
   const db=new pg.Client({connectionString:process.env.TEST_DATABASE_URL});

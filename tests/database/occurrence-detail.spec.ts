@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import pg from 'pg';
-import { accounts, groupA, groupB, occurrenceA, occurrenceB, occurrenceOther } from '../fixtures/access';
+import { accounts, groupA, occurrenceA, occurrenceB, occurrenceOther } from '../fixtures/access';
 
 const deletedOccurrence = '30000000-0000-4000-8000-000000000099';
 const zoneA = '91000000-0000-4000-8000-000000000011';

@@ -33,6 +33,7 @@ export async function persistOccurrence(
     classification: OccurrenceClassification;
     actorId: string | null;
     occurrenceId?: string;
+    photoObjectKey?: string | null;
   },
 ): Promise<OpenResult> {
   const id = command.occurrenceId ?? randomUUID();
@@ -52,8 +53,8 @@ export async function persistOccurrence(
       ${command.input.position.accuracy},'NOVA',${result.priority},${command.groupId}::uuid)
   `;
   await tx.$executeRaw`
-    INSERT INTO public.occurrence_private_data(occurrence_id,reporter_name,reporter_contact)
-    VALUES(${id}::uuid,${command.input.reporterName},${command.input.reporterContact})
+    INSERT INTO public.occurrence_private_data(occurrence_id,reporter_name,reporter_contact,photo_object_key)
+    VALUES(${id}::uuid,${command.input.reporterName},${command.input.reporterContact},${command.photoObjectKey ?? null})
   `;
   for (const zone of command.classification.zones) {
     await tx.$executeRaw`

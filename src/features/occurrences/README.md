@@ -4,7 +4,7 @@
 
 `legacy.ts` mapeia somente os quatro estados aprovados. O relatório identifica estados desconhecidos e localização nula sem modificar entradas; não substitui a futura validação transacional na migration.
 
-`public-input.ts` valida DTO público e chave de idempotência, sem framework/ORM/SDK. Texto é preservado como texto; a UI usa escape React, sem HTML executável. Grupo/status/prioridade não vêm do cidadão. A abertura sem foto usa `src/server/occurrences/`; a página pública anterior permanece preservada em `src/modules/legacy-public-page.tsx`, sem rota ativa.
+`public-input.ts` valida DTO público e chave de idempotência, sem framework/ORM/SDK. Texto é preservado como texto; a UI usa escape React, sem HTML executável. Grupo/status/prioridade não vêm do cidadão. A abertura usa `src/server/occurrences/` e aceita token opcional de [foto privada](photos/README.md); a página pública anterior permanece preservada em `src/modules/legacy-public-page.tsx`, sem rota ativa.
 
 Verificação: `npm run test:unit` e `node node_modules/typescript/bin/tsc --noEmit`.
 

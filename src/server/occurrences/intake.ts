@@ -4,6 +4,8 @@ import {PrismaClient} from '../../../prisma/generated/client/client';
 import {PrismaPg} from '@prisma/adapter-pg';
 import type {PublicOccurrenceInput,OpenResult} from '@/features/occurrences/contracts';
 import {classifyOccurrence,persistOccurrence} from './persist';
+import {resolvePhotoToken} from '@/features/occurrences/photos/token';
+import {photoSecret} from '@/server/photos/storage';
 export class IntakeError extends Error {
   constructor(public status:409|429,public code:string){super(code);}
 }
@@ -26,6 +28,8 @@ export async function openOccurrence(input:PublicOccurrenceInput,key:string,orig
       if(existing[0].request_hash!==hash)throw new IntakeError(409,'IDEMPOTENCY_CONFLICT');
       return {result:existing[0].response,replay:true};
     }
+    // Replay precedes expiry validation; the same confirmed request stays replayable.
+    const photoObjectKey=input.photoToken?resolvePhotoToken(input.photoToken,key,photoSecret()):null;
     const allowed=await tx.$queryRaw<{attempts:number}[]>`INSERT INTO public.intake_rate_limits(origin_hash,minute,attempts) VALUES(${origin},date_trunc('minute',transaction_timestamp()),1) ON CONFLICT(origin_hash,minute) DO UPDATE SET attempts=intake_rate_limits.attempts+1 WHERE intake_rate_limits.attempts<20 RETURNING attempts`;
     if(!allowed.length)throw new IntakeError(429,'RATE_LIMITED');
     const groups=await tx.$queryRaw<{id:string}[]>`SELECT id FROM public.groups WHERE is_default AND municipality_id='sa_patrulha'`;
@@ -39,7 +43,20 @@ export async function openOccurrence(input:PublicOccurrenceInput,key:string,orig
       classification,
       actorId:null,
       occurrenceId:id,
+      photoObjectKey,
     });
     return {result,replay:false};
   },{timeout:15000,maxWait:15000});
+}
+export async function reservePhotoUpload(key:string,origin:string):Promise<void>{
+  await client().$transaction(async tx=>{
+    const roles=await tx.$queryRaw<{safe:boolean}[]>`SELECT NOT r.rolsuper AND NOT r.rolbypassrls AND NOT login.rolsuper AND NOT login.rolbypassrls AND r.rolname='geoalerta_ingest' AND NOT EXISTS(SELECT FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relowner IN(r.oid,login.oid)) AS safe FROM pg_roles r JOIN pg_roles login ON login.rolname=session_user WHERE r.rolname=current_user`;
+    if(!roles[0]?.safe)throw new Error('Unsafe ingestion connection.');
+    const photoOrigin=`photo:${origin}`;
+    await tx.$queryRaw`SELECT set_config('core.attempt_key',${key},true),set_config('core.origin_hash',${photoOrigin},true)`;
+    const existing=await tx.$queryRaw<{key:string}[]>`SELECT key FROM public.idempotency_keys WHERE key=${key}`;
+    if(existing.length)throw new IntakeError(409,'IDEMPOTENCY_CONFLICT');
+    const allowed=await tx.$queryRaw<{attempts:number}[]>`INSERT INTO public.intake_rate_limits(origin_hash,minute,attempts) VALUES(${photoOrigin},date_trunc('minute',transaction_timestamp()),1) ON CONFLICT(origin_hash,minute) DO UPDATE SET attempts=intake_rate_limits.attempts+1 WHERE intake_rate_limits.attempts<20 RETURNING attempts`;
+    if(!allowed.length)throw new IntakeError(429,'RATE_LIMITED');
+  });
 }
