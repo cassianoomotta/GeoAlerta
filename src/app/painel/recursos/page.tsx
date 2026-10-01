@@ -1,5 +1,5 @@
-import RecursosPage from "@/modules/recursos/page";
+import { LegacyModuleUnavailable } from '@/modules/legacy-disabled';
 
-export default function Page() {
-  return <RecursosPage />;
+export default function ResourcesPage() {
+  return <LegacyModuleUnavailable name="Recursos" />;
 }

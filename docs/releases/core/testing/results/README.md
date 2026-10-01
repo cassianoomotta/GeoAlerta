@@ -17,3 +17,4 @@ Resumos sanitizados de verificações realmente executadas. Falhas, impedimentos
 - [Ticket 15 — administração de usuários, grupos e acesso, validação básica aprovada](ticket-15-2026-10-01.md): provisionamento Auth e aceite integrado pendentes na história 20.
 - [Ticket 16 — transições e rótulos de status, validação básica aprovada](ticket-16-2026-10-01.md): aceite integrado pendente na história 20.
 - [Ticket 17 — zonas de risco versionadas, validação básica aprovada](ticket-17-2026-10-01.md): validação PostGIS/browser/API pendente na história 20.
+- [Ticket 18 — desativar módulos legados preservando dados, validação básica aprovada](ticket-18-2026-10-01.md): comprovação integrada de bloqueio e preservação pendente na história 20.

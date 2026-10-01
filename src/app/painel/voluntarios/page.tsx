@@ -1,5 +1,5 @@
-import VoluntariosPage from "@/modules/voluntarios/page";
+import { LegacyModuleUnavailable } from '@/modules/legacy-disabled';
 
-export default function Page() {
-  return <VoluntariosPage />;
+export default function VolunteersPage() {
+  return <LegacyModuleUnavailable name="Voluntários" />;
 }

@@ -15,9 +15,9 @@ export interface ModuleDef {
 export const MODULES: ModuleDef[] = [
   {
     slug: "monitoramento",
-    label: "Mapa Tático",
+    label: "Mapa de ocorrências",
     href: "/painel",
-    description: "Ocorrências, mapa e triagem",
+    description: "Mapa Core de ocorrências e triagem",
     enabled: true,
   },
   {
@@ -32,28 +32,28 @@ export const MODULES: ModuleDef[] = [
     label: "Estoque de Recursos",
     href: "/painel/recursos",
     description: "Itens, quantidades e movimentações",
-    enabled: true,
+    enabled: false,
   },
   {
     slug: "abrigos",
     label: "Abrigos",
     href: "/painel/abrigos",
     description: "Abrigos (humano/pet/misto) e pessoas",
-    enabled: true,
+    enabled: false,
   },
   {
     slug: "equipes",
     label: "Equipes & GPS",
     href: "/painel/equipes",
     description: "Equipes de resgate e localização",
-    enabled: true,
+    enabled: false,
   },
   {
     slug: "voluntarios",
     label: "Voluntários",
     href: "/painel/voluntarios",
     description: "Voluntários e especialidades",
-    enabled: true,
+    enabled: false,
   },
 ];
 

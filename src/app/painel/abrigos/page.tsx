@@ -1,5 +1,5 @@
-import AbrigosPage from "@/modules/abrigos/page";
+import { LegacyModuleUnavailable } from '@/modules/legacy-disabled';
 
-export default function Page() {
-  return <AbrigosPage />;
+export default function SheltersPage() {
+  return <LegacyModuleUnavailable name="Abrigos" />;
 }

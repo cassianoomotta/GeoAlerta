@@ -1,5 +1,5 @@
-import EquipesPage from "@/modules/equipes/page";
+import { LegacyModuleUnavailable } from '@/modules/legacy-disabled';
 
-export default function Page() {
-  return <EquipesPage />;
+export default function TeamsPage() {
+  return <LegacyModuleUnavailable name="Equipes e GPS" />;
 }
