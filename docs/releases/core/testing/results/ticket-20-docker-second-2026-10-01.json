@@ -1,0 +1,102 @@
+{
+  "result": "failed",
+  "acceptanceFailures": [],
+  "alertsReceived": 100,
+  "startedAt": "2026-10-01T16:34:23.627Z",
+  "finishedAt": "2026-10-01T17:35:03.545Z",
+  "totalRequests": 1448,
+  "errors": 1,
+  "statusCounts": {
+    "200": 1246,
+    "201": 100,
+    "409": 1,
+    "503": 1
+  },
+  "latencyMs": {
+    "backoffice.conflictProbe.read": {
+      "count": 1,
+      "p50": 221,
+      "p95": 221,
+      "max": 221
+    },
+    "backoffice.conflictProbe.update": {
+      "count": 2,
+      "p50": 175,
+      "p95": 201,
+      "max": 201
+    },
+    "backoffice.csv": {
+      "count": 1,
+      "p50": 2165,
+      "p95": 2165,
+      "max": 2165
+    },
+    "backoffice.dashboard": {
+      "count": 610,
+      "p50": 2037,
+      "p95": 3153,
+      "max": 4307
+    },
+    "backoffice.detail": {
+      "count": 10,
+      "p50": 2469,
+      "p95": 2866,
+      "max": 2866
+    },
+    "backoffice.list": {
+      "count": 610,
+      "p50": 853,
+      "p95": 1549,
+      "max": 2992
+    },
+    "backoffice.photo": {
+      "count": 1,
+      "p50": 292,
+      "p95": 292,
+      "max": 292
+    },
+    "backoffice.update": {
+      "count": 10,
+      "p50": 799,
+      "p95": 847,
+      "max": 847
+    },
+    "occurrence.create": {
+      "count": 100,
+      "p50": 108,
+      "p95": 1310,
+      "max": 1757
+    },
+    "occurrence.idempotencyReplay": {
+      "count": 2,
+      "p50": 60,
+      "p95": 88,
+      "max": 88
+    },
+    "photo.download": {
+      "count": 1,
+      "p50": 35,
+      "p95": 35,
+      "max": 35
+    },
+    "realtime.endToEnd": {
+      "count": 100,
+      "p50": 405,
+      "p95": 1471,
+      "max": 2094
+    }
+  },
+  "scenario": {
+    "durationMinutes": 60,
+    "occurrenceCreates": 100,
+    "idempotencyReplays": 2,
+    "burstSize": 10,
+    "backofficeSessions": 10,
+    "successfulSyntheticUpdates": 10,
+    "expectedVersionConflicts": 1,
+    "minimumHistory": 50000,
+    "csvRows": 100241,
+    "photoReads": 1,
+    "realtimeSubscription": "SUBSCRIBED"
+  }
+}

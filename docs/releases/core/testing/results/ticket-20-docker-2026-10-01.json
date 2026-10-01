@@ -1,0 +1,110 @@
+{
+  "result": "approved",
+  "acceptanceFailures": [],
+  "alertsReceived": 100,
+  "socketAlertsReceived": 99,
+  "alertsRecovered": 9,
+  "startedAt": "2026-10-01T19:05:49.966Z",
+  "finishedAt": "2026-10-01T20:06:06.061Z",
+  "totalRequests": 2652,
+  "errors": 0,
+  "statusCounts": {
+    "200": 2451,
+    "201": 100,
+    "409": 1
+  },
+  "latencyMs": {
+    "alert.endToEnd": {
+      "count": 100,
+      "p50": 418,
+      "p95": 1562,
+      "max": 3247
+    },
+    "alert.recovery": {
+      "count": 1204,
+      "p50": 11,
+      "p95": 26,
+      "max": 172
+    },
+    "backoffice.conflictProbe.read": {
+      "count": 1,
+      "p50": 265,
+      "p95": 265,
+      "max": 265
+    },
+    "backoffice.conflictProbe.update": {
+      "count": 2,
+      "p50": 210,
+      "p95": 220,
+      "max": 220
+    },
+    "backoffice.csv": {
+      "count": 1,
+      "p50": 3696,
+      "p95": 3696,
+      "max": 3696
+    },
+    "backoffice.dashboard": {
+      "count": 610,
+      "p50": 2260,
+      "p95": 3543,
+      "max": 5267
+    },
+    "backoffice.detail": {
+      "count": 10,
+      "p50": 436,
+      "p95": 515,
+      "max": 515
+    },
+    "backoffice.list": {
+      "count": 610,
+      "p50": 801,
+      "p95": 1677,
+      "max": 4448
+    },
+    "backoffice.photo": {
+      "count": 1,
+      "p50": 937,
+      "p95": 937,
+      "max": 937
+    },
+    "backoffice.update": {
+      "count": 10,
+      "p50": 374,
+      "p95": 464,
+      "max": 464
+    },
+    "occurrence.create": {
+      "count": 100,
+      "p50": 109,
+      "p95": 992,
+      "max": 1520
+    },
+    "occurrence.idempotencyReplay": {
+      "count": 2,
+      "p50": 43,
+      "p95": 46,
+      "max": 46
+    },
+    "photo.download": {
+      "count": 1,
+      "p50": 98,
+      "p95": 98,
+      "max": 98
+    }
+  },
+  "scenario": {
+    "applicationMode": "production",
+    "durationMinutes": 60,
+    "occurrenceCreates": 100,
+    "idempotencyReplays": 2,
+    "burstSize": 10,
+    "backofficeSessions": 10,
+    "successfulSyntheticUpdates": 10,
+    "expectedVersionConflicts": 1,
+    "minimumHistory": 50000,
+    "csvRows": 100480,
+    "photoReads": 1,
+    "realtimeSubscription": "SUBSCRIBED"
+  }
+}

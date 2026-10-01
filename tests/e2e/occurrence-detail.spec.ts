@@ -44,7 +44,7 @@ test('RF-010 detalhe apresenta protocolo, classificação, localização e hist�
   await expect(page.getByRole('heading', { name: 'Detalhe da ocorrência' })).toBeVisible();
   await expect(page.getByText(`TEST-${occurrenceA}`)).toBeVisible();
   await expect(page.getByText('Zona histórica fixture')).toBeVisible();
-  await expect(page.getByText('Versão 1')).toBeVisible();
+  await expect(page.getByText('Versão 1', { exact: true })).toBeVisible();
   await expect(page.getByText(/Latitude: -29,5/)).toBeVisible();
   await expect(page.getByText(/Longitude: -50,5/)).toBeVisible();
   await expect(page.getByText('Precisão: 10 m')).toBeVisible();
@@ -87,6 +87,8 @@ test('RF-010 ocorrência sem posição mostra estado indisponível', async ({ pa
       version: 1,
       classification: null,
       events: [],
+      actions: { canOperate: false, canReclassify: false, canAdminister: false, availableTransitions: [] },
+      availableGroups: [],
     }),
   }));
   await page.goto(`/painel/ocorrencias/${id}`);

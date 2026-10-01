@@ -1,0 +1,16 @@
+{
+  "result": "approved",
+  "services": "official Docker Supabase Auth Storage Realtime",
+  "history": 100054,
+  "checks": [
+    "REAL_AUTH_PROFILE_PERSISTENCE",
+    "REAL_AUTH_ADMIN_DENIAL",
+    "REAL_ADMIN_GROUP_CREATE",
+    "REAL_AUTH_ADMIN_PROVISIONING",
+    "REAL_SESSION_SUSPENSION_WITHOUT_REFRESH",
+    "REAL_CSV_LARGE_HISTORY",
+    "REAL_PRIVATE_STORAGE_AUTHORIZED_AND_DENIED",
+    "REAL_REALTIME_SUSPENDED_TOKEN_NO_ALERTS"
+  ],
+  "finishedAt": "2026-10-01T15:53:12.195Z"
+}

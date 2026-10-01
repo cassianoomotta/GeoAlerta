@@ -57,8 +57,10 @@ export async function POST(request: Request) {
       const zone = parseUpdateRiskZone({ zoneId: input.zoneId, expectedVersion: input.expectedVersion, name: input.name, type: input.type, active: input.active, validFrom: input.validFrom, validTo: input.validTo, geometry: input.geometry });
       const result = await withSession(async (tx, actor) => {
         requireCapability(actor, 'administer');
-        await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${zone.zoneId},0))`;
-        const current = await tx.$queryRaw<{ version: number }[]>`SELECT version FROM public.risk_zones WHERE zone_id=${zone.zoneId}::uuid ORDER BY version DESC LIMIT 1 FOR UPDATE`;
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${zone.zoneId},0))`;
+        // Versions are append-only; the advisory lock serializes version allocation
+        // without requiring UPDATE privileges on historical geometry rows.
+        const current = await tx.$queryRaw<{ version: number }[]>`SELECT version FROM public.risk_zones WHERE zone_id=${zone.zoneId}::uuid ORDER BY version DESC LIMIT 1`;
         if (!current[0]) throw new AccessError(404, 'NOT_FOUND');
         assertRiskZoneVersion(current[0].version, zone.expectedVersion);
         const version = current[0].version + 1;

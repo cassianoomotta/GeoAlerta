@@ -36,7 +36,17 @@ function connectionStringWithoutPassword(connectionString: string): string {
   return url.toString();
 }
 
-function runTool(command: string, args: string[], env: NodeJS.ProcessEnv): Promise<void> {
+function runTool(command: string, args: string[], env: NodeJS.ProcessEnv, directory?: string): Promise<void> {
+  if (process.env.RESTORE_TOOL_MODE === 'docker' && (command === 'pg_dump' || command === 'pg_restore')) {
+    if (!directory || !['localhost','127.0.0.1'].includes(env.PGHOST ?? '')) throw new Error('DOCKER_RESTORE_REQUIRES_LOCAL_TARGET');
+    const image = process.env.RESTORE_DOCKER_IMAGE;
+    if (!image || !/^postgis\/postgis:\d+-\d+\.\d+$/.test(image)) throw new Error('DOCKER_RESTORE_IMAGE_REQUIRED');
+    env = { ...env, PGHOST: 'host.docker.internal' };
+    args = ['run','--rm','--mount',`type=bind,source=${directory},target=/backup`,
+      ...['PGHOST','PGPORT','PGUSER','PGPASSWORD','PGDATABASE','PGSSLMODE'].filter(key=>env[key]).flatMap(key=>['--env',key]),
+      '--entrypoint',command,image,...args.map(arg=>arg.startsWith(directory) ? `/backup/${arg.slice(directory.length+1)}` : arg)];
+    command = 'docker';
+  }
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, { env, stdio: ['ignore', 'ignore', 'ignore'], windowsHide: true });
     child.once('error', (error: NodeJS.ErrnoException) => {
@@ -52,7 +62,7 @@ function runTool(command: string, args: string[], env: NodeJS.ProcessEnv): Promi
 async function inspect(target: string): Promise<RestoreSnapshot> {
   const pool = new Pool({ connectionString: target, max: 1, application_name: 'geoalerta-ticket-19-verification' });
   try {
-    const schemas = ['public'];
+    const schemas = ['public','geoalerta_private'];
     const tableRows: RestoreSnapshot['tables'] = [];
     const relations = await pool.query<{ schemaname: string; tablename: string }>(
       `SELECT schemaname, tablename FROM pg_tables WHERE schemaname = ANY($1::text[]) ORDER BY schemaname, tablename`,
@@ -142,7 +152,11 @@ async function main() {
       const directory = await mkdtemp(join(tmpdir(), 'geoalerta-restore-'));
       const file = join(directory, 'synthetic-core.backup');
       try {
-        await runTool('pg_dump', ['--format=custom', '--no-owner', '--no-privileges', '--schema=public', '--file', file], childEnvironment(target));
+        // Include extension declarations and private helper functions. A schema-
+        // only public dump omits dependencies needed by policies and PostGIS.
+        await runTool('pg_dump', ['--format=custom', '--no-owner', '--no-publications',
+          '--exclude-schema=auth','--exclude-schema=storage','--exclude-schema=core_test_*',
+          '--file', file], childEnvironment(target), directory);
         return { directory, file };
       } catch (error) {
         await rm(directory, { recursive: true, force: true });
@@ -152,7 +166,9 @@ async function main() {
     restore: async (target, backup: BackupArtifact) => {
       const targetSnapshot = await inspect(target);
       if (targetSnapshot.tables.length > 0) throw new Error('DESTINATION_NOT_EMPTY');
-      await runTool('pg_restore', ['--exit-on-error', '--single-transaction', '--no-owner', '--no-privileges', `--dbname=${connectionStringWithoutPassword(target)}`, backup.file], childEnvironment(target));
+      const database = process.env.RESTORE_TOOL_MODE === 'docker'
+        ? decodeURIComponent(new URL(target).pathname.slice(1)) : connectionStringWithoutPassword(target);
+      await runTool('pg_restore', ['--exit-on-error', '--single-transaction', '--no-owner', `--dbname=${database}`, backup.file], childEnvironment(target), backup.directory);
     },
     dispose: async (backup: BackupArtifact) => rm(backup.directory, { recursive: true, force: true }),
   });

@@ -4,7 +4,7 @@ import { appendFile, mkdir } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { loadLocalEnv, projectRoot } from './with-env.mjs';
-import { assertLoadTarget, csvRecordCount, LOAD_BACKOFFICE_SESSIONS, LOAD_DURATION_MS, LOAD_MINIMUM_HISTORY, LOAD_OCCURRENCES, LOAD_BURST_SIZE, sanitizedReport, scheduleOccurrence, type LoadEvent } from './load-workflow.ts';
+import { assertLoadTarget, csvRecordCount, loadAcceptance, LOAD_BACKOFFICE_SESSIONS, LOAD_DURATION_MS, LOAD_MINIMUM_HISTORY, LOAD_OCCURRENCES, LOAD_BURST_SIZE, sanitizedReport, scheduleOccurrence, type LoadEvent } from './load-workflow.ts';
 
 type CreatedOccurrence = { id: string; requestStartedAt: number };
 const sleep = (duration: number) => new Promise((resolveSleep) => setTimeout(resolveSleep, Math.max(0, duration)));
@@ -27,20 +27,28 @@ async function main() {
   let expectedVersionConflicts = 0;
   let idempotencyReplays = 0;
   const realtimeArrivals = new Map<string, number>();
+  const socketArrivals = new Set<string>();
+  const recoveredFirst = new Set<string>();
   const started = Date.now();
   const startedAt = new Date(started).toISOString();
   const realtime = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+    accessToken: async () => process.env.CORE_LOAD_REALTIME_TOKEN!,
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
   });
-  realtime.realtime.setAuth(process.env.CORE_LOAD_REALTIME_TOKEN!);
-  const channel = realtime.channel(`ticket20-load-${randomUUID()}`)
+  await realtime.realtime.setAuth(process.env.CORE_LOAD_REALTIME_TOKEN!);
+  const observeAlert=(id:string,source:'socket'|'recovery')=>{
+    if(source==='socket')socketArrivals.add(id);
+    if(realtimeArrivals.has(id))return;
+    if(source==='recovery')recoveredFirst.add(id);
+    const arrivedAt=Date.now();realtimeArrivals.set(id,arrivedAt);
+    const occurrence=occurrences.get(id);
+    if(occurrence)events.push({kind:'alert.endToEnd',elapsedMs:Math.max(0,arrivedAt-occurrence.requestStartedAt)});
+  };
+  const channel = realtime.channel(`ticket20-load-${randomUUID()}`,{config:{postgres_changes_options:{wait:true}}})
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'occurrence_alerts' }, (payload) => {
       const row = payload.new as { occurrence_id?: string };
       if (!row.occurrence_id) return;
-      const arrivedAt = Date.now();
-      realtimeArrivals.set(row.occurrence_id, arrivedAt);
-      const occurrence = occurrences.get(row.occurrence_id);
-      if (occurrence) events.push({ kind: 'realtime.endToEnd', elapsedMs: Math.max(0, arrivedAt - occurrence.requestStartedAt) });
+      observeAlert(row.occurrence_id,'socket');
     });
 
   const subscription = await new Promise<string>((resolveSubscription, rejectSubscription) => {
@@ -80,7 +88,7 @@ async function main() {
     const record = { id: body.id, requestStartedAt };
     occurrences.set(body.id, record);
     const arrivedAt = realtimeArrivals.get(body.id);
-    if (arrivedAt !== undefined) events.push({ kind: 'realtime.endToEnd', elapsedMs: Math.max(0, arrivedAt - record.requestStartedAt) });
+    if (arrivedAt !== undefined) events.push({ kind: 'alert.endToEnd', elapsedMs: Math.max(0, arrivedAt - record.requestStartedAt) });
     if (index === 0) {
       const replayResponses = await Promise.all(Array.from({ length: 2 }, () => request('occurrence.idempotencyReplay', '/api/core/public/occurrences', {
         method: 'POST', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': key }, body: occurrenceBody(index),
@@ -90,6 +98,37 @@ async function main() {
       idempotencyReplays += replayResponses.length;
     }
   };
+
+  let cursor:string|null=null;
+  let recovering:Promise<void>|undefined;
+  const recoverAlerts=async()=>{
+    const before=Date.now();
+    try{
+      const {data,error,status}=await realtime.rpc('core_alert_snapshot',{after_cursor:cursor}).abortSignal(AbortSignal.timeout(20_000)).single<{server_time:string;events:unknown[]}>();
+      const valid=!error&&data&&typeof data.server_time==='string'&&Array.isArray(data.events);
+      events.push({kind:valid?'alert.recovery':'alert.recovery.error',elapsedMs:Date.now()-before,status});
+      if(!valid)return;
+      cursor=data.server_time;
+      for(const row of data.events)if(row&&typeof row==='object'&&'occurrence_id' in row&&typeof row.occurrence_id==='string')observeAlert(row.occurrence_id,'recovery');
+    }catch{events.push({kind:'alert.recovery.error',elapsedMs:Date.now()-before});}
+  };
+  await recoverAlerts();
+  const reconciliation=setInterval(()=>{
+    if(recovering)return;
+    recovering=recoverAlerts().finally(()=>{recovering=undefined;});
+  },3000);
+  reconciliation.unref();
+  const progress = setInterval(() => {
+    console.log(JSON.stringify({
+      created: occurrences.size,
+      alertsReceived: [...occurrences.keys()].filter((id) => realtimeArrivals.has(id)).length,
+      socketAlertsReceived: [...occurrences.keys()].filter((id) => socketArrivals.has(id)).length,
+      alertsRecovered: [...occurrences.keys()].filter((id) => recoveredFirst.has(id)).length,
+      errors:sanitizedReport(events,startedAt,new Date().toISOString()).errors,
+      elapsedMinutes: Math.floor((Date.now() - started) / 60_000),
+    }));
+  }, 60_000);
+  progress.unref();
 
   try {
     const endAt = started + LOAD_DURATION_MS;
@@ -166,16 +205,30 @@ async function main() {
       }
     }
 
+    clearInterval(reconciliation);
+    await recovering;
+    await recoverAlerts();
+    const alertsReceived=[...occurrences.keys()].filter(id=>realtimeArrivals.has(id)).length;
+    const failures=loadAcceptance(events,occurrences.size,alertsReceived);
+    const metrics=sanitizedReport(events, startedAt, new Date().toISOString());
     const report = {
-      ...sanitizedReport(events, startedAt, new Date().toISOString()),
-      scenario: { durationMinutes: 60, occurrenceCreates: occurrences.size, idempotencyReplays, burstSize: LOAD_BURST_SIZE, backofficeSessions: LOAD_BACKOFFICE_SESSIONS, successfulSyntheticUpdates: mutated.size, expectedVersionConflicts, minimumHistory: LOAD_MINIMUM_HISTORY, csvRows, photoReads: photoIds.length, realtimeSubscription: 'SUBSCRIBED' },
+      result:metrics.errors===0&&failures.length===0?'approved':'failed',
+      acceptanceFailures:failures,
+      alertsReceived,
+      socketAlertsReceived:[...occurrences.keys()].filter(id=>socketArrivals.has(id)).length,
+      alertsRecovered:[...occurrences.keys()].filter(id=>recoveredFirst.has(id)).length,
+      ...metrics,
+      scenario: { applicationMode: process.env.CORE_LOAD_APPLICATION_MODE==='production'?'production':process.env.CORE_LOAD_APPLICATION_MODE==='development'?'development':'unspecified', durationMinutes: 60, occurrenceCreates: occurrences.size, idempotencyReplays, burstSize: LOAD_BURST_SIZE, backofficeSessions: LOAD_BACKOFFICE_SESSIONS, successfulSyntheticUpdates: mutated.size, expectedVersionConflicts, minimumHistory: LOAD_MINIMUM_HISTORY, csvRows, photoReads: photoIds.length, realtimeSubscription: 'SUBSCRIBED' },
     };
     const reportPath = resolve(projectRoot, process.env.CORE_LOAD_REPORT_PATH ?? 'test-results/ticket-20-load.json');
     await mkdir(dirname(reportPath), { recursive: true });
     await appendFile(reportPath, `${JSON.stringify(report, null, 2)}\n`, { encoding: 'utf8', flag: 'w' });
     console.log(`Carga concluída; relatório sanitizado: ${reportPath}`);
-    if (report.errors > 0) process.exitCode = 1;
+    if (report.result !== 'approved') process.exitCode = 1;
   } finally {
+    clearInterval(progress);
+    clearInterval(reconciliation);
+    await recovering;
     await realtime.removeChannel(channel);
     await realtime.removeAllChannels();
   }

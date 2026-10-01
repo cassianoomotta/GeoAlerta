@@ -1,0 +1,9 @@
+{
+  "result": "approved",
+  "services": "official Docker Supabase Auth and Realtime",
+  "checks": [
+    "REAL_PERSISTED_GROUP_CHANGE_WITH_OLD_SESSION",
+    "REAL_REALTIME_OTHER_GROUP_DENIAL_WITH_OLD_TOKEN"
+  ],
+  "finishedAt": "2026-10-01T17:22:39.705Z"
+}

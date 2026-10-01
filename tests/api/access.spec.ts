@@ -33,7 +33,7 @@ test('RF-005 ID fora do escopo é 404 igual a inexistente; nenhuma informação 
     const r=await request.get(`/api/core/occurrences/${id}`,{headers});expect(r.status()).toBe(404);expect(await r.json()).toEqual({error:{code:'NOT_FOUND',message:'Registro não encontrado.'}});
   }
   const consulta=await request.get(`/api/core/occurrences/${occurrenceA}`,{headers:{Cookie:cookieHeader(await fixtureCookies('consulta'))}});
-  expect(consulta.status()).toBe(200);expect(Object.keys(await consulta.json()).sort()).toEqual(['classification','description','events','group','id','openedAt','position','priority','protocol','status','type','updatedAt','version']);
+  expect(consulta.status()).toBe(200);expect(Object.keys(await consulta.json()).sort()).toEqual(['actions','availableGroups','classification','description','events','group','id','openedAt','position','priority','protocol','status','type','updatedAt','version']);
 });
 test('RF-005 sessão emitida perde acesso após suspensão e alteração de papel/grupos',async({request})=>{
   assertTestTarget(process.env.TEST_DATABASE_URL);const db=new pg.Client({connectionString:process.env.TEST_DATABASE_URL});await db.connect();

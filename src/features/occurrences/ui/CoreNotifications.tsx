@@ -28,41 +28,63 @@ export function CoreNotifications(){
 
   useEffect(()=>{
     let closed=false;
-    const recover=async()=>{
-      const {data,error:queryError}=await supabase.from('occurrence_alerts')
-        .select('event_id,occurrence_id,group_id,priority,status,at')
-        .order('at',{ascending:false}).limit(recoveryLimit);
+    let recovering=false;
+    let cursor:string|null=null;
+    let reconciliation:ReturnType<typeof setInterval>|undefined;
+    const recover=async(isLive=false)=>{
+      if(closed||recovering)return;
+      recovering=true;
+      try{
+      const {data,error:queryError}=await supabase.rpc('core_alert_snapshot',{after_cursor:isLive?cursor:null}).abortSignal(AbortSignal.timeout(20_000)).single<{server_time:string;events:unknown[]}>();
       if(closed)return;
       if(queryError){
         if(isRealtimeAuthorizationFailure(queryError)){
           closed=true;
+          clearInterval(reconciliation);
           setError('Sua autorização para receber alertas foi revogada. Entre novamente para restabelecer o acesso.');
           void supabase.removeChannel(channel);
           return;
         }
         setError('Não foi possível recuperar os alertas autorizados.');return;
       }
-      receive(data??[],false);setError('');
+      if(!data||typeof data.server_time!=='string'||!Array.isArray(data.events)){
+        setError('Não foi possível recuperar os alertas autorizados.');return;
+      }
+      cursor=data.server_time;
+      receive(data.events,isLive);setError('');
+      }finally{recovering=false;}
     };
     const channel=supabase.channel('core:occurrence-alerts',{config:{postgres_changes_options:{wait:true}}})
-      .on('postgres_changes',{event:'INSERT',schema:'public',table:'occurrence_alerts'},payload=>receive([payload.new],true))
-      .subscribe((status,channelError)=>{
+      .on('postgres_changes',{event:'INSERT',schema:'public',table:'occurrence_alerts'},payload=>receive([payload.new],true));
+    const start=async()=>{
+      const {data,error:sessionError}=await supabase.auth.getSession();
+      if(closed)return;
+      if(sessionError||!data.session){setError('Entre novamente para receber alertas autorizados.');return;}
+      await supabase.realtime.setAuth(data.session.access_token);
+      if(closed)return;
+      await recover();
+      if(closed)return;
+      reconciliation=setInterval(()=>{void recover(true).catch(()=>{if(!closed)setError('Não foi possível recuperar os alertas autorizados.');});},3000);
+      channel.subscribe((status,channelError)=>{
         if(status==='SUBSCRIBED')void recover();
         if(status==='TIMED_OUT'||status==='CLOSED'){
           setError('Conexão de alertas indisponível. Os alertas recentes serão recuperados quando reconectar.');
         }
         if(status==='CHANNEL_ERROR'&&isRealtimeAuthorizationFailure(channelError)){
           closed=true;
+          clearInterval(reconciliation);
           setError('Sua autorização para receber alertas foi revogada. Entre novamente para restabelecer o acesso.');
           void supabase.removeChannel(channel);
         }
         if(status==='CHANNEL_ERROR'&&!isRealtimeAuthorizationFailure(channelError))
           setError('Não foi possível assinar os alertas. A conexão tentará se recuperar automaticamente.');
       });
+    };
+    void start().catch(()=>{if(!closed)setError('Não foi possível iniciar a conexão de alertas. Entre novamente.');});
     const {data:{subscription}}=supabase.auth.onAuthStateChange((_event,session)=>{
-      if(!session){closed=true;void supabase.removeChannel(channel);seen.current.clear();setAlerts([]);setUnread(0);}
+      if(!session){closed=true;clearInterval(reconciliation);void supabase.removeChannel(channel);seen.current.clear();setAlerts([]);setUnread(0);}
     });
-    return()=>{closed=true;subscription.unsubscribe();void supabase.removeChannel(channel);};
+    return()=>{closed=true;clearInterval(reconciliation);subscription.unsubscribe();void supabase.removeChannel(channel);};
   },[receive]);
 
   return <div className="relative">

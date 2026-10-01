@@ -18,6 +18,10 @@ export async function withSession<T>(work:(tx:Prisma.TransactionClient,actor:Act
   return withIdentity(data.user.id,work);
 }
 export function accessResponse(error:unknown) {
+  if(!(error instanceof AccessError)){
+    const failureCode=typeof error==='object'&&error!==null&&'code' in error&&typeof error.code==='string'&&/^[A-Z0-9_]{1,40}$/.test(error.code)?error.code:'UNHANDLED_FAILURE';
+    console.error(JSON.stringify({event:'CORE_REQUEST_FAILURE',code:failureCode}));
+  }
   const status=error instanceof AccessError?error.status:503;
   const code=error instanceof AccessError?error.code:'SERVICE_UNAVAILABLE';
   return Response.json({error:{code,message:status===401?'Autenticação necessária.':status===404?'Registro não encontrado.':status===403?'Acesso não autorizado.':'Serviço temporariamente indisponível.'}},{status,headers:{'Cache-Control':'no-store'}});

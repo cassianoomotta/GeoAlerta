@@ -1,0 +1,10 @@
+{
+  "result": "approved",
+  "services": "official Docker Supabase Auth and PostgreSQL RLS",
+  "checks": [
+    "REAL_TRANSITIONS_REOPEN_ROLE_AND_REASON",
+    "REAL_RECLASSIFICATION_ROLE_AND_AUDIT",
+    "REAL_LOGICAL_DELETE_RESTORE_DATA_AND_PHOTO_PRESERVATION"
+  ],
+  "finishedAt": "2026-10-01T16:59:12.440Z"
+}

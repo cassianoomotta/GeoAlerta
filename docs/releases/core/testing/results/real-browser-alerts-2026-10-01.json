@@ -1,0 +1,9 @@
+{
+  "result": "approved",
+  "services": "Chromium and official Docker Supabase Auth Realtime",
+  "checks": [
+    "REAL_BROWSER_VISUAL_ALERT_WITH_AUTHENTICATED_SESSION",
+    "REAL_BROWSER_OFFLINE_ALERT_RECOVERY"
+  ],
+  "finishedAt": "2026-10-01T17:28:34.697Z"
+}

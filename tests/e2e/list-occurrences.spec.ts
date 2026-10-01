@@ -12,7 +12,7 @@ test('RF-009 lista pagina preservando URL filtros sort e atalhos de status',asyn
   await expect(page.getByText('125 ocorrências · Página 1 de 3',{exact:true})).toBeVisible();await expect(page.locator('tbody tr')).toHaveCount(50);
   await page.getByRole('link',{name:'Próxima página'}).click();await expect(page).toHaveURL(/page=2/);await expect(page.locator('tbody tr')).toHaveCount(50);expect(new URL(page.url()).searchParams.get('type')).toBe(listType());
   await page.getByRole('columnheader',{name:'Status',exact:true}).getByRole('link').click();await expect(page).toHaveURL(/sort=status/);expect(new URL(page.url()).searchParams.get('page')).toBe('1');
-  await page.locator('aside').getByRole('link',{name:'Novas',exact:true}).click();await expect(page).toHaveURL(/status=NOVA/);expect(new URL(page.url()).searchParams.get('type')).toBe(listType());await expect(page.locator('tbody tr')).toHaveCount(25);
+  await page.locator('aside').getByRole('link',{name:'Nova',exact:true}).click();await expect(page).toHaveURL(/status=NOVA/);expect(new URL(page.url()).searchParams.get('type')).toBe(listType());await expect(page.locator('tbody tr')).toHaveCount(25);
   const form=page.getByRole('form',{name:'Filtros de ocorrências'});
   await form.getByRole('combobox',{name:/^Prioridade/}).selectOption('ALTA');await form.getByLabel('De (UTC)',{exact:true}).fill('2025-01-02');await form.getByLabel('Até (UTC)',{exact:true}).fill('2025-01-03');await page.getByRole('button',{name:'Aplicar filtros'}).click();
   await expect(page).toHaveURL(/priority=ALTA/);await expect(form.getByLabel('Tipo',{exact:true})).toHaveValue(listType());await page.reload();await expect(form.getByRole('combobox',{name:/^Prioridade/})).toHaveValue('ALTA');

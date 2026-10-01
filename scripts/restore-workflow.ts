@@ -62,6 +62,8 @@ function snapshotKey(snapshot: RestoreSnapshot) {
 const limitations = [
   'O backup PostgreSQL não comprova a recuperação de identidades do Supabase Auth.',
   'Bytes de objetos do Supabase Storage exigem backup e restauração próprios.',
+  'Schemas gerenciados Auth/Storage e publicações Realtime exigem preparação e recuperação próprias.',
+  'Roles globais referenciadas pelos grants e políticas devem existir no destino.',
 ];
 
 export async function runRestoreVerification<Backup>(

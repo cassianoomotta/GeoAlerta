@@ -54,7 +54,9 @@ export default function Home(){
         },
         async open(finalBody,key){
           setLocked(true);setPhotoFailed(false);
-          const response=await fetch('/api/core/public/occurrences',{method:'POST',headers:{'Content-Type':'application/json','Idempotency-Key':key},body:finalBody});
+          let response:Response;
+          try{response=await fetch('/api/core/public/occurrences',{method:'POST',headers:{'Content-Type':'application/json','Idempotency-Key':key},body:finalBody});}
+          catch{throw new Error('Resposta não confirmada. Tente novamente com os mesmos dados; seu envio não será duplicado.');}
           const result=await response.json();
           if(!response.ok){
             if(result.error?.code==='INVALID_PHOTO_TOKEN'){

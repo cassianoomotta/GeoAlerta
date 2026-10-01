@@ -5,7 +5,7 @@ export function databaseIdentity(value: string): string {
     const url = new URL(value);
     if (!['postgres:', 'postgresql:'].includes(url.protocol) || !url.hostname || url.pathname === '/' || !url.pathname) throw new Error();
     // Query parameters and credentials do not establish a different database.
-    if ([...url.searchParams.keys()].some((key) => !['sslmode', 'connection_limit', 'pool_timeout', 'pgbouncer', 'schema'].includes(key))) throw new Error();
+    if ([...url.searchParams.keys()].some((key) => !['sslmode', 'sslrootcert', 'connection_limit', 'pool_timeout', 'pgbouncer', 'schema'].includes(key))) throw new Error();
     if (url.searchParams.has('schema') && !/^core_test_[a-z0-9_]+$/.test(url.searchParams.get('schema')!)) throw new Error();
     return `${url.hostname.toLowerCase()}:${url.port || '5432'}${decodeURIComponent(url.pathname)}`;
   } catch {

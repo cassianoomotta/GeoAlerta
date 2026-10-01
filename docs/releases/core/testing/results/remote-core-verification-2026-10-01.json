@@ -1,0 +1,17 @@
+{
+  "result": "approved",
+  "migrations": 30,
+  "archived_zones": 1,
+  "private_photo_references": 11,
+  "runtime": {
+    "role": "geoalerta_runtime",
+    "occurrences": 17,
+    "private_rows": 17,
+    "zones": 1,
+    "admins": 1
+  },
+  "ingestionVisible": 0,
+  "legacyPublicDownloadsDenied": 11,
+  "anonymousPrivatePhotoSigningDenied": true,
+  "verifiedAt": "2026-10-01T19:03:04.945Z"
+}

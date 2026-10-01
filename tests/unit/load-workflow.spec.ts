@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { assertLoadTarget, csvRecordCount, LOAD_DURATION_MS, LOAD_OCCURRENCES, percentile, sanitizedReport, scheduleOccurrence } from '../../scripts/load-workflow';
+import { assertLoadTarget, csvRecordCount, loadAcceptance, LOAD_DURATION_MS, LOAD_OCCURRENCES, percentile, sanitizedReport, scheduleOccurrence } from '../../scripts/load-workflow';
 
 const sessions = Object.fromEntries(Array.from({ length: 10 }, (_, index) => [`CORE_LOAD_SESSION_${String(index + 1).padStart(2, '0')}`, `session-${index + 1}`]));
 const validEnv = {
@@ -49,4 +49,23 @@ test('RNF-004 relatório de carga contém métricas agregadas sem campos pessoai
   const report = sanitizedReport([{ kind: 'create', elapsedMs: 200, status: 201 }, { kind: 'create', elapsedMs: 400, status: 201 }, { kind: 'list', elapsedMs: 900, status: 500 }], 'start', 'end');
   expect(report).toMatchObject({ totalRequests: 3, errors: 1, statusCounts: { '201': 2, '500': 1 }, latencyMs: { create: { count: 2, p50: 200, p95: 400, max: 400 } } });
   expect(JSON.stringify(report)).not.toMatch(/token|cookie|https?:\/\//i);
+});
+
+test('RNF-004 conflito esperado não mascara outros erros HTTP',()=>{
+  const report=sanitizedReport([
+    {kind:'backoffice.conflictProbe.update',status:409,elapsedMs:10},
+    {kind:'backoffice.update',status:409,elapsedMs:10},
+    {kind:'backoffice.list',status:503,elapsedMs:10},
+  ],'start','end');
+  expect(report.errors).toBe(2);
+  expect(report.statusCounts['409']).toBe(2);
+});
+
+test('RNF-004 aceite exige volume completo, todos os alertas e p95 do PRD',()=>{
+  const events=[{kind:'occurrence.create',elapsedMs:3000},{kind:'backoffice.list',elapsedMs:3000},{kind:'alert.endToEnd',elapsedMs:5000}];
+  expect(loadAcceptance(events,100,100)).toEqual([]);
+  expect(loadAcceptance([...events,{kind:'occurrence.create',elapsedMs:4000}],99,99)).toEqual([
+    'OCCURRENCE_VOLUME_INCOMPLETE','ALERT_DELIVERY_INCOMPLETE','OCCURRENCE_CREATE_P95_FAILED',
+  ]);
+  expect(loadAcceptance([],100,100)).toHaveLength(3);
 });

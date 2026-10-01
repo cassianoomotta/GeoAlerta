@@ -18,6 +18,7 @@ test('RNF-007 alteração de credencial ou parâmetro não disfarça banco opera
   expect(() => assertTestTarget(target, { ...env, DATABASE_URL: 'postgres://other:other@127.0.0.1/core_test?sslmode=require' })).toThrow('execução');
   expect(() => assertTestTarget(target, { ...env, PRODUCTION_DATABASE_URL: target })).toThrow('produção');
   expect(() => assertTestTarget(`${target}?host=production`, env)).toThrow('parâmetros');
+  expect(() => assertTestTarget(target, { ...env, DATABASE_URL: `${target}?sslmode=verify-full&sslrootcert=C%3A%2Fcertificate.crt` })).toThrow('execução');
 });
 test('RNF-007 recusa URL inválida e não inclui credenciais na mensagem', () => {
   for (const value of ['https://secret:secret@localhost/db', 'invalid-secret', 'postgresql://localhost/']) {

@@ -1,0 +1,10 @@
+{
+  "result": "approved",
+  "services": "official Docker Supabase Storage and Auth",
+  "checks": [
+    "REAL_PUBLIC_PHOTO_STAGE_ATTACH_AUTHORIZED_DOWNLOAD",
+    "REAL_PRIVATE_PHOTO_ANONYMOUS_DENIAL",
+    "REAL_INVALID_PHOTO_CONTENT_DENIAL"
+  ],
+  "finishedAt": "2026-10-01T16:56:48.526Z"
+}

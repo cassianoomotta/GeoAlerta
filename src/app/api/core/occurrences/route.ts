@@ -70,7 +70,7 @@ export async function POST(request: Request) {
         createAtomically: async (command) => {
           const databaseKey = `manual:${command.actorId}:${command.groupId}:${command.idempotencyKey}`;
           const requestHash = createHash('sha256').update(JSON.stringify({ groupId: command.groupId, input: command.input })).digest('hex');
-          await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${databaseKey},0))`;
+          await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${databaseKey},0))`;
           const existing = await tx.$queryRaw<{ request_hash: string; response: OpenResult }[]>`
             SELECT request_hash,response FROM public.idempotency_keys WHERE key=${databaseKey}
           `;

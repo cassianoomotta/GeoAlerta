@@ -14,7 +14,7 @@ test.beforeAll(async () => {
   const db = new pg.Client({ connectionString: process.env.TEST_DATABASE_URL });
   await db.connect();
   try {
-    await db.query(`INSERT INTO public.occurrences(id,protocol,type,description,location,accuracy,group_id,deleted_at) VALUES ($1,'TEST-DELETED-TICKET05','fixture','deleted synthetic',ST_SetSRID(ST_MakePoint(-50.5,-29.5),4326)::geography,10,$2,now()) ON CONFLICT(id) DO UPDATE SET deleted_at=now()`, [occurrenceDeleted, groupA]);
+    await db.query(`INSERT INTO public.occurrences(id,protocol,type,description,location,accuracy,group_id,deleted_at) VALUES ($1,'TEST-DELETED-TICKET05','fixture','deleted synthetic',ST_SetSRID(ST_MakePoint(-50.5,-29.5),4326)::geography,10,$2,now()) ON CONFLICT(id) DO NOTHING`, [occurrenceDeleted, groupA]);
     await db.query(`UPDATE public.occurrences SET reporter_name=$1,photo_url='SENTINEL_PRIVATE_PHOTO_TICKET05' WHERE id=$2`, [privateName, occurrenceA]);
     await db.query(`UPDATE public.occurrence_private_data SET reporter_name=$1,reporter_contact=$2,photo_object_key='SENTINEL_PRIVATE_OBJECT_TICKET05' WHERE occurrence_id=$3`, [privateName, privateContact, occurrenceA]);
     await db.query(`UPDATE public.occurrence_events SET reason=$1,changes=$2::jsonb WHERE occurrence_id=$3`, [privateReason, JSON.stringify({ private: privateDiff }), occurrenceA]);
@@ -54,7 +54,7 @@ test('RF-010 detalhe autorizado retorna os campos operacionais, posição, class
   expect(detail.events[0].actorId).toBeNull();
   expect(detail.events[0].at).toBeTruthy();
   expect(detail.events.every((event: object) => Object.keys(event).sort().join(',') === 'actorId,at,id,kind')).toBe(true);
-  expect(Object.keys(detail).sort()).toEqual(['classification', 'description', 'events', 'group', 'id', 'openedAt', 'position', 'priority', 'protocol', 'status', 'type', 'updatedAt', 'version']);
+  expect(Object.keys(detail).sort()).toEqual(['actions', 'availableGroups', 'classification', 'description', 'events', 'group', 'id', 'openedAt', 'position', 'priority', 'protocol', 'status', 'type', 'updatedAt', 'version']);
 });
 
 test('RF-010 detalhe inexistente e fora do escopo têm resposta indistinguível', async ({ request }) => {

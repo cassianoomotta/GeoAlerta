@@ -81,7 +81,8 @@ export function sanitizedReport(events: readonly LoadEvent[], startedAt: string,
     const values = groups.get(event.kind) ?? [];
     values.push(event.elapsedMs);
     groups.set(event.kind, values);
-    if (event.kind.endsWith('.error') || (event.status !== undefined && event.status >= 400)) errors += 1;
+    const expectedConflict=event.kind==='backoffice.conflictProbe.update'&&event.status===409;
+    if (event.kind.endsWith('.error') || (event.status !== undefined && event.status >= 400 && !expectedConflict)) errors += 1;
     if (event.status !== undefined) statuses[String(event.status)] = (statuses[String(event.status)] ?? 0) + 1;
   }
   return {
@@ -89,4 +90,16 @@ export function sanitizedReport(events: readonly LoadEvent[], startedAt: string,
     statusCounts: statuses,
     latencyMs: Object.fromEntries([...groups.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([kind, values]) => [kind, { count: values.length, p50: percentile(values, 50), p95: percentile(values, 95), max: Math.max(...values) }])),
   };
+}
+
+export function loadAcceptance(events: readonly LoadEvent[], created: number, alertsReceived: number): string[] {
+  const failures:string[]=[];
+  if(created!==LOAD_OCCURRENCES)failures.push('OCCURRENCE_VOLUME_INCOMPLETE');
+  if(alertsReceived!==LOAD_OCCURRENCES)failures.push('ALERT_DELIVERY_INCOMPLETE');
+  for(const [kind,limit] of [['occurrence.create',3000],['backoffice.list',3000],['alert.endToEnd',5000]] as const){
+    const values=events.filter(event=>event.kind===kind).map(event=>event.elapsedMs);
+    const p95=percentile(values,95);
+    if(p95===null||p95>limit)failures.push(`${kind.replaceAll('.','_').toUpperCase()}_P95_FAILED`);
+  }
+  return failures;
 }

@@ -1,0 +1,103 @@
+{
+  "result": "failed",
+  "acceptanceFailures": [
+    "REALTIME_DELIVERY_INCOMPLETE"
+  ],
+  "alertsReceived": 9,
+  "startedAt": "2026-10-01T15:30:50.132Z",
+  "finishedAt": "2026-10-01T16:31:03.409Z",
+  "totalRequests": 1357,
+  "errors": 0,
+  "statusCounts": {
+    "200": 1247,
+    "201": 100,
+    "409": 1
+  },
+  "latencyMs": {
+    "backoffice.conflictProbe.read": {
+      "count": 1,
+      "p50": 216,
+      "p95": 216,
+      "max": 216
+    },
+    "backoffice.conflictProbe.update": {
+      "count": 2,
+      "p50": 176,
+      "p95": 178,
+      "max": 178
+    },
+    "backoffice.csv": {
+      "count": 1,
+      "p50": 1920,
+      "p95": 1920,
+      "max": 1920
+    },
+    "backoffice.dashboard": {
+      "count": 610,
+      "p50": 2277,
+      "p95": 3486,
+      "max": 4567
+    },
+    "backoffice.detail": {
+      "count": 10,
+      "p50": 2183,
+      "p95": 2492,
+      "max": 2492
+    },
+    "backoffice.list": {
+      "count": 610,
+      "p50": 967,
+      "p95": 1953,
+      "max": 2794
+    },
+    "backoffice.photo": {
+      "count": 1,
+      "p50": 448,
+      "p95": 448,
+      "max": 448
+    },
+    "backoffice.update": {
+      "count": 10,
+      "p50": 572,
+      "p95": 648,
+      "max": 648
+    },
+    "occurrence.create": {
+      "count": 100,
+      "p50": 115,
+      "p95": 766,
+      "max": 1072
+    },
+    "occurrence.idempotencyReplay": {
+      "count": 2,
+      "p50": 60,
+      "p95": 78,
+      "max": 78
+    },
+    "photo.download": {
+      "count": 1,
+      "p50": 41,
+      "p95": 41,
+      "max": 41
+    },
+    "realtime.endToEnd": {
+      "count": 9,
+      "p50": 855,
+      "p95": 1212,
+      "max": 1212
+    }
+  },
+  "scenario": {
+    "durationMinutes": 60,
+    "occurrenceCreates": 100,
+    "idempotencyReplays": 2,
+    "burstSize": 10,
+    "backofficeSessions": 10,
+    "successfulSyntheticUpdates": 10,
+    "expectedVersionConflicts": 1,
+    "minimumHistory": 50000,
+    "csvRows": 100126,
+    "photoReads": 1,
+    "realtimeSubscription": "SUBSCRIBED"
+  }
+}

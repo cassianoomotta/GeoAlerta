@@ -1,0 +1,104 @@
+{
+  "result": "failed",
+  "acceptanceFailures": [
+    "REALTIME_DELIVERY_INCOMPLETE"
+  ],
+  "alertsReceived": 99,
+  "startedAt": "2026-10-01T17:46:40.444Z",
+  "finishedAt": "2026-10-01T18:47:03.123Z",
+  "totalRequests": 1447,
+  "errors": 0,
+  "statusCounts": {
+    "200": 1247,
+    "201": 100,
+    "409": 1
+  },
+  "latencyMs": {
+    "backoffice.conflictProbe.read": {
+      "count": 1,
+      "p50": 174,
+      "p95": 174,
+      "max": 174
+    },
+    "backoffice.conflictProbe.update": {
+      "count": 2,
+      "p50": 140,
+      "p95": 144,
+      "max": 144
+    },
+    "backoffice.csv": {
+      "count": 1,
+      "p50": 1687,
+      "p95": 1687,
+      "max": 1687
+    },
+    "backoffice.dashboard": {
+      "count": 610,
+      "p50": 1720,
+      "p95": 2248,
+      "max": 4758
+    },
+    "backoffice.detail": {
+      "count": 10,
+      "p50": 458,
+      "p95": 537,
+      "max": 537
+    },
+    "backoffice.list": {
+      "count": 610,
+      "p50": 567,
+      "p95": 1049,
+      "max": 3670
+    },
+    "backoffice.photo": {
+      "count": 1,
+      "p50": 455,
+      "p95": 455,
+      "max": 455
+    },
+    "backoffice.update": {
+      "count": 10,
+      "p50": 371,
+      "p95": 532,
+      "max": 532
+    },
+    "occurrence.create": {
+      "count": 100,
+      "p50": 90,
+      "p95": 767,
+      "max": 1134
+    },
+    "occurrence.idempotencyReplay": {
+      "count": 2,
+      "p50": 36,
+      "p95": 44,
+      "max": 44
+    },
+    "photo.download": {
+      "count": 1,
+      "p50": 62,
+      "p95": 62,
+      "max": 62
+    },
+    "realtime.endToEnd": {
+      "count": 99,
+      "p50": 393,
+      "p95": 1151,
+      "max": 1178
+    }
+  },
+  "scenario": {
+    "applicationMode": "production",
+    "durationMinutes": 60,
+    "occurrenceCreates": 100,
+    "idempotencyReplays": 2,
+    "burstSize": 10,
+    "backofficeSessions": 10,
+    "successfulSyntheticUpdates": 10,
+    "expectedVersionConflicts": 1,
+    "minimumHistory": 50000,
+    "csvRows": 100353,
+    "photoReads": 1,
+    "realtimeSubscription": "SUBSCRIBED"
+  }
+}

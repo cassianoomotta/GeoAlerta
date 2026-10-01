@@ -1,0 +1,9 @@
+{
+  "result": "approved",
+  "database": "isolated local PostgreSQL",
+  "scenario": "Two transactions competing for a pool of one connection; the first holds it for 2500 ms",
+  "default": {"result": "failed", "code": "P2028", "waitMs": 2012},
+  "configured": {"maxWaitMs": 5000, "result": "passed", "waitMs": 2432},
+  "rowsModified": 0,
+  "limitation": "Reproduces the acquisition timeout mechanism; the previous HTTP 503 did not log its underlying error code."
+}

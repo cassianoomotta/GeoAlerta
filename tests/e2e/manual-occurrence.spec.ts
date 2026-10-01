@@ -25,15 +25,16 @@ test('US-05 operador registra ocorrência com localização nativa e abre o prot
 
   await page.goto('/painel/ocorrencias');
   await page.getByText('Registrar ocorrência manualmente', { exact: true }).click();
+  const form=page.locator('details').filter({has:page.getByText('Registrar ocorrência manualmente',{exact:true})}).locator('form');
   await page.getByRole('button', { name: 'Obter localização GPS' }).click();
   await expect(page.getByText(/Precisão ±8 m/)).toBeVisible();
-  await page.getByLabel('Tipo').fill('alagamento');
-  await page.getByLabel('Nome de contato').fill('Pessoa sintética');
-  await page.getByLabel('Contato').fill('555-0100');
-  await page.getByLabel('Descrição').fill('Água avançando na via');
+  await form.getByLabel('Tipo',{exact:true}).fill('alagamento');
+  await form.getByLabel('Nome de contato',{exact:true}).fill('Pessoa sintética');
+  await form.getByLabel('Contato',{exact:true}).fill('555-0100');
+  await form.getByLabel('Descrição',{exact:true}).fill('Água avançando na via');
   await page.getByRole('button', { name: 'Registrar ocorrência', exact: true }).click();
-  await expect(page.getByLabel('Descrição')).toBeDisabled();
-  await expect(page.getByLabel('Tipo')).toBeDisabled();
+  await expect(form.getByLabel('Descrição',{exact:true})).toBeDisabled();
+  await expect(form.getByLabel('Tipo',{exact:true})).toBeDisabled();
   releaseFirstResponse();
 
   await expect(page.getByText('Protocolo GA-80000000-0000-4000-8000-000000000001')).toBeVisible();

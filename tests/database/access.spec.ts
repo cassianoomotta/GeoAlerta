@@ -23,18 +23,56 @@ test('RNF-001 SQL nega alteração cruzada, Consulta e reclassificação de Oper
   const db=await connection();try{
     await identity(db,'consulta');expect((await db.query("UPDATE public.occurrences SET description='denied' WHERE id=$1",[occurrenceA])).rowCount).toBe(0);await db.query('ROLLBACK');
     await identity(db,'operador');expect((await db.query("UPDATE public.occurrences SET description='denied' WHERE group_id=$1",[groupB])).rowCount).toBe(0);
-    await expect(db.query("UPDATE public.occurrences SET priority='ALTA' WHERE id=$1",[occurrenceA])).rejects.toMatchObject({code:'42501'});await db.query('ROLLBACK');
+    await expect(db.query("UPDATE public.occurrences SET priority='ALTA',version=version+1 WHERE id=$1",[occurrenceA])).rejects.toMatchObject({code:'42501'});await db.query('ROLLBACK');
     await identity(db,'operador');await expect(db.query("UPDATE public.occurrences SET deleted_at=now() WHERE id=$1",[occurrenceA])).rejects.toMatchObject({code:'42501'});await db.query('ROLLBACK');
-    await identity(db,'gestor');expect((await db.query("UPDATE public.occurrences SET priority='ALTA' WHERE id=$1",[occurrenceA])).rowCount).toBe(1);await db.query('ROLLBACK');
+    await identity(db,'gestor');await db.query("SELECT set_config('core.mutation_reason','Synthetic authorized change',true)");expect((await db.query("UPDATE public.occurrences SET priority='ALTA',version=version+1 WHERE id=$1",[occurrenceA])).rowCount).toBe(1);await db.query('ROLLBACK');
     for(const closed of ['RESOLVIDA','CANCELADA']){
-      await identity(db,'operador');await db.query('UPDATE public.occurrences SET status=$1 WHERE id=$2',[closed,occurrenceA]);
-      await expect(db.query("UPDATE public.occurrences SET status='EM_TRIAGEM' WHERE id=$1",[occurrenceA])).rejects.toMatchObject({code:'42501'});await db.query('ROLLBACK');
-      for(const name of ['gestor','admin']){await identity(db,name);await db.query('UPDATE public.occurrences SET status=$1 WHERE id=$2',[closed,occurrenceA]);expect((await db.query("UPDATE public.occurrences SET status='EM_TRIAGEM' WHERE id=$1",[occurrenceA])).rowCount).toBe(1);await db.query('ROLLBACK');}
+      // Establish a closed synthetic record through allowed transitions.
+      const close=async()=>{
+        await db.query("UPDATE public.occurrences SET status='EM_TRIAGEM',version=version+1 WHERE id=$1",[occurrenceA]);
+        if(closed==='RESOLVIDA')await db.query("UPDATE public.occurrences SET status='EM_ATENDIMENTO',version=version+1 WHERE id=$1",[occurrenceA]);
+        await db.query('UPDATE public.occurrences SET status=$1,version=version+1 WHERE id=$2',[closed,occurrenceA]);
+      };
+      await identity(db,'operador');await close();
+      await expect(db.query("UPDATE public.occurrences SET status='EM_TRIAGEM',version=version+1 WHERE id=$1",[occurrenceA])).rejects.toMatchObject({code:'42501'});await db.query('ROLLBACK');
+      for(const name of ['gestor','admin']){await identity(db,name);await db.query("SELECT set_config('core.mutation_reason','Synthetic authorized reopen',true)");await close();expect((await db.query("UPDATE public.occurrences SET status='EM_TRIAGEM',version=version+1 WHERE id=$1",[occurrenceA])).rowCount).toBe(1);await db.query('ROLLBACK');}
     }
   }finally{await db.end();}
 });
 async function connection(){const db=new pg.Client({connectionString:process.env.CORE_ACCESS_RUNTIME_URL});await db.connect();return db;}
+test('RF-012 recuperação de alertas mantém RLS, metadados mínimos e bloqueio anônimo',async()=>{
+  const db=await connection();try{
+    for(const a of accounts){
+      await db.query('BEGIN');await db.query('SET LOCAL ROLE authenticated');
+      await db.query("SELECT set_config('request.jwt.claim.sub',$1,true)",[a.id]);
+      const snapshot=(await db.query('SELECT * FROM public.core_alert_snapshot(NULL)')).rows[0];
+      expect(snapshot.server_time).toBeInstanceOf(Date);expect(snapshot.events.length).toBeLessThanOrEqual(50);
+      if(['consulta','operador'].includes(a.name))expect(snapshot.events.every((event:{group_id:string})=>event.group_id===groupA)).toBe(true);
+      if(['pendente','suspenso','semgrupo'].includes(a.name))expect(snapshot.events).toHaveLength(0);
+      for(const event of snapshot.events)expect(Object.keys(event).sort()).toEqual(['at','event_id','group_id','occurrence_id','priority','status']);
+      expect((await db.query("SELECT * FROM public.core_alert_snapshot(now()+interval '1 day')")).rows[0].events).toHaveLength(0);
+      await db.query('ROLLBACK');
+    }
+    await db.query('BEGIN');await db.query('SET LOCAL ROLE anon');
+    await expect(db.query('SELECT * FROM public.core_alert_snapshot(NULL)')).rejects.toMatchObject({code:'42501'});
+    await db.query('ROLLBACK');
+  }finally{await db.end();}
+});
 async function identity(db:pg.Client | pg.PoolClient,name:string){await db.query('BEGIN');await db.query("SELECT set_config('request.jwt.claim.sub',$1,true),set_config('request.jwt.claims',$2,true)",[accounts.find(a=>a.name===name)!.id,JSON.stringify({role:'ADMINISTRADOR',groups:['all']})]);}
+
+test('RF-013 administrador cria grupo com RETURNING e papéis operacionais não criam',async()=>{
+  const db=await connection();try{
+    await identity(db,'admin');
+    const created=await db.query("INSERT INTO public.groups(municipality_id,name,is_default) VALUES('sa_patrulha','Synthetic admin returning',false) RETURNING id,name");
+    expect(created.rows).toHaveLength(1);expect(created.rows[0].name).toBe('Synthetic admin returning');
+    await db.query('ROLLBACK');
+    for(const name of ['consulta','operador','gestor']){
+      await identity(db,name);
+      await expect(db.query("INSERT INTO public.groups(municipality_id,name,is_default) VALUES('sa_patrulha','Synthetic denied group',false) RETURNING id")).rejects.toMatchObject({code:'42501'});
+      await db.query('ROLLBACK');
+    }
+  }finally{await db.end();}
+});
 test('RNF-001 RLS real com LOGIN restrito aplica papéis estados grupos múltiplos e município',async()=>{
   const db=await connection();try{
     const r=(await db.query("SELECT current_user,session_user,rolsuper,rolbypassrls FROM pg_roles WHERE rolname=current_user")).rows[0];

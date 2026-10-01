@@ -1,0 +1,9 @@
+{
+  "result": "approved",
+  "services": "official Docker Supabase Auth PostGIS Realtime",
+  "checks": [
+    "REAL_POSTGIS_VERSIONED_TRIAGE_AND_HISTORICAL_DETAIL",
+    "REAL_REALTIME_RESUBSCRIBE_AND_SNAPSHOT_RECOVERY"
+  ],
+  "finishedAt": "2026-10-01T16:22:24.872Z"
+}

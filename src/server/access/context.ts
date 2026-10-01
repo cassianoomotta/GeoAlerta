@@ -21,7 +21,7 @@ export async function withIdentity<T>(userId: string, work: (tx: Prisma.Transact
     const actor: Actor={userId,role:profile.role,state:profile.state,municipalityId:profile.municipality_id,groupIds:memberships.map(m=>m.group_id)};
     if (!canEnterPanel(actor) || actor.municipalityId!==municipalityId) throw new AccessError(403,'ACCESS_DENIED');
     return work(tx,actor);
-  });
+  },{maxWait:5_000,timeout:5_000});
 }
 export function requireCapability(actor: Actor, capability: Capability, groupId?: string) {
   if (!can(actor,capability,{municipalityId,groupId:groupId ?? actor.groupIds[0]})) throw new AccessError(403,'ACCESS_DENIED');

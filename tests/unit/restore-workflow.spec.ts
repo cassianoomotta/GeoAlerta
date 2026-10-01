@@ -65,7 +65,7 @@ test('RNF-007 orquestra backup e restauração, compara integridade e nunca apro
   expect(calls).toEqual(['inspect:source', 'backup:source', 'restore:destination', 'inspect:destination', 'inspect:source']);
   expect(report).toMatchObject({ mode: 'simulation', result: 'simulation', tablesVerified: 2, sequenceEvidence: [{ name: 'public.occurrences_id_seq', lastValue: '3' }], sourceUnchanged: true, restoredMatchesSource: true, postgisPresent: true, invalidConstraints: 0 });
   expect(JSON.stringify(report)).not.toContain('secret');
-  expect(report.limitations).toHaveLength(2);
+  expect(report.limitations).toHaveLength(4);
 });
 
 test('RNF-007 falha de backup produz relatório sanitizado sem expor credenciais', async () => {
