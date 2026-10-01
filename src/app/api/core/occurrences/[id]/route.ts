@@ -1,6 +1,9 @@
 import { withSession, accessResponse } from '@/server/access/session';
 import { AccessError } from '@/server/access/context';
 import {privatePhotoAvailable} from '@/features/occurrences/photos/service';
+import { can } from '@/features/access/domain/permissions';
+import { parseOccurrenceMutation, OccurrenceMutationError } from '@/features/occurrences/domain/mutation';
+import { mutateOccurrenceInTransaction } from '@/server/occurrences/mutate';
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -71,6 +74,18 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
         const photos = await tx.$queryRaw<{photo_object_key: string | null}[]>`SELECT photo_object_key FROM public.occurrence_private_data WHERE occurrence_id=${id}::uuid`;
         return photos[0]?.photo_object_key ?? null;
       });
+      const canOperate = can(actor, 'operate', {municipalityId: 'sa_patrulha', groupId: occurrence.group_id});
+      const transitionRows = canOperate ? await tx.$queryRaw<{to_status: string; enabled: boolean; roles: unknown; reason_required: boolean}[]>`
+        SELECT to_status,enabled,roles,reason_required FROM public.status_transitions WHERE from_status=${occurrence.status}
+      ` : [];
+      const availableTransitions = transitionRows
+        .filter((rule) => rule.enabled && Array.isArray(rule.roles) && rule.roles.includes(actor.role) &&
+          occurrence.status !== 'RESOLVIDA' && occurrence.status !== 'CANCELADA')
+        .map((rule) => ({ target: rule.to_status, reasonRequired: rule.reason_required }));
+      const availableGroups = canOperate ? await tx.$queryRaw<{id: string; name: string}[]>`
+        SELECT id::text AS id,name FROM public.groups
+        WHERE municipality_id='sa_patrulha' ORDER BY name,id
+      ` : [];
 
       return {
         id: occurrence.id,
@@ -88,11 +103,68 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
         version: occurrence.version,
         classification: zones.length ? { zones } : null,
         events,
+        actions: { canOperate, availableTransitions },
+        availableGroups,
         ...(hasPhoto ? {privateData: {hasPhoto: true}} : {}),
       };
     });
     return Response.json(result, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
+    return accessResponse(error);
+  }
+}
+
+const maximumMutationBodyBytes = 8_192;
+
+async function readMutationPayload(request: Request): Promise<unknown> {
+  if (!request.headers.get('content-type')?.toLowerCase().startsWith('application/json')) {
+    throw new OccurrenceMutationError(422, 'INVALID_INPUT');
+  }
+  const reader = request.body?.getReader();
+  if (!reader) throw new OccurrenceMutationError(422, 'INVALID_INPUT');
+  const chunks: Uint8Array[] = [];
+  let bytes = 0;
+  try {
+    while (true) {
+      const chunk = await reader.read();
+      if (chunk.done) break;
+      bytes += chunk.value.length;
+      if (bytes > maximumMutationBodyBytes) {
+        await reader.cancel();
+        throw new OccurrenceMutationError(422, 'INVALID_INPUT');
+      }
+      chunks.push(chunk.value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  try {
+    return JSON.parse(Buffer.concat(chunks).toString('utf8')) as unknown;
+  } catch {
+    throw new OccurrenceMutationError(422, 'INVALID_INPUT');
+  }
+}
+
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await params;
+    if (!uuidPattern.test(id)) throw new AccessError(404, 'NOT_FOUND');
+    const payload = parseOccurrenceMutation(await readMutationPayload(request));
+    const result = await withSession((tx, actor) => mutateOccurrenceInTransaction(tx, actor, id, payload));
+    return Response.json(result, { headers: { 'Cache-Control': 'no-store' } });
+  } catch (error) {
+    if (error instanceof OccurrenceMutationError) {
+      const messages: Record<string, string> = {
+        INVALID_INPUT: 'Verifique os campos e a versão informados.',
+        ACCESS_DENIED: 'Você não tem permissão para esta alteração ou grupo.',
+        NOT_FOUND: 'Ocorrência não encontrada.',
+        VERSION_CONFLICT: 'A ocorrência mudou desde a última leitura. Atualize os dados antes de tentar novamente.',
+        TRANSITION_NOT_ALLOWED: 'Esta transição não está habilitada para seu papel.',
+        REASON_REQUIRED: 'Informe uma justificativa com pelo menos 10 caracteres.',
+        NO_CHANGES: 'Nenhuma alteração foi informada.',
+      };
+      return Response.json({ error: { code: error.code, message: messages[error.code] ?? 'Não foi possível alterar a ocorrência.' } }, { status: error.status, headers: { 'Cache-Control': 'no-store' } });
+    }
     return accessResponse(error);
   }
 }

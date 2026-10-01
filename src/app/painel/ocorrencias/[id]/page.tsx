@@ -4,14 +4,15 @@ import Link from 'next/link';
 import { use } from 'react';
 import { useEffect, useState } from 'react';
 import {OccurrencePhoto} from '@/features/occurrences/ui/OccurrencePhoto';
+import type { Priority, Status } from '@/features/occurrences/contracts';
 
 interface OccurrenceDetail {
   id: string;
   protocol: string;
   type: string;
   description: string | null;
-  status: { code: string; label: string };
-  priority: string;
+  status: { code: Status; label: string };
+  priority: Priority;
   group: { id: string; name: string };
   position: { latitude: number; longitude: number; accuracy: number | null } | null;
   openedAt: string;
@@ -20,6 +21,8 @@ interface OccurrenceDetail {
   classification: { zones: { id: string; name: string; version: number }[] } | null;
   events: { id: string; kind: string; actorId: string | null; at: string }[];
   privateData?: {hasPhoto: boolean};
+  actions: { canOperate: boolean; availableTransitions: {target: Status; reasonRequired: boolean}[] };
+  availableGroups: { id: string; name: string }[];
 }
 
 function formatDate(value: string) {
@@ -64,6 +67,13 @@ function OccurrenceDetailView({id}: {id: string}) {
     return () => controller.abort();
   }, [id]);
 
+  async function reloadDetail() {
+    const response = await fetch(`/api/core/occurrences/${encodeURIComponent(id)}`, { cache: 'no-store' });
+    if (!response.ok) return false;
+    setDetail(await response.json() as OccurrenceDetail);
+    return true;
+  }
+
   if (loading) {
     return <main className="mx-auto w-full max-w-5xl p-4 text-slate-300" role="status">Carregando ocorrência…</main>;
   }
@@ -88,6 +98,8 @@ function OccurrenceDetailView({id}: {id: string}) {
         <h1 id="occurrence-detail-title" className="mt-2 text-2xl font-bold text-white">Detalhe da ocorrência</h1>
         <p className="mt-2 text-sm text-slate-300">{detail.type} · {detail.status.label} · Prioridade {detail.priority}</p>
       </header>
+
+      {detail.actions.canOperate && <OccurrenceMutationControls key={`${detail.id}:${detail.version}`} detail={detail} onReload={reloadDetail} />}
 
       <section className="glass-card p-5 sm:p-7" aria-labelledby="occurrence-summary-title">
         <h2 id="occurrence-summary-title" className="text-lg font-semibold text-white">Resumo</h2>
@@ -145,5 +157,124 @@ function OccurrenceDetailView({id}: {id: string}) {
         ) : <p className="mt-3 text-sm text-slate-300">Nenhum evento registrado.</p>}
       </section>
     </main>
+  );
+}
+
+const statusLabels: Record<Status, string> = {
+  NOVA: 'Nova',
+  EM_TRIAGEM: 'Em triagem',
+  EM_ATENDIMENTO: 'Em atendimento',
+  RESOLVIDA: 'Resolvida',
+  CANCELADA: 'Cancelada',
+};
+
+function OccurrenceMutationControls({
+  detail,
+  onReload,
+}: {
+  detail: OccurrenceDetail;
+  onReload: () => Promise<boolean>;
+}) {
+  const [type, setType] = useState(detail.type);
+  const [description, setDescription] = useState(detail.description ?? '');
+  const [groupId, setGroupId] = useState(detail.group.id);
+  const [reason, setReason] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState('');
+  const [conflict, setConflict] = useState(false);
+
+  async function submit(command: Record<string, unknown>) {
+    setSaving(true);
+    setMessage('');
+    setConflict(false);
+    try {
+      const response = await fetch(`/api/core/occurrences/${encodeURIComponent(detail.id)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ expectedVersion: detail.version, command }),
+      });
+      const result = await response.json() as { error?: { code?: string; message?: string } };
+      if (!response.ok) {
+        setMessage(result.error?.message ?? 'Não foi possível salvar a alteração.');
+        setConflict(response.status === 409);
+        return;
+      }
+      const refreshed = await onReload();
+      setMessage(refreshed ? 'Alteração salva.' : 'Alteração salva. Atualize o detalhe para ver o estado atual.');
+    } catch {
+      setMessage('Falha de comunicação. Verifique o estado atual antes de tentar novamente.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function submitEdit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const command = {
+      kind: 'edit',
+      ...(type.trim() !== detail.type ? { type: type.trim() } : {}),
+      ...(description.trim() !== (detail.description ?? '') ? { description: description.trim() } : {}),
+      ...(groupId !== detail.group.id ? { groupId } : {}),
+    };
+    if (Object.keys(command).length === 1) {
+      setMessage('Faça ao menos uma alteração antes de salvar.');
+      return;
+    }
+    await submit(command);
+  }
+
+  async function reloadAfterConflict() {
+    setSaving(true);
+    try {
+      const refreshed = await onReload();
+      setConflict(false);
+      setMessage(refreshed ? 'Estado atual carregado. Confira os valores antes de salvar novamente.' : 'Não foi possível atualizar. Tente novamente.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <section className="glass-card space-y-5 p-5 sm:p-7" aria-labelledby="occurrence-mutation-title">
+      <div>
+        <h2 id="occurrence-mutation-title" className="text-lg font-semibold text-white">Editar e atualizar ocorrência</h2>
+        <p className="mt-1 text-xs text-slate-400">Versão {detail.version}. Alterações concorrentes exigem atualização antes de salvar novamente.</p>
+      </div>
+      <form className="grid gap-4 sm:grid-cols-2" onSubmit={submitEdit}>
+        <label className="space-y-1 text-sm text-slate-200">
+          <span>Tipo</span>
+          <input required maxLength={80} value={type} onChange={(event) => setType(event.target.value)} className="w-full rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 text-white" />
+        </label>
+        <label className="space-y-1 text-sm text-slate-200">
+          <span>Grupo responsável</span>
+          <select value={groupId} onChange={(event) => setGroupId(event.target.value)} className="w-full rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 text-white">
+            {detail.availableGroups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}
+          </select>
+        </label>
+        <label className="space-y-1 text-sm text-slate-200 sm:col-span-2">
+          <span>Descrição</span>
+          <textarea maxLength={2000} rows={4} value={description} onChange={(event) => setDescription(event.target.value)} className="w-full rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 text-white" />
+        </label>
+        <button type="submit" disabled={saving} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Salvar edição</button>
+      </form>
+
+      {detail.actions.availableTransitions.length > 0 && <div className="space-y-3 border-t border-white/10 pt-4">
+        <h3 className="text-sm font-semibold text-white">Transições disponíveis</h3>
+        <label className="block space-y-1 text-sm text-slate-200">
+          <span>Justificativa (quando exigida pela regra)</span>
+          <textarea maxLength={500} rows={2} value={reason} onChange={(event) => setReason(event.target.value)} className="w-full rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 text-white" />
+        </label>
+        <div className="flex flex-wrap gap-2">
+          {detail.actions.availableTransitions.map((transition) => (
+            <button key={transition.target} type="button" disabled={saving} onClick={() => void submit({ kind: 'transition', target: transition.target, ...(reason.trim() ? { reason: reason.trim() } : {}) })} className="rounded-lg border border-blue-400/40 bg-blue-500/10 px-3 py-2 text-sm text-blue-100 disabled:opacity-50">
+              {statusLabels[transition.target]}{transition.reasonRequired ? ' · justificativa obrigatória' : ''}
+            </button>
+          ))}
+        </div>
+      </div>}
+
+      {message && <p role={conflict ? 'alert' : 'status'} className={conflict ? 'text-sm text-amber-200' : 'text-sm text-slate-200'}>{message}</p>}
+      {conflict && <button type="button" disabled={saving} onClick={() => void reloadAfterConflict()} className="rounded-lg border border-amber-400/40 px-3 py-2 text-sm text-amber-100 disabled:opacity-50">Atualizar estado atual</button>}
+    </section>
   );
 }
