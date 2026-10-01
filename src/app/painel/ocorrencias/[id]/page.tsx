@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { use } from 'react';
 import { useEffect, useState } from 'react';
 import {OccurrencePhoto} from '@/features/occurrences/ui/OccurrencePhoto';
@@ -21,7 +22,7 @@ interface OccurrenceDetail {
   classification: { zones: { id: string; name: string; version: number }[] } | null;
   events: { id: string; kind: string; actorId: string | null; at: string }[];
   privateData?: {hasPhoto: boolean};
-  actions: { canOperate: boolean; canReclassify: boolean; availableTransitions: {target: Status; reasonRequired: boolean}[] };
+  actions: { canOperate: boolean; canReclassify: boolean; canAdminister: boolean; availableTransitions: {target: Status; reasonRequired: boolean}[] };
   availableGroups: { id: string; name: string }[];
 }
 
@@ -175,10 +176,12 @@ function OccurrenceMutationControls({
   detail: OccurrenceDetail;
   onReload: () => Promise<boolean>;
 }) {
+  const router = useRouter();
   const [type, setType] = useState(detail.type);
   const [description, setDescription] = useState(detail.description ?? '');
   const [groupId, setGroupId] = useState(detail.group.id);
   const [reason, setReason] = useState('');
+  const [deletionReason, setDeletionReason] = useState('');
   const [priority, setPriority] = useState<Priority>(detail.priority);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -198,6 +201,10 @@ function OccurrenceMutationControls({
       if (!response.ok) {
         setMessage(result.error?.message ?? 'Não foi possível salvar a alteração.');
         setConflict(response.status === 409);
+        return;
+      }
+      if (command.kind === 'delete') {
+        router.push('/painel/ocorrencias/excluidas');
         return;
       }
       const refreshed = await onReload();
@@ -288,6 +295,16 @@ function OccurrenceMutationControls({
           <textarea required minLength={10} maxLength={500} rows={2} value={reason} onChange={(event) => setReason(event.target.value)} className="w-full rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 text-white" />
         </label>
         <button type="button" disabled={saving} onClick={() => void submit({ kind: 'reclassify', priority, reason: reason.trim() })} className="rounded-lg border border-amber-400/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-100 disabled:opacity-50">Salvar prioridade</button>
+      </div>}
+
+      {detail.actions.canAdminister && <div className="space-y-3 border-t border-red-400/20 pt-4">
+        <h3 className="text-sm font-semibold text-red-200">Excluir logicamente</h3>
+        <p className="text-xs text-slate-300">A ocorrência e a foto serão preservadas. Um Administrador poderá restaurar o registro na visão de excluídas.</p>
+        <label className="block space-y-1 text-sm text-slate-200">
+          <span>Justificativa obrigatória</span>
+          <textarea required minLength={10} maxLength={500} rows={2} value={deletionReason} onChange={(event) => setDeletionReason(event.target.value)} className="w-full rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 text-white" />
+        </label>
+        <button type="button" disabled={saving} onClick={() => void submit({ kind: 'delete', reason: deletionReason.trim() })} className="rounded-lg border border-red-400/40 bg-red-500/10 px-3 py-2 text-sm text-red-100 disabled:opacity-50">Excluir ocorrência</button>
       </div>}
 
 

@@ -9,3 +9,4 @@ Resumos sanitizados de verificações realmente executadas. Falhas, impedimentos
 - [Ticket 06 — foto privada, validação básica aprovada](ticket-06-2026-09-30.md): homologação de Storage real pendente na história 20.
 - [Ticket 08 — edição, transições e concorrência, validação básica aprovada](ticket-08-2026-10-01.md): aceite integrado pendente na história 20.
 - [Ticket 09 — reabertura e reclassificação, validação básica aprovada](ticket-09-2026-10-01.md): aceite integrado pendente na história 20.
+- [Ticket 10 — exclusão lógica e restauração, validação básica aprovada](ticket-10-2026-10-01.md): aceite integrado pendente na história 20.

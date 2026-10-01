@@ -41,7 +41,9 @@ export async function mutateOccurrence(
   const occurrence = await ports.getOccurrence(id);
   if (!occurrence) throw new OccurrenceMutationError(404, 'NOT_FOUND');
   const scope = { municipalityId: actor.municipalityId, groupId: occurrence.groupId };
-  const requiredCapability = command.kind === 'reclassify' || (command.kind === 'transition' &&
+  const requiredCapability = command.kind === 'delete' || command.kind === 'restore'
+    ? 'administer'
+    : command.kind === 'reclassify' || (command.kind === 'transition' &&
       (occurrence.status === 'RESOLVIDA' || occurrence.status === 'CANCELADA') && command.target === 'EM_TRIAGEM')
       ? 'reclassify'
       : 'operate';
@@ -63,6 +65,8 @@ export async function mutateOccurrence(
     groupId: decision.groupId,
     ...(command.kind === 'transition' ? { status: command.target } : {}),
     ...(command.kind === 'reclassify' ? { priority: command.priority } : {}),
+    ...(command.kind === 'delete' ? { deletedAt: true } : {}),
+    ...(command.kind === 'restore' ? { deletedAt: false } : {}),
     ...(command.kind === 'edit' && command.type !== undefined ? { type: command.type } : {}),
     ...(command.kind === 'edit' && command.description !== undefined ? { description: command.description } : {}),
     eventKind: decision.eventKind,
@@ -78,6 +82,6 @@ export async function mutateOccurrence(
     status: command.kind === 'transition' ? command.target : occurrence.status,
     priority: command.kind === 'reclassify' ? command.priority : occurrence.priority,
     groupId: decision.groupId,
-    deletedAt: occurrence.deletedAt !== null,
+    deletedAt: command.kind === 'delete' ? true : command.kind === 'restore' ? false : occurrence.deletedAt !== null,
   };
 }

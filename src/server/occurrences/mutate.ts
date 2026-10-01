@@ -55,6 +55,26 @@ export async function mutateOccurrenceInTransaction(
       return row ? { enabled: row.enabled, roles: parseRoles(row.roles), reasonRequired: row.reason_required } : undefined;
     },
     saveAtomically: async (mutation) => {
+      if (mutation.deletedAt !== undefined) {
+        await tx.$queryRaw`SELECT set_config('core.mutation_reason',${mutation.reason ?? ''},true)`;
+        const updated = mutation.deletedAt
+          ? await tx.$executeRaw`
+              UPDATE public.occurrences
+              SET deleted_at=transaction_timestamp(),version=version+1,updated_at=transaction_timestamp()
+              WHERE id=${mutation.occurrence.id}::uuid
+                AND version=${mutation.expectedVersion}
+                AND deleted_at IS NULL
+            `
+          : await tx.$executeRaw`
+              UPDATE public.occurrences
+              SET deleted_at=NULL,version=version+1,updated_at=transaction_timestamp()
+              WHERE id=${mutation.occurrence.id}::uuid
+                AND version=${mutation.expectedVersion}
+                AND deleted_at IS NOT NULL
+            `;
+        // A trigger writes the delete/restore event and audit atomically.
+        return updated === 1;
+      }
       if (mutation.priority !== undefined || mutation.status !== undefined) {
         await tx.$queryRaw`SELECT set_config('core.mutation_reason',${mutation.reason ?? ''},true)`;
         const updated = mutation.priority !== undefined

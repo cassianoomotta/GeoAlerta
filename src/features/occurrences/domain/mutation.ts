@@ -5,7 +5,9 @@ import type { Priority, Status } from '../contracts';
 export type OccurrenceMutationCommand =
   | { kind: 'edit'; type?: string; description?: string; groupId?: string }
   | { kind: 'transition'; target: Status; reason?: string }
-  | { kind: 'reclassify'; priority: Priority; reason: string };
+  | { kind: 'reclassify'; priority: Priority; reason: string }
+  | { kind: 'delete'; reason: string }
+  | { kind: 'restore'; reason: string };
 
 export type OccurrenceMutationPayload = {
   expectedVersion: number;
@@ -94,6 +96,12 @@ export function parseOccurrenceMutation(value: unknown): OccurrenceMutationPaylo
     return { expectedVersion: Number(value.expectedVersion), command: { kind: 'reclassify', priority: command.priority, reason } };
   }
 
+  if ((command.kind === 'delete' || command.kind === 'restore') && typeof command.reason === 'string') {
+    const reason = command.reason.trim();
+    if (reason.length > 500) throw new OccurrenceMutationError(422, 'INVALID_INPUT');
+    return { expectedVersion: Number(value.expectedVersion), command: { kind: command.kind, reason } };
+  }
+
   throw new OccurrenceMutationError(422, 'INVALID_INPUT');
 }
 
@@ -107,6 +115,20 @@ export function authorizeOccurrenceMutation(
   command: OccurrenceMutationCommand,
   rule?: TransitionRule,
 ): { changes: Record<string, { from: unknown; to: unknown }>; eventKind: string; reason: string | null; groupId: string } {
+  if (command.kind === 'delete' || command.kind === 'restore') {
+    if (!can(actor, 'administer', { municipalityId: actor.municipalityId, groupId: occurrence.groupId })) {
+      throw new OccurrenceMutationError(403, 'ACCESS_DENIED');
+    }
+    if (command.reason.trim().length < 10) throw new OccurrenceMutationError(422, 'REASON_REQUIRED');
+    if (command.kind === 'delete' && occurrence.deletedAt) throw new OccurrenceMutationError(409, 'ALREADY_DELETED');
+    if (command.kind === 'restore' && !occurrence.deletedAt) throw new OccurrenceMutationError(409, 'NOT_DELETED');
+    return {
+      changes: { deletedAt: { from: occurrence.deletedAt?.toISOString() ?? null, to: command.kind === 'delete' ? 'deleted' : null } },
+      eventKind: command.kind === 'delete' ? 'OCCURRENCE_DELETED' : 'OCCURRENCE_RESTORED',
+      reason: command.reason.trim(),
+      groupId: occurrence.groupId,
+    };
+  }
   if (occurrence.deletedAt) throw new OccurrenceMutationError(404, 'NOT_FOUND');
   if (!can(actor, 'operate', { municipalityId: actor.municipalityId, groupId: occurrence.groupId })) {
     throw new OccurrenceMutationError(403, 'ACCESS_DENIED');

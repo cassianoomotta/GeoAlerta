@@ -13,10 +13,11 @@ function cell(item:ListItem,column:Column){
 export default async function Occurrences({searchParams}:{searchParams:Promise<Record<string,string|string[]|undefined>>}){
   let result:ListResult;
   let canCreate=false;
+  let canAdminister=false;
   try{
     const params=new URLSearchParams();for(const [key,value]of Object.entries(await searchParams))if(Array.isArray(value))value.forEach(v=>params.append(key,v));else if(value!==undefined)params.set(key,value);
-    const loaded=await withSession(async(tx,actor)=>({result:await listOccurrences(tx,actor,parseListFilters(params)),canCreate:actor.role!=='CONSULTA'}));
-    result=loaded.result;canCreate=loaded.canCreate;
+    const loaded=await withSession(async(tx,actor)=>({result:await listOccurrences(tx,actor,parseListFilters(params)),canCreate:actor.role!=='CONSULTA',canAdminister:actor.role==='ADMINISTRADOR'}));
+    result=loaded.result;canCreate=loaded.canCreate;canAdminister=loaded.canAdminister;
   }catch(error){
     return <section className="p-6"><h1 className="text-2xl font-bold">Ocorrências</h1><p role="alert" className="my-4">{error instanceof ListInputError?'Verifique os filtros e as colunas; o grupo deve estar autorizado.':'Não foi possível carregar a lista. Tente novamente.'}</p><Link href="/painel/ocorrencias">Limpar filtros e tentar novamente</Link></section>;
   }
@@ -24,6 +25,7 @@ export default async function Occurrences({searchParams}:{searchParams:Promise<R
   const pages=Math.max(1,Math.ceil(total/filters.pageSize));
   return <section className="space-y-5 p-4 md:p-6">
     <h1 className="text-2xl font-bold">Ocorrências</h1>
+    {canAdminister&&<Link className="inline-flex rounded border border-amber-400/30 px-3 py-2 text-sm text-amber-100" href="/painel/ocorrencias/excluidas">Excluídas e restauração</Link>}
     {canCreate&&groups.length>0&&<ManualOccurrenceForm groups={groups}/>}
     <nav aria-label="Atalhos por status" className="flex flex-wrap gap-3"><Link href={listHref(filters,{status:undefined,page:1})}>Todos os status</Link>{statuses.map(status=><Link key={status} href={listHref(filters,{status,page:1})}>{labels[status]}</Link>)}</nav>
     <form key={JSON.stringify(filters)} aria-label="Filtros de ocorrências" action="/painel/ocorrencias" method="get" className="grid gap-3 rounded border border-slate-600 p-4 sm:grid-cols-2 lg:grid-cols-4">

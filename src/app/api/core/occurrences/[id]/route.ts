@@ -76,6 +76,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       });
       const canOperate = can(actor, 'operate', {municipalityId: 'sa_patrulha', groupId: occurrence.group_id});
       const canReclassify = can(actor, 'reclassify', {municipalityId: 'sa_patrulha', groupId: occurrence.group_id});
+      const canAdminister = can(actor, 'administer', {municipalityId: 'sa_patrulha', groupId: occurrence.group_id});
       const transitionRows = canOperate ? await tx.$queryRaw<{to_status: string; enabled: boolean; roles: unknown; reason_required: boolean}[]>`
         SELECT to_status,enabled,roles,reason_required FROM public.status_transitions WHERE from_status=${occurrence.status}
       ` : [];
@@ -104,7 +105,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
         version: occurrence.version,
         classification: zones.length ? { zones } : null,
         events,
-        actions: { canOperate, canReclassify, availableTransitions },
+        actions: { canOperate, canReclassify, canAdminister, availableTransitions },
         availableGroups,
         ...(hasPhoto ? {privateData: {hasPhoto: true}} : {}),
       };
@@ -163,6 +164,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         TRANSITION_NOT_ALLOWED: 'Esta transição não está habilitada para seu papel.',
         REASON_REQUIRED: 'Informe uma justificativa com pelo menos 10 caracteres.',
         NO_CHANGES: 'Nenhuma alteração foi informada.',
+        ALREADY_DELETED: 'A ocorrência já está excluída.',
+        NOT_DELETED: 'A ocorrência não está excluída.',
       };
       return Response.json({ error: { code: error.code, message: messages[error.code] ?? 'Não foi possível alterar a ocorrência.' } }, { status: error.status, headers: { 'Cache-Control': 'no-store' } });
     }

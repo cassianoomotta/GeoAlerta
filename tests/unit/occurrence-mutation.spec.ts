@@ -225,3 +225,66 @@ test('role capability guards reopen even if a transition rule accidentally grant
     { kind: 'transition', target: 'EM_TRIAGEM', reason: 'Justificativa válida' }, transition()))
     .toThrow(OccurrenceMutationError);
 });
+
+test('RF-012 only Admin logically deletes with a reason, version and audit metadata', async () => {
+  const fake = fakePorts();
+  await expect(mutateOccurrence(actor('GESTOR'), occurrenceId, 4,
+    { kind: 'delete', reason: 'Ocorrência duplicada' }, fake.ports))
+    .rejects.toMatchObject({ status: 403, code: 'ACCESS_DENIED' });
+  expect(fake.saved).toHaveLength(0);
+
+  const result = await mutateOccurrence(actor('ADMINISTRADOR'), occurrenceId, 4,
+    { kind: 'delete', reason: 'Ocorrência duplicada' }, fake.ports);
+  expect(result).toMatchObject({ version: 5, deletedAt: true });
+  expect(fake.saved[0]).toMatchObject({
+    actorId: userId,
+    eventKind: 'OCCURRENCE_DELETED',
+    reason: 'Ocorrência duplicada',
+    changes: { deletedAt: { from: null, to: 'deleted' } },
+    deletedAt: true,
+  });
+});
+
+test('RF-012 Admin restores only a deleted occurrence with a reason and new expected version', async () => {
+  const deletedAt = new Date('2026-10-01T02:00:00.000Z');
+  const fake = fakePorts(occurrence({ deletedAt, version: 6 }));
+  const result = await mutateOccurrence(actor('ADMINISTRADOR'), occurrenceId, 6,
+    { kind: 'restore', reason: 'Removida por engano' }, fake.ports);
+  expect(result).toMatchObject({ version: 7, deletedAt: false });
+  expect(fake.saved[0]).toMatchObject({
+    eventKind: 'OCCURRENCE_RESTORED',
+    reason: 'Removida por engano',
+    changes: { deletedAt: { from: deletedAt.toISOString(), to: null } },
+    deletedAt: false,
+  });
+  expect(fake.state.current.deletedAt).toBeNull();
+});
+
+test('RF-012 missing reason, wrong state, and stale restore fail without partial changes', async () => {
+  const active = fakePorts();
+  await expect(mutateOccurrence(actor('ADMINISTRADOR'), occurrenceId, 4,
+    { kind: 'delete', reason: 'Curto' }, active.ports)).rejects.toMatchObject({ status: 422, code: 'REASON_REQUIRED' });
+  await expect(mutateOccurrence(actor('ADMINISTRADOR'), occurrenceId, 4,
+    { kind: 'restore', reason: 'Restaurar registro ativo' }, active.ports)).rejects.toMatchObject({ status: 409, code: 'NOT_DELETED' });
+  await expect(mutateOccurrence(actor('ADMINISTRADOR'), occurrenceId, 3,
+    { kind: 'delete', reason: 'Justificativa de exclusão' }, active.ports)).rejects.toMatchObject({ status: 409, code: 'VERSION_CONFLICT' });
+  expect(active.state.current.deletedAt).toBeNull();
+  expect(active.saved).toHaveLength(0);
+});
+
+test('RF-012 deleted occurrence rejects ordinary edit and transition until restore', async () => {
+  const fake = fakePorts(occurrence({ deletedAt: new Date() }));
+  await expect(mutateOccurrence(actor('ADMINISTRADOR'), occurrenceId, 4,
+    { kind: 'edit', type: 'Alterado' }, fake.ports)).rejects.toMatchObject({ status: 404, code: 'NOT_FOUND' });
+  await expect(mutateOccurrence(actor('ADMINISTRADOR'), occurrenceId, 4,
+    { kind: 'transition', target: 'EM_TRIAGEM' }, fake.ports)).rejects.toMatchObject({ status: 404, code: 'NOT_FOUND' });
+  expect(fake.saved).toHaveLength(0);
+});
+
+test('RNF-005 soft-delete audit failure leaves record visible and version unchanged', async () => {
+  const fake = fakePorts(occurrence(), { auditFails: true });
+  await expect(mutateOccurrence(actor('ADMINISTRADOR'), occurrenceId, 4,
+    { kind: 'delete', reason: 'Registro duplicado' }, fake.ports)).rejects.toThrow('audit insert failed');
+  expect(fake.state.current.deletedAt).toBeNull();
+  expect(fake.state.current.version).toBe(4);
+});
