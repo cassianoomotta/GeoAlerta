@@ -1,0 +1,51 @@
+import { expect, test } from '@playwright/test';
+import { fixtureCookies } from '../fixtures/session';
+
+const result = { id: '80000000-0000-4000-8000-000000000001', protocol: 'GA-80000000-0000-4000-8000-000000000001', status: 'NOVA', priority: 'ALTA', version: 1 };
+
+test('US-05 operador registra ocorrência com localização nativa e abre o protocolo', async ({ page, context }) => {
+  await page.route('**/*', (route) => {
+    const host = new URL(route.request().url()).hostname;
+    return ['127.0.0.1', 'localhost'].includes(host) ? route.continue() : route.abort();
+  });
+  await context.addCookies((await fixtureCookies('operador')).map((cookie) => ({ ...cookie, url: 'http://127.0.0.1:3102' })));
+  await context.grantPermissions(['geolocation']);
+  await context.setGeolocation({ latitude: -29.5, longitude: -50.5, accuracy: 8 });
+  let submitted: unknown;
+  const idempotencyKeys: string[] = [];
+  let releaseFirstResponse!: () => void;
+  const firstResponse = new Promise<void>((resolve) => { releaseFirstResponse = resolve; });
+  await page.route('**/api/core/occurrences', async (route) => {
+    if (route.request().method() !== 'POST') return route.continue();
+    submitted = route.request().postDataJSON();
+    idempotencyKeys.push(route.request().headers()['idempotency-key']);
+    if (idempotencyKeys.length === 1) await firstResponse;
+    await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(result) });
+  });
+
+  await page.goto('/painel/ocorrencias');
+  await page.getByText('Registrar ocorrência manualmente', { exact: true }).click();
+  await page.getByRole('button', { name: 'Obter localização GPS' }).click();
+  await expect(page.getByText(/Precisão ±8 m/)).toBeVisible();
+  await page.getByLabel('Tipo').fill('alagamento');
+  await page.getByLabel('Nome de contato').fill('Pessoa sintética');
+  await page.getByLabel('Contato').fill('555-0100');
+  await page.getByLabel('Descrição').fill('Água avançando na via');
+  await page.getByRole('button', { name: 'Registrar ocorrência', exact: true }).click();
+  await expect(page.getByLabel('Descrição')).toBeDisabled();
+  await expect(page.getByLabel('Tipo')).toBeDisabled();
+  releaseFirstResponse();
+
+  await expect(page.getByText('Protocolo GA-80000000-0000-4000-8000-000000000001')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Abrir ocorrência' })).toHaveAttribute('href', `/painel/ocorrencias/${result.id}`);
+  expect(submitted).toMatchObject({
+    groupId: '20000000-0000-4000-8000-000000000001',
+    type: 'alagamento',
+    description: 'Água avançando na via',
+    position: { latitude: -29.5, longitude: -50.5, accuracy: 8 },
+  });
+
+  await page.getByRole('button', { name: 'Registrar ocorrência', exact: true }).click();
+  await expect.poll(() => idempotencyKeys).toHaveLength(2);
+  expect(idempotencyKeys[1]).not.toBe(idempotencyKeys[0]);
+});

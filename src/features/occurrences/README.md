@@ -9,3 +9,5 @@
 Verificação: `npm run test:unit` e `node node_modules/typescript/bin/tsc --noEmit`.
 
 `list-input.ts` define filtros, limites, links e whitelist de colunas da lista. A query SQL parametrizada em `src/server/occurrences/list.ts` aplica RLS, exclusão lógica, filtros e paginação no servidor; total e página compartilham o snapshot de uma instrução SQL. A UI usa `/painel/ocorrencias`; `/painel/tabela` redireciona filtros compatíveis e mantém a implementação anterior em `src/modules/legacy-occurrence-table.tsx`.
+
+`create-manual-occurrence.ts` permite abertura autenticada no painel com GPS obrigatório, escopo de grupo e idempotência. `POST /api/core/occurrences` salva ocorrência, dados privados, zonas consideradas, evento, auditoria, alerta e chave de repetição em uma transação; a classificação consulta somente zonas ativas e vigentes. A UI coleta a posição com geolocalização nativa e oferece recuperação para permissão negada, indisponibilidade e timeout.
