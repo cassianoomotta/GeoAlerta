@@ -12,7 +12,9 @@
 
 **Rastreabilidade:** US-04, RF-008, RF-009, RNF-001, RNF-003
 
-**Preparação:** proposta pendente de aprovação da divisão; não publicado no Notion.
+**Publicação:** divisão aprovada pelo usuário e publicada no Notion em 30/09/2026.
+
+**Notion:** [Abrir ticket](https://app.notion.com/p/3ebefe2e57f281e2bf58d8394f45d65e?pvs=204)
 
 **Decisão de escopo/dependência:** Pode ser entregue com ocorrências sintéticas da base, sem aguardar o formulário público.
 
@@ -23,4 +25,3 @@
 - [ ] O acesso à tabela antiga redireciona para a lista Core preservando filtros compatíveis e mantendo sua implementação original arquivada.
 - [ ] Estados vazios e erros são compreensíveis; a tela não busca o histórico inteiro por padrão.
 - [ ] Testes de navegador e API verificam resultados, total, URL, preferências independentes e negações com fixtures maiores que uma página.
-

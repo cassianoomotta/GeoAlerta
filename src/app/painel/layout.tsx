@@ -47,6 +47,14 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
   }, [pathname]);
 
   useEffect(() => {
+    // The detail route uses the capability-filtered Core API. Do not load the
+    // legacy Supabase feed here: it contains citizen fields used by old screens.
+    if (pathname.startsWith('/painel/ocorrencias/')) {
+      setNotifications([]);
+      setShowDropdown(false);
+      return;
+    }
+
     // Busca as últimas 10 ocorrências ao carregar a página
     const fetchOldNotifications = async () => {
       const { data } = await supabase
@@ -78,7 +86,7 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [pathname]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -281,7 +289,7 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
             </button>
 
             {/* Dropdown Adaptado para Celular */}
-            {showDropdown && (
+            {showDropdown && !pathname.startsWith('/painel/ocorrencias/') && (
               <div className="absolute top-[120%] right-0 w-[calc(100vw-1.5rem)] max-w-[360px] z-50 p-2 flex flex-col gap-1 max-h-[75vh] md:max-h-[500px] overflow-y-auto glass-card shadow-2xl">
                 <div className="px-3 py-2 border-b border-white/5 mb-1 flex items-center justify-between">
                   <h4 className="text-sm font-semibold text-white">Últimas Ocorrências</h4>

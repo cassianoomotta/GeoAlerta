@@ -12,7 +12,9 @@
 
 **Rastreabilidade:** US-04, RF-016, RNF-001, RNF-003, RNF-006
 
-**Preparação:** proposta pendente de aprovação da divisão; não publicado no Notion.
+**Publicação:** divisão aprovada pelo usuário e publicada no Notion em 30/09/2026.
+
+**Notion:** [Abrir ticket](https://app.notion.com/p/3ebefe2e57f28136afd5c07467c4600f?pvs=204)
 
 - [ ] O download usa o mesmo filtro e autorização da lista, percorre internamente todas as páginas e não usa o limite de pontos do mapa.
 - [ ] Consulta e Operador são recusados também pela API; parâmetros manipulados não expõem grupos ou colunas privadas sem capacidade.
@@ -21,3 +23,13 @@
 - [ ] Não há sincronização com planilhas externas nem dependência de e-mail.
 - [ ] Testes de unidade, navegador e API comparam linhas/filtros, caracteres especiais e negações; a prova com 50 mil registros integra o aceite de capacidade.
 
+### Validação básica durante a história
+
+- [ ] Tipos, lint dos arquivos alterados e testes unitários aprovados; sem Docker, banco/serviços locais ou dependências novas.
+- [ ] Testes puros cobrem serialização UTF-8, aspas, separadores, quebras de linha e neutralização de fórmulas; falso repositório/autorização cobre todas as páginas, filtro inválido/fora do escopo e falha de leitura.
+- [ ] Registrar **implementação concluída e validação básica aprovada** sem declarar segurança ou capacidade integradas.
+
+### Validação integrada pendente — consolidar na história 20
+
+- [ ] No Supabase de homologação, verificar papel/grupo/RLS reais, conjunto filtrado completo, dados e colunas permitidos; executar o caso de 50 mil registros e conferir ausência de truncamento e impacto no banco.
+- [ ] O falso repositório não prova autorização real nem capacidade.

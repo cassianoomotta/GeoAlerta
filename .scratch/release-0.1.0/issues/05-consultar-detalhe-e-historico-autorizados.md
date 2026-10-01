@@ -12,7 +12,9 @@
 
 **Rastreabilidade:** US-05, RF-010, RF-015, RNF-001
 
-**Preparação:** proposta pendente de aprovação da divisão; não publicado no Notion.
+**Publicação:** divisão aprovada pelo usuário e publicada no Notion em 30/09/2026.
+
+**Notion:** [Abrir ticket](https://app.notion.com/p/3ebefe2e57f2812eb108f82ba114ef05?pvs=204)
 
 **Decisão de escopo/dependência:** O detalhe inicial usa fixtures sem foto. A evidência opcional e seu acesso são entregues no ticket 06.
 
@@ -21,4 +23,3 @@
 - [ ] Operador e Gestor consultam apenas os grupos atribuídos; Administrador opera no município configurado; ID fora do escopo não revela existência nem conteúdo.
 - [ ] A classificação informa as zonas e versões consideradas na abertura, sem recalcular silenciosamente registros antigos.
 - [ ] Testes de navegador, API e banco verificam leitura autorizada, campos omitidos e tentativas de acesso cruzado.
-

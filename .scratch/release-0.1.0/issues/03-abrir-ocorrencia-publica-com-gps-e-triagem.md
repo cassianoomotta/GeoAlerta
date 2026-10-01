@@ -12,7 +12,9 @@
 
 **Rastreabilidade:** US-01, RF-001, RF-002, RF-003, RF-015, RNF-002
 
-**Preparação:** proposta pendente de aprovação da divisão; não publicado no Notion.
+**Publicação:** divisão aprovada pelo usuário e publicada no Notion em 30/09/2026.
+
+**Notion:** [Abrir ticket](https://app.notion.com/p/3ebefe2e57f281d181e0eadf4f4a0bd4?pvs=204)
 
 **Decisão de escopo/dependência:** Não depende do login: utiliza a fronteira pública restrita e grupos/zonas sintéticos da base. A autorização privada será consumida nos tickets de backoffice.
 
@@ -24,4 +26,3 @@
 - [ ] A mesma chave e corpo, inclusive em reenvios simultâneos após perda de resposta, retorna o mesmo protocolo com um registro, um evento e um alerta; a mesma chave com corpo diferente retorna conflito.
 - [ ] O contador compartilhado limita 20 novas tentativas por minuto por origem confiável de rede; replays não contam, IP arbitrário não é autoridade e a tentativa excedente retorna 429 sem inserir.
 - [ ] Testes de navegador móvel/desktop, API e banco real verificam GPS, falhas de rede, validação, texto malicioso, abuso, idempotência concorrente e classificação espacial.
-

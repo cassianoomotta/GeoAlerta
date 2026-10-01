@@ -1,6 +1,6 @@
 # Banco de dados — Prisma e Supabase
 
-**Estado:** fundação do ticket 01 implementada e testada localmente com Prisma 7.10.0 e PostgreSQL/PostGIS isolado. Fonte histórica autorizada pelo usuário: `supabase.sql` e `supabase_migrations/`. Baseline e expansão estão em `prisma/migrations/`; autorização operacional e integração dos serviços Supabase permanecem nos tickets posteriores. Ver [evidência de execução](../testing/results/ticket-01-2026-09-30.md).
+**Estado:** fundação do ticket 01 implementada e testada anteriormente com Prisma 7.10.0 e PostgreSQL/PostGIS isolado. Fonte histórica autorizada pelo usuário: `supabase.sql` e `supabase_migrations/`. Baseline e expansão estão em `prisma/migrations/`; autorização operacional e integração dos serviços Supabase permanecem nos tickets posteriores. A validação básica das histórias não exige banco local; o aceite real ocorre no projeto Supabase exclusivo de homologação no fechamento. Ver [evidência histórica de execução](../testing/results/ticket-01-2026-09-30.md).
 
 Esta pasta define a organização dos dados e das migrations da [release Core](../PRD.md). Prisma será o ORM do servidor e Prisma Migrate será o histórico único de alterações do esquema da aplicação no PostgreSQL do Supabase. Auth, Storage, Realtime e PostGIS continuam sendo serviços/extensões do Supabase.
 
@@ -56,13 +56,13 @@ O guia oficial explica as opções de conexão e a configuração Prisma do Supa
 4. Gerar a migration Core com `--create-only`, revisar o SQL e acrescentar objetos não representados no schema antes de aplicar. Após aplicada, uma migration não é reescrita: correções geram outra migration.
 5. Mapear `Aberto → NOVA`, `Em Atendimento → EM_ATENDIMENTO`, `Resolvido → RESOLVIDA`, `Recusado → CANCELADA`. Valores como `Novo` ou outros encontrados no inventário entram no relatório de pré-migração e precisam de decisão explícita antes das restrições. Localização ausente e dados incompletos legados ficam identificados para saneamento, sem fabricação de GPS ou exclusão de registros.
 6. Aplicar mudanças aditivas na cópia isolada, preencher campos Core e conferir contagens, IDs e arquivos do legado. Não executar `DROP`, reset ou exclusões em recursos, abrigos, equipes/GPS e voluntários.
-7. Reaplicar todo o histórico em banco de teste vazio e executar testes de políticas, espacialidade, concorrência e restauração. Depois gerar evidência para revisão do usuário.
+7. No aceite integrado da release, verificar migrations, políticas, espacialidade, concorrência e restauração com os alvos autorizados; registrar evidência para revisão do usuário. Não exigir repetição dessas verificações de banco durante cada história.
 
 Baseline é o mecanismo oficial para adotar Prisma Migrate com dados existentes: [baselining](https://www.prisma.io/docs/orm/v7/prisma-migrate/workflows/baselining). Objetos não modelados são adicionados ao SQL antes da aplicação: [customização para recursos não suportados](https://www.prisma.io/docs/orm/v7/prisma-migrate/workflows/unsupported-database-features).
 
 ## Comandos planejados
 
-Executar a partir da raiz, depois da tarefa de fundação e somente contra o alvo local/descartável permitido:
+Os comandos existentes abaixo pertencem à preparação/verificação de banco e não fazem parte da validação básica por história. Não usar Docker nem aplicar migrations remotas durante a atualização deste planejamento. Executar apenas no trabalho de aceite integrado autorizado e controlado, contra os alvos aprovados:
 
 ```bash
 node scripts/with-env.mjs prisma validate
@@ -75,4 +75,4 @@ npm run test:db
 
 O carregador resolve os executáveis instalados no projeto. `migrate dev` exige desenvolvimento e shadow database separados. Agentes podem criar, revisar e testar migrations locais; aplicação a ambiente compartilhado/produção e publicação pertencem ao usuário. Nenhum script de `dev`, `build` ou teste deve disparar migration em produção. Não usar `db push` como substituto do histórico versionado nem introduzir migrations paralelas do Supabase CLI para os mesmos objetos.
 
-**Aceite:** esquema reproduzível a partir do histórico, preservação do legado, políticas comprovadas com identidades distintas, ausência de contexto residual no pool e evidência de restauração em banco de teste. O [plano de testes](../testing/automated-tests.md) define os cenários.
+**Aceite integrado:** esquema reproduzível a partir do histórico, preservação do legado, políticas comprovadas com identidades distintas, ausência de contexto residual no pool e evidência real de restauração em segundo alvo descartável. Isso ocorre no fechamento da release no ambiente Supabase de homologação; teste com fixture simulada não aprova estes critérios. O [plano de testes](../testing/automated-tests.md) define os cenários.

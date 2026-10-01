@@ -12,7 +12,9 @@
 
 **Rastreabilidade:** US-02, RF-005, RNF-001
 
-**Preparação:** proposta pendente de aprovação da divisão; não publicado no Notion.
+**Publicação:** divisão aprovada pelo usuário e publicada no Notion em 30/09/2026.
+
+**Notion:** [Abrir ticket](https://app.notion.com/p/3ebefe2e57f281caa852d49eafaa3602?pvs=204)
 
 - [ ] Login válido de conta ATIVO e logout funcionam; ausência de sessão, credenciais inválidas e contas PENDENTE, SUSPENSO ou DESATIVADO impedem acesso protegido, inclusive com sessão anterior.
 - [ ] A matriz de Consulta, Operador, Gestor e Administrador combina capacidades, grupos e município, incluindo contas sem grupo e com múltiplos grupos; não há autocadastro público de operadores.
@@ -21,4 +23,3 @@
 - [ ] RLS e grants reais impedem leitura cruzada e escrita direta nas tabelas Core por anon/authenticated; Consulta não lê dados privados diretamente no banco.
 - [ ] Os erros de autenticação, capacidade e ID fora do escopo respeitam o contrato da release e não revelam dados privados.
 - [ ] Testes de navegador, API, banco e permissões comprovam os casos concedidos e negados com identidades reais de aplicação, sem conexão administrativa como prova de RLS.
-

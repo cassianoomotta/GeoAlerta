@@ -147,7 +147,7 @@ Este arquivo substitui `requirements.txt` como catálogo de produto em Markdown.
 | RNF-002 | Entrada pública tem validação, limitação de abuso e idempotência. | Coordenadas inválidas, campos manipulados, rajadas e reenvios concorrentes. |
 | RNF-003 | Consultas de lista e mapa são delimitadas; nenhuma tela carrega o histórico inteiro por padrão. | Paginação e limites espaciais/temporais com pelo menos 50 mil registros. |
 | RNF-004 | Capacidade planejada: 100 novas ocorrências/hora em crise, 10 sessões simultâneas de backoffice e histórico de ao menos 50 mil ocorrências. | Uma hora de carga, rajadas de 10 envios/minuto, p95 de registro sem foto/lista até 3 s e alerta até 5 s; metas ainda não comprovadas. |
-| RNF-005 | Fluxos críticos têm cenários BDD automatizados e testes de permissão, concorrência e migração. | Playwright para fluxos e API, com verificações de banco e domínio complementares. |
+| RNF-005 | Fluxos críticos têm cenários automatizados e testes de permissão, concorrência e migração. | Validação básica unitária por história; aceite integrado de API/interface e serviços reais no Supabase de homologação ao fechamento, conforme [plano de testes](testing/automated-tests.md). |
 | RNF-006 | Alertas operacionais são in-app; não há integração bidirecional com planilhas externas. | Alertas no painel e download CSV local. |
 | RNF-007 | Alterações de banco são versionadas e reproduzíveis; arquivos legados não são a fonte única do novo esquema. | Prisma Migrate, baseline do legado e SQL complementar versionado para PostGIS, RLS e Realtime. |
 

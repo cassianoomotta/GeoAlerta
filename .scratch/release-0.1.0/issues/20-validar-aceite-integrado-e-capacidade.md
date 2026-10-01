@@ -14,9 +14,12 @@
 
 **Natureza:** Verificação integrada da release
 
-**Preparação:** proposta pendente de aprovação da divisão; não publicado no Notion.
+**Publicação:** divisão aprovada pelo usuário e publicada no Notion em 30/09/2026.
 
-- [ ] Lint, build e testes de domínio, API, banco real e navegador passam; a matriz de US/RF/RNF liga cada requisito aos resultados, sem cenário crítico pulado ou teste instável considerado aprovado.
+**Notion:** [Abrir ticket](https://app.notion.com/p/3ebefe2e57f281bfbbecff444bd7e6e0?pvs=204)
+
+- [ ] **Validação básica de fechamento:** tipos, lint dos arquivos alterados e testes unitários passam; build executa neste marco de integração/fechamento, sem ser exigido a cada edição.
+- [ ] **Aceite integrado:** matriz de US/RF/RNF liga cada requisito aos resultados reais, sem cenário crítico pulado ou teste instável considerado aprovado.
 - [ ] Fluxos críticos passam em Chromium, Firefox, WebKit e viewports móveis pertinentes, com permissões, GPS, Storage, Realtime, concorrência e migrations verificados.
 - [ ] A integração confirma suspensão com canal/sessão antiga, pool sem identidade residual, foto autorizada, grupos padrão/reatribuição, configuração de transições e zonas sem perda de histórico.
 - [ ] O cenário executa uma hora com ao menos 50 mil ocorrências históricas, 100 novas ocorrências, rajada de 10 envios em um minuto e 10 sessões simultâneas usando lista, mapa e atualizações.
@@ -26,3 +29,15 @@
 - [ ] Uma revisão integrada confere a cobertura e a preservação do legado; falha ou ambiente indisponível mantém o aceite pendente.
 - [ ] A entrega é local e revisável; apenas o usuário executa commit, push, merge, aplicação em ambiente compartilhado e deploy.
 
+### Pendências integradas consolidadas das histórias anteriores
+
+- [ ] **Histórias 06–10:** Storage privado e links temporários; Auth, permissões por papel/grupo e transições; concorrência, auditoria atômica, exclusão/restauração e preservação de fotos/dados — conferir as listas integradas individuais e reportar resultado por ID.
+- [ ] **Histórias 11–12:** CSV integral no escopo autorizado e sem truncamento; filtros de mapa/contagens com PostGIS e limites espaciais/temporais — reportar por história e RNF.
+- [ ] **História 13:** feed Realtime mínimo, RLS/grupos, suspensão com canal aberto, reconexão e deduplicação reais.
+- [ ] **Histórias 14–17:** identidade Auth e perfil, administração de usuários/grupos/grants, configuração de transições, zonas versionadas e geofencing PostGIS com autorização real.
+- [ ] **História 18:** operações legadas desativadas e preservação de tabelas, IDs, registros, fotos e arquivos após migrations.
+- [ ] **História 19:** preservar e anexar a evidência específica de restauração em alvo descartável descrita naquela história; não substituir por procedimento escrito nem absorver sem rastreabilidade.
+- [ ] Confirmar que cada história 06–19 tem **implementação concluída e validação básica aprovada** antes do fechamento e que o campo/registro de **aceite integrado concluído** só é marcado com evidência real. Pendência ou simulação permanece pendente.
+- [ ] Executar os cenários integrados aplicáveis de API e interface no projeto Supabase exclusivo de homologação, incluindo migrations, RLS/grants, permissões por perfil/grupo, PostGIS, Auth, Storage privado, Realtime e fluxos entre histórias; mocks não substituem nenhuma dessas provas.
+- [ ] A suíte atual usa preparação de banco e serviços simulados em alguns projetos; adaptar fixtures e preparar contas, permissões e buckets para o Supabase real. Alterar somente a URL não torna a suíte integrada.
+- [ ] Criar ou adaptar o executor e o comando de carga necessários como trabalho desta história; `test:load` não existe em `package.json` hoje. Não tratar comandos planejados como disponíveis até implementá-los e verificá-los.

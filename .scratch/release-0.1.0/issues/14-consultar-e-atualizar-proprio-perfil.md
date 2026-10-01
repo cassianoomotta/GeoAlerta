@@ -12,7 +12,9 @@
 
 **Rastreabilidade:** US-02, RF-006, RNF-001
 
-**Preparação:** proposta pendente de aprovação da divisão; não publicado no Notion.
+**Publicação:** divisão aprovada pelo usuário e publicada no Notion em 30/09/2026.
+
+**Notion:** [Abrir ticket](https://app.notion.com/p/3ebefe2e57f281af9165d744c51c2867?pvs=204)
 
 **Decisão de escopo/dependência:** Não depende da lista: utiliza o contrato comum de preferências da base e um adaptador mínimo.
 
@@ -22,3 +24,13 @@
 - [ ] API e banco negam conta não ativa, inclusive com sessão anterior; validação e feedback de erro/sucesso funcionam.
 - [ ] Testes de navegador, API e banco verificam dados persistidos, limites de edição e tentativas de promoção indevida.
 
+### Validação básica durante a história
+
+- [ ] Tipos, lint dos arquivos alterados e testes unitários relevantes aprovados; sem Docker, banco/serviços locais ou dependências novas.
+- [ ] Falsos de autenticação e repositório cobrem leitura/edição próprias, campos protegidos ou usuário alheio e falha de gravação; validar formato e limites de entrada.
+- [ ] Registrar **implementação concluída e validação básica aprovada**, com aceite integrado pendente.
+
+### Validação integrada pendente — consolidar na história 20
+
+- [ ] No projeto Supabase de homologação, verificar persistência do perfil e preferências, identidade Auth real e negação de campos/contas alheios por API e RLS.
+- [ ] Mocks não comprovam autorização nem isolamento de dados reais.

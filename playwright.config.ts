@@ -8,7 +8,8 @@ const browsers = ['chromium', 'firefox', 'webkit', 'mobile-chromium', 'mobile-we
 const requestedProjects = process.argv.flatMap((arg, index) => arg.startsWith('--project=') ? [arg.slice(10)] : arg === '--project' ? [process.argv[index + 1]] : []);
 const needsServer = (requestedProjects.length === 0 || requestedProjects.some((name) => browsers.includes(name) || name === 'api')) && !process.argv.includes('--list');
 const needsAccessDatabase=needsServer || requestedProjects.includes('database');
-if(needsAccessDatabase && !process.argv.includes('--list')) process.env.CORE_ACCESS_RUNTIME_URL=await prepareAccessTests();
+// Workers reload this config without the CLI project filter and inherit the prepared environment.
+if(process.env.TEST_WORKER_INDEX === undefined && needsAccessDatabase && !process.argv.includes('--list')) process.env.CORE_ACCESS_RUNTIME_URL=await prepareAccessTests();
 
 export default defineConfig({
   testDir: './tests', fullyParallel: false, workers: 1,

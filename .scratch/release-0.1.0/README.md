@@ -1,10 +1,16 @@
-# Backlog proposto — GeoAlerta Core 0.1.0
+# Backlog publicado — GeoAlerta Core 0.1.0
 
-Estado: divisão preparada em 30/09/2026 para aprovação, ainda não publicada no Notion. A versão 0.1.0 vem do pedido do usuário e do manifesto atual; o PRD descreve a próxima release sem versão semântica.
+Estado: divisão aprovada pelo usuário e 20 tickets publicados no Notion em 30/09/2026. Os 20 itens foram lidos novamente e conferidos quanto a título, base, status, prioridade, entrega, critérios de aceite, triagem e links dos bloqueadores. A versão 0.1.0 vem do pedido do usuário e do manifesto atual; o PRD descreve a próxima release sem versão semântica.
 
 Destino: https://app.notion.com/p/3ebefe2e57f2801f8e0bdc682d816f2e?v=3ebefe2e57f280fda7ae000cdfd6de3b
 
 Data source conferida: collection://3ebefe2e-57f2-804c-a0ae-000b48464034. A view retornou zero itens em 30/09/2026. Propriedades atuais: Project name, Status, Priority, Assignee, Team, Start date, End date, Attach file. Status inicial de publicação: Not started. Não atribuir responsável, equipe nem datas sem indicação do usuário. Prefixar cada título com 0.1.0 e seu número estável.
+
+## Estratégia de validação revisada
+
+As histórias 01–05 permanecem preservadas. Para cada história a partir de 06, separar **implementação concluída e validação básica aprovada** do **aceite integrado concluído**. A etapa básica usa verificação de tipos, lint dos arquivos alterados, testes unitários e doubles específicos quando aplicável; não exige Docker, banco/serviços Supabase locais ou novas dependências. Builds ocorrem em marcos de integração e no fechamento. A história 20 consolida o aceite integrado pendente de 06–18 e mantém rastreável a restauração específica da história 19.
+
+O aceite integrado será feito no fechamento da release em projeto Supabase exclusivo de homologação. A suíte atual prepara banco e serviços simulados em alguns projetos; antes do uso real são necessárias adaptações das fixtures e preparação de contas, permissões e buckets. Trocar apenas a URL não basta. Nenhum teste, integração ou aceite foi executado por esta atualização documental.
 
 A base atual não possui propriedade de triagem nem relação de bloqueio. Publicação proposta: ready-for-agent no corpo de cada ticket e links para os tickets bloqueadores na seção Blocked by, usando os campos existentes sem alterar o schema. ready-for-agent indica ticket especificado; só iniciar quando todos os bloqueadores estiverem concluídos.
 
@@ -63,7 +69,29 @@ Toda entrega de implementação deve terminar com testes relevantes e evidência
 - RF-015: auditoria distribuída nos fluxos 03, 05, 07–10, 15–17.
 - RNF-001–RNF-007: distribuídos nas respectivas entregas e verificados integralmente em 20; baseline/recuperação em 01/19.
 
-## Revisão da divisão antes de publicar
+## Aprovação e publicação
 
-A skill to-tickets exige: “Iterate until the user approves the breakdown.” A aprovação deve confirmar granularidade, dependências e eventuais tickets a unir ou dividir. Após aprovação, publicar um item por ticket em ordem de dependência, com critérios de aceite e links reais para bloqueadores, e conferir propriedades/conteúdo salvo. Não editar nem encerrar um item pai.
+A skill to-tickets exige: “Iterate until the user approves the breakdown.” O usuário aprovou a divisão e autorizou a publicação. Foi criado um item por ticket em ordem de dependência, com critérios de aceite e links reais para bloqueadores. A view passou de zero para 20 itens; a conferência individual dos 20 registros não encontrou falhas. Todos estão em Not started, com ready-for-agent no corpo. Nenhum item pai foi editado ou encerrado.
 
+## Tickets no Notion
+
+1. [Preparar a base Core preservando o legado](https://app.notion.com/p/3ebefe2e57f28126a1b0ff5b608b1897?pvs=204)
+2. [Entrar no painel com acesso por papel e grupo](https://app.notion.com/p/3ebefe2e57f281caa852d49eafaa3602?pvs=204)
+3. [Abrir ocorrência pública com GPS e triagem](https://app.notion.com/p/3ebefe2e57f281d181e0eadf4f4a0bd4?pvs=204)
+4. [Listar ocorrências com filtros e colunas pessoais](https://app.notion.com/p/3ebefe2e57f281e2bf58d8394f45d65e?pvs=204)
+5. [Consultar detalhe e histórico autorizados](https://app.notion.com/p/3ebefe2e57f2812eb108f82ba114ef05?pvs=204)
+6. [Anexar e consultar foto privada](https://app.notion.com/p/3ebefe2e57f2814d8057fca83c7d6ad1?pvs=204)
+7. [Registrar ocorrência manualmente no painel](https://app.notion.com/p/3ebefe2e57f281f0b249d33ef95762b7?pvs=204)
+8. [Editar e transicionar sem perder alterações](https://app.notion.com/p/3ebefe2e57f281188fcfe865c96f11c4?pvs=204)
+9. [Reabrir e reclassificar com justificativa](https://app.notion.com/p/3ebefe2e57f28197b7bfd4564df64ba8?pvs=204)
+10. [Excluir e restaurar ocorrências logicamente](https://app.notion.com/p/3ebefe2e57f281e9ac27da527de50b9a?pvs=204)
+11. [Exportar conjunto filtrado completo em CSV](https://app.notion.com/p/3ebefe2e57f28136afd5c07467c4600f?pvs=204)
+12. [Mostrar mapa e contagens delimitados](https://app.notion.com/p/3ebefe2e57f281c98438df148385859d?pvs=204)
+13. [Receber alertas in-app e recuperar reconexão](https://app.notion.com/p/3ebefe2e57f28163a16af648ea8b01a3?pvs=204)
+14. [Consultar e atualizar o próprio perfil](https://app.notion.com/p/3ebefe2e57f281af9165d744c51c2867?pvs=204)
+15. [Administrar usuários, grupos e acesso](https://app.notion.com/p/3ebefe2e57f28184812fc6353fc8b3e4?pvs=204)
+16. [Configurar transições e rótulos de status](https://app.notion.com/p/3ebefe2e57f28106a3d8c5d2c8516e82?pvs=204)
+17. [Administrar zonas de risco versionadas](https://app.notion.com/p/3ebefe2e57f281b38bb6efaa365e3059?pvs=204)
+18. [Desativar módulos legados preservando dados](https://app.notion.com/p/3ebefe2e57f281ada21aed98d1e190d4?pvs=204)
+19. [Comprovar restauração em alvo descartável](https://app.notion.com/p/3ebefe2e57f2815e969be14645e8f194?pvs=204)
+20. [Validar aceite integrado e capacidade da 0.1.0](https://app.notion.com/p/3ebefe2e57f281bfbbecff444bd7e6e0?pvs=204)

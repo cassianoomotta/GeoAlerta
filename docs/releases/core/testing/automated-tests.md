@@ -1,23 +1,34 @@
 # Planejamento de testes automatizados — GeoAlerta Core
 
-**Ferramenta principal:** Playwright Test (`@playwright/test`, TypeScript). **Estado:** suíte planejada; nenhum teste de aplicação foi criado ou executado nesta atualização documental.
+**Ferramenta principal:** Playwright Test (`@playwright/test`, TypeScript). **Objetivo:** validação básica leve durante cada história e aceite integrado real no fechamento da release. Este documento planeja trabalho futuro; não afirma que os cenários descritos passaram.
 
 ## 1. Objetivo e camadas
 
-Comprovar as sete [histórias](../requirements.md), as permissões reais e a integridade do banco organizado com Prisma. Cada tarefa de desenvolvimento escreve primeiro o teste de comportamento, observa a falha, implementa e registra a aprovação. Os cenários usam títulos com `US`, `RF` ou `RNF` e descrevem Dado/Quando/Então, sem exigir um segundo runner BDD.
+Comprovar as sete [histórias](../requirements.md), as permissões reais e a integridade do banco organizado com Prisma. Há duas etapas, com estados distintos: **implementação concluída e validação básica aprovada** por história; depois, **aceite integrado concluído** somente após evidência no projeto Supabase de homologação. Uma história pode avançar com a integração pendente, mas isso não é aceite integral. Cenários usam IDs `US`, `RF` ou `RNF` e descrevem Dado/Quando/Então.
+
+### Validação básica durante cada história
+
+- Conferir tipos com `npm exec -- tsc --noEmit` (TypeScript já consta nas dependências; não há script `typecheck` em `package.json`).
+- Executar lint somente nos arquivos alterados com `npm run lint -- <arquivos-alterados>`.
+- Executar `npm run test:unit -- <arquivo-ou-padrão-relevante>` para regras e validações puras relevantes. O script `test:unit` existe e seleciona o projeto Playwright `unit`.
+- Quando houver fronteira de infraestrutura, cobrir sucesso, entrada inválida e falha com implementações falsas de repositório, autenticação ou armazenamento. Essas verificações cobrem comportamento local, não segurança nem disponibilidade do serviço real.
+- Não exigir Docker, imagens de containers, banco local, serviços Supabase locais ou dependências novas. Não executar projetos `api`, `database` ou navegador como requisito de cada história, pois a configuração atual prepara banco/servidor para eles.
+- Fazer build em marcos de integração e no fechamento da release, sem exigir repetição a cada edição: `npm run build` é o script disponível.
+
+O trabalho de desenvolver novos testes unitários e doubles usados pelas histórias deve ocorrer dentro das histórias pertinentes. Esta atualização não implementa novos testes, scripts ou adaptações da suíte.
 
 | Projeto Playwright | Caminho planejado | O que comprova |
 |---|---|---|
 | `unit` | `tests/unit/**/*.spec.ts` | Funções puras de domínio, coordenadas, transições, permissões e tratamento CSV; sem abrir navegador. |
-| `api` | `tests/api/**/*.spec.ts` | API real com `APIRequestContext`, sessões reais, validação, idempotência e conflitos. |
-| `database` | `tests/database/**/*.spec.ts` | Prisma/SQL contra PostgreSQL com PostGIS e Supabase de teste: baseline, RLS, grants, Storage, triagem e transações. |
-| `chromium` | `tests/e2e/**/*.spec.ts` | Jornada principal de cidadão e backoffice em desktop. |
+| `api` | `tests/api/**/*.spec.ts` | API local com `APIRequestContext`, sessões emitidas pelo SDK Supabase e Auth HTTP de fixture, validação, idempotência e conflitos. |
+| `database` | `tests/database/**/*.spec.ts` | Preparação Prisma/SQL contra PostgreSQL/PostGIS isolado; alguns serviços Supabase são representados por fixtures SQL. Não prova Auth, Storage ou Realtime remotos. |
+| `chromium` | `tests/e2e/**/*.spec.ts` | Jornada na aplicação local em desktop; usa a preparação e o Auth HTTP de fixture configurados pelo runner. |
 | `firefox`, `webkit` | `tests/e2e/**/*.spec.ts` | Compatibilidade dos fluxos críticos; sem reutilizar sessão de outro browser. |
 | `mobile-chromium`, `mobile-webkit` | `tests/e2e/public-occurrence.spec.ts` | Formulário público em viewport móvel, geolocalização e upload. |
 
 Usar projetos sem navegador para domínio, API e banco; carga possui executor próprio em `tests/load/`, sem simular capacidade por quantidade de browsers E2E. O uso de Playwright para API e geolocalização segue as referências oficiais: [API testing](https://playwright.dev/docs/api-testing), [emulação](https://playwright.dev/docs/emulation).
 
-## 2. Estrutura e comandos planejados
+## 2. Estrutura e comandos disponíveis e planejados
 
 ```text
 playwright.config.ts
@@ -31,23 +42,24 @@ tests/
   load/              # carga, métricas e restauração isolada
 ```
 
-Scripts a serem criados em `package.json`, executados na raiz e carregando somente `.env` na raiz do repositório pelo carregador comum:
+Scripts existentes em `package.json`, executados na raiz e carregando exclusivamente `.env` da raiz por `scripts/with-env.mjs`. Os comandos que usam esse wrapper exigem o `.env` da raiz localmente (CI recebe variáveis injetadas); não há `.env.local`, `.env.test` ou outro arquivo local alternativo:
 
-| Comando futuro | Implementação do script |
+| Comando disponível | Implementação do script |
 |---|---|
-| `npm run test:unit` | `node scripts/with-env.mjs playwright test --project=unit` |
+| `npm run lint -- <arquivos>` | `node scripts/with-env.mjs eslint <arquivos>` |
+| `npm run test:unit -- <arquivo-ou-padrão>` | `node scripts/with-env.mjs playwright test --project=unit <arquivo-ou-padrão>` |
 | `npm run test:api` | `node scripts/with-env.mjs playwright test --project=api` |
 | `npm run test:db` | `node scripts/with-env.mjs playwright test --project=database --workers=1` |
 | `npm run test:e2e` | `node scripts/with-env.mjs playwright test --project=chromium` |
 | `npm run test:browsers` | `node scripts/with-env.mjs playwright test --project=chromium --project=firefox --project=webkit --project=mobile-chromium --project=mobile-webkit` |
-| `npm run test:load` | `node scripts/with-env.mjs tsx tests/load/core-load.ts` |
-| `npm run test:restore` | `node scripts/with-env.mjs tsx tests/load/restore.ts` |
+| `npm run build` | `node scripts/with-env.mjs next build` |
+| `npm exec -- tsc --noEmit` | TypeScript CLI existente; não há script `typecheck`. |
 
-O setup da tarefa de fundação fixa versão do Playwright e instala browsers compatíveis. Configurar `webServer` para a aplicação local, `baseURL` explícita, locale `pt-BR`, timezone `America/Sao_Paulo`, retries locais `0` e CI `1`. Um teste que só passa no retry deve ser registrado como instável e corrigido antes do aceite. Suites de banco/restauração não rodam em paralelo com suites que dependem do mesmo banco.
+`test:load`, `test:restore` e `typecheck` não são scripts atualmente disponíveis. Não os trate como comandos prontos; os trabalhos associados a carga e recuperação estão explicitados nas histórias 19 e 20. O Playwright atual configura `webServer` para API/navegadores, `baseURL` explícita, locale `pt-BR`, timezone `America/Sao_Paulo`, retries locais `0` e CI `1`. Suites de banco/restauração não devem rodar em paralelo com suites que dependem do mesmo banco.
 
-## 3. Ambiente e fixtures
+## 3. Ambiente e fixtures da validação integrada
 
-- Usar somente Supabase/PostgreSQL isolado, com PostGIS, Auth, Storage e Realtime reais nos testes de integração. Os testes abortam antes de escrever se o destino não estiver na lista explícita de ambientes de teste, se estiver ausente ou se coincidir com produção.
+- Usar um projeto Supabase exclusivo de homologação, com PostGIS, Auth, Storage e Realtime reais no aceite integrado. A conexão não autoriza aplicar migrations remotas nesta tarefa; preparação e execução ocorrem em trabalho posterior e controlado.
 - Não criar credenciais nem consultar dados de produção. Localmente, todas as variáveis ficam em `.env` na raiz do repositório; CI recebe variáveis injetadas, sem outro arquivo local de ambiente.
 - Gerar usuários sintéticos para Consulta, Operador, Gestor e Administrador, grupos A/B e contas `PENDENTE`, `ATIVO`, `SUSPENSO`, `DESATIVADO`. Testar cada capacidade concedida e negada, inclusive conta sem grupo e usuário com múltiplos grupos.
 - Cada execução recebe `runId`; cada teste usa dados próprios. Sessões de usuários distintos ficam em contextos distintos; arquivos de `storageState` ficam ignorados pelo Git e nunca em relatório público.
@@ -55,7 +67,7 @@ O setup da tarefa de fundação fixa versão do Playwright e instala browsers co
 - Simular sucesso do GPS com geolocalização/permissões do contexto. Simular `PERMISSION_DENIED`, `POSITION_UNAVAILABLE`, `TIMEOUT` e ausência da API com `addInitScript`; o sucesso deve usar a API do navegador, não inputs manuais de coordenadas.
 - Fotos sintéticas válidas e inválidas; limites de tamanho/formato definidos no contrato de upload. Fixtures não gravam URLs públicas ou dados pessoais reais.
 - Pré-migration: amostras dos quatro estados legados conhecidos, um valor desconhecido e localização ausente; amostras preservadas de recursos, abrigos, equipes e voluntários. Carga: ao menos 50 mil ocorrências sintéticas em grupos/estados variados.
-- Setup privilegiado prepara o ambiente; as assertions de permissão usam credenciais de aplicação e usuários reais. Não usar uma conexão administrativa como prova de RLS.
+- A suíte atual prepara banco e serviços simulados em alguns projetos. Para Supabase real, adaptar as fixtures e preparar contas, papéis, grupos, permissões e buckets; trocar somente a URL não é suficiente. Setup privilegiado pode preparar o ambiente, mas assertions de permissão usam credenciais de aplicação e usuários reais. Não usar conexão administrativa nem mocks como prova de RLS.
 
 ## 4. Matriz de cobertura
 
@@ -100,7 +112,7 @@ Os caminhos são futuros e relativos à raiz. As verificações abaixo constitue
 
 **Metas propostas:** p95 de confirmação sem foto ≤ 3 segundos, p95 de primeira página da lista ≤ 3 segundos, alertas visuais ≤ 5 segundos após persistência. Registrar latência das fotos separadamente, erros, duplicações, conflitos esperados, volume consultado, Realtime e crescimento do Storage. Não transformar essas metas em capacidade comprovada até executar o cenário completo.
 
-O executor de carga usa clientes HTTP para entrada e mantém dez sessões de backoffice com observação do painel; separa métricas de rede, servidor e renderização. Exportação deve conter o conjunto completo sem truncamento e sem alterar dados. Restaurar backup sintético em segundo alvo descartável, reaplicar verificações de integridade e documentar tempo/resultado. Nenhum teste de restauração escreve no alvo de origem.
+O executor de carga ainda precisa ser implementado na história 20; quando disponível, usará clientes HTTP para entrada e dez sessões de backoffice com observação do painel, separando métricas de rede, servidor e renderização. Exportação deve conter o conjunto completo sem truncamento e sem alterar dados. A história 19 deve implementar/adaptar e executar a restauração de backup sintético em segundo alvo descartável, reaplicar verificações de integridade e documentar tempo/resultado. Nenhum teste de restauração escreve no alvo de origem.
 
 ## 7. Evidências e aceite
 

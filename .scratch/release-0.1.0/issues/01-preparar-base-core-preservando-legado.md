@@ -14,7 +14,9 @@
 
 **Natureza:** Pré-refatoração técnica
 
-**Preparação:** proposta pendente de aprovação da divisão; não publicado no Notion.
+**Publicação:** divisão aprovada pelo usuário e publicada no Notion em 30/09/2026.
+
+**Notion:** [Abrir ticket](https://app.notion.com/p/3ebefe2e57f28126a1b0ff5b608b1897?pvs=204)
 
 - [ ] Um histórico único Prisma Migrate reproduz a baseline observada e a expansão Core em banco vazio e em cópia sintética compatível do legado, com PostGIS e SQL complementar versionados.
 - [ ] Ocorrências, dados privados, eventos, zonas versionadas, grupos, perfis, preferências, transições, idempotência e feed mínimo têm contratos definidos; o domínio permanece independente de Next.js, Prisma e Supabase.
@@ -24,4 +26,3 @@
 - [ ] O runner descobre testes de domínio, API, banco e navegador; fixtures sintéticas e uma guarda impedem escrita fora de alvos de teste explicitamente permitidos.
 - [ ] As dependências novas são fixadas após verificar compatibilidade, e os guias locais da versão instalada de Next.js são lidos antes de escrever código do framework.
 - [ ] Testes reais de baseline, expansão e preservação passam em alvos isolados; qualquer inventário ou credencial indisponível fica registrado como impedimento, sem alegar execução.
-

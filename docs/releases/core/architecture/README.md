@@ -96,13 +96,19 @@ Recursos/estoques, abrigos, equipes/GPS e voluntários permanecem no repositóri
 
 ## 8. Regras de desenvolvimento
 
-- **Histórias → specs → testes → código:** toda fatia começa com história e cenários Given/When/Then no PRD, ganha spec de contratos e dados, depois testes automatizados; a implementação satisfaz esses testes.
-- **Teste no limite certo:** domínio com testes unitários; API e RLS com integração; fluxos principais com testes de ponta a ponta; migração e carga com cenários próprios.
+- **Validação em duas etapas:** durante cada história, validar tipos, lint dos arquivos alterados e regras com testes unitários; usar doubles de repositório/autenticação/armazenamento para sucesso, entrada inválida e falha quando aplicável. Sem Docker, banco/serviços locais ou novas dependências. API/interface integradas, segurança e serviços reais são verificações do fechamento da release no Supabase de homologação.
+- **Estados de aceite distintos:** registrar “implementação concluída e validação básica aprovada” antes de marcar “aceite integrado concluído”. Um double ou mock não é prova de segurança, migrations, PostGIS, Auth, Storage ou Realtime reais.
+- **Builds:** executar em marcos de integração e no fechamento, sem exigir repetição a cada edição.
 - **Arquivos focados:** um módulo deve expor interfaces claras. Componentes de tela não decidem prioridade, transição ou autorização.
 - **Mudanças versionadas:** Prisma Migrate organiza schema e SQL complementar em um histórico único; nenhuma alteração manual no banco é fonte exclusiva de verdade. Erros são retornados de forma estável e observável.
 - **Documentação:** cada pasta documental e nova unidade relevante terá `README.md` curto com propósito, interface, dependências e comandos de teste. Atualizar os índices quando o desenho mudar.
+<<<<<<< HEAD
 - **Execução por agentes:** implementar tarefas do plano com um agente responsável e um revisor independente; interfaces compartilhadas são definidas antes das tarefas dependentes. Não iniciar desenvolvimento nesta revisão documental.
 - **Governança:** o `AGENTS.md` fornecido mais recentemente reserva commit, push, merge e deploy ao usuário. A IA implementa/testa localmente e registra evidências no Notion. Mudanças compartilhadas de banco permanecem sob controle do usuário.
+=======
+- **Execução por agentes:** seguir histórias e dependências aprovadas; interfaces compartilhadas são definidas antes das tarefas dependentes. Não iniciar desenvolvimento nesta revisão documental.
+- **Governança:** a IA pode escrever e testar localmente. Apenas o usuário revisa, faz commit, push, merge e deploy, conforme `AGENTS.md`.
+>>>>>>> af4f1cb (Ajuste da história 05 e ajuste dos testes das tarefas)
 
 ## 9. Ponto de atenção antes da implementação
 

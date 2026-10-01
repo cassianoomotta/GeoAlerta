@@ -17,6 +17,9 @@ const scopedSQL = (sql: string) => sql.replace(/\bpublic\./g, `${scope}.`).repla
 const scopedURL = (value: string, schema: string) => { const url = new URL(value); url.searchParams.set('schema', schema); return url.toString(); };
 
 async function prepare(client: pg.Client, baseline: boolean) {
+  // Keep the PostGIS types in the shared public schema so repeated scoped
+  // migration histories can resolve geography regardless of schema creation order.
+  await client.query('CREATE EXTENSION IF NOT EXISTS postgis WITH SCHEMA public');
   await client.query(`CREATE SCHEMA ${scope}`);
   await client.query(`SET search_path TO ${scope},public`);
   const platform = readFileSync('tests/fixtures/platform.sql','utf8').replaceAll('CREATE SCHEMA IF NOT EXISTS auth;',`CREATE SCHEMA IF NOT EXISTS ${scope}_auth;`).replaceAll('CREATE SCHEMA IF NOT EXISTS storage;',`CREATE SCHEMA IF NOT EXISTS ${scope}_storage;`);
