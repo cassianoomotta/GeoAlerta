@@ -1,11 +1,11 @@
-# Ingestão pública Core
+# Acesso a ocorrências no servidor
 
-`intake.ts` coordena uma transação Prisma com INGEST_DATABASE_URL separada. current_user deve ser geoalerta_ingest; login e role não podem ter superuser/BYPASSRLS ou propriedade de tabelas públicas. Não existe fallback para DATABASE_URL/DIRECT_URL. RLS restringe ocorrências à tentativa e idempotência à chave corrente; não há SELECT de dados privados ou terceiros.
+Esta pasta contém os adaptadores que conectam as regras do Core ao PostgreSQL/Prisma. As rotas da API chamam estes módulos dentro da sessão e da transação autorizadas.
 
-O lock transacional pela chave serializa reenvios. Replay com hash canônico igual retorna a confirmação anterior antes de consumir o contador; corpo diferente retorna 409. Novas entradas consomem o contador PostgreSQL de 20 por minuto civil UTC/origem. Contador e registros são atômicos; uma falha reverte toda a transação. GPS, grupo padrão, PostGIS, versões das zonas, abertura, auditoria, alerta e resposta idempotente são persistidos antes do 201.
+- `intake.ts` e `persist.ts`: recebem ocorrências públicas, classificam localização e gravam os registros relacionados de forma transacional e idempotente.
+- `list.ts`: consulta ocorrências com filtros, permissões, paginação e projeção autorizada. A exportação CSV usa os mesmos filtros sem limite de página.
+- `mutate.ts`: aplica alterações com controle de versão e registra evento/auditoria na transação.
+- `dashboard-map.ts`: consulta contagens e marcadores no recorte geográfico e temporal autorizado.
+- `origin.ts`: valida a origem usada pelo limite de envios públicos.
 
-`origin.ts` aceita apenas x-vercel-forwarded-for quando VERCEL=1 é uma variável do processo. Headers alternativos não são autoridade. IPs são normalizados e persistidos somente como hash no contador. Fora da Vercel ou com header inválido, a API falha fechada com 503. A Vercel foi confirmada por Cassiano em 30/09/2026: https://vercel.com/docs/headers/request-headers.
-
-Testes HTTP/navegador usam um modelo local explícito do ingresso Vercel: o proxy de fixtures sobrescreve headers enviados pelo cliente. Não é execução da plataforma Vercel nem deploy. INGEST_DATABASE_URL de fixtures é gerada/injetada em memória; nenhuma credencial é criada no .env ou versionada. Ativação compartilhada depende de provisionamento da conexão restrita pelo responsável.
-
-`list.ts` recebe filtros já validados e o ator/transação de `withSession`. RLS define o escopo real; filtro de grupo não autorizado é recusado. Conta/página/ordenação não vêm de metadata como autoridade. Dados do cidadão são selecionados somente para colunas autorizadas do papel atual. O total cobre o conjunto filtrado e somente a página limitada é retornada. Preferências são próprias da conta e têm políticas adicionais na migration `202609300007_list_preferences`.
+Os testes HTTP usam um proxy local que simula o encaminhamento de headers da Vercel; isso não equivale a executar ou publicar na Vercel. As consultas reais a PostgreSQL/PostGIS e as permissões integradas exigem ambiente de teste apropriado.

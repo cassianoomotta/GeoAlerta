@@ -1,13 +1,17 @@
-# Contratos e saneamento Core
+# Funcionalidade de ocorrências
 
-`contracts.ts` define ocorrências, dados privados, eventos, zonas versionadas, classificação, transições, auditoria, idempotência e feed mínimo. Datas são strings ISO 8601 e os tipos não importam framework, ORM ou SDK. A posição é opcional somente na projeção de detalhe para representar legado incompleto; novas entradas exigem posição.
+Esta pasta contém as regras e os contratos usados para registrar, consultar e administrar ocorrências. A interface fica em `ui/`; as operações da aplicação ficam em `application/`; o acesso ao banco fica em `src/server/occurrences/`.
 
-`legacy.ts` mapeia somente os quatro estados aprovados. O relatório identifica estados desconhecidos e localização nula sem modificar entradas; não substitui a futura validação transacional na migration.
+## Arquivos principais
 
-`public-input.ts` valida DTO público e chave de idempotência, sem framework/ORM/SDK. Texto é preservado como texto; a UI usa escape React, sem HTML executável. Grupo/status/prioridade não vêm do cidadão. A abertura usa `src/server/occurrences/` e aceita token opcional de [foto privada](photos/README.md); a página pública anterior permanece preservada em `src/modules/legacy-public-page.tsx`, sem rota ativa.
+- `contracts.ts`, `public-input.ts` e `legacy.ts`: formatos compartilhados, validação de novas entradas e leitura controlada de dados legados.
+- `list-input.ts` e `export-csv.ts`: filtros permitidos, paginação, seleção de colunas e geração segura do CSV.
+- `alerts.ts`: formato mínimo dos alertas exibidos no painel.
+- `photos/`: autorização e regras para anexar e consultar fotos privadas; detalhes em [`photos/README.md`](photos/README.md).
+- `application/`: abertura manual, alterações autorizadas, configuração e consultas do mapa.
+- `domain/`: validações puras de transições, zonas de risco e apresentação do mapa.
+- `ui/`: lista, mapa, formulário, preferências de colunas, foto privada e notificações.
 
-Verificação: `npm run test:unit` e `node node_modules/typescript/bin/tsc --noEmit`.
+As regras de domínio não dependem do framework nem acessam o banco diretamente. As rotas e adaptadores do servidor aplicam as operações e permissões.
 
-`list-input.ts` define filtros, limites, links e whitelist de colunas da lista. A query SQL parametrizada em `src/server/occurrences/list.ts` aplica RLS, exclusão lógica, filtros e paginação no servidor; total e página compartilham o snapshot de uma instrução SQL. A UI usa `/painel/ocorrencias`; `/painel/tabela` redireciona filtros compatíveis e mantém a implementação anterior em `src/modules/legacy-occurrence-table.tsx`.
-
-`create-manual-occurrence.ts` permite abertura autenticada no painel com GPS obrigatório, escopo de grupo e idempotência. `POST /api/core/occurrences` salva ocorrência, dados privados, zonas consideradas, evento, auditoria, alerta e chave de repetição em uma transação; a classificação consulta somente zonas ativas e vigentes. A UI coleta a posição com geolocalização nativa e oferece recuperação para permissão negada, indisponibilidade e timeout.
+Verificações locais: `npm run test:unit` e `npx tsc --noEmit`. Os testes unitários não substituem a validação integrada contra banco e serviços reais.

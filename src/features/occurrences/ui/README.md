@@ -1,7 +1,12 @@
-# Lista Core
+# Interface de ocorrências
 
-A página Server Component consulta somente uma página autorizada e renderiza total, filtros GET, links que preservam a URL e colunas efetivas da conta. `ColumnPreferences` usa interação cliente para salvar colunas via API autenticada; não recebe colunas privadas quando o papel é Consulta. Não há consulta direta à Data API ou carregamento do histórico inteiro.
+Componentes React usados nas páginas do cidadão e do painel:
 
-`ManualOccurrenceForm` coleta GPS do dispositivo antes de enviar uma abertura autenticada. O comando inclui o grupo autorizado da lista, reutiliza a chave de idempotência em retentativas do mesmo corpo e mostra o protocolo confirmado ou uma orientação recuperável.
+- `ManualOccurrenceForm.tsx` e `manual-position.ts`: criação autenticada no painel e captura de GPS do dispositivo.
+- `OccurrencePhoto.tsx`: consulta sob demanda de foto privada; a API verifica a permissão antes de entregar uma URL temporária.
+- `CoreMapOverview.tsx` e `CoreMapCanvas.tsx`: filtros de período, contagens e mapa. O mapa limita os marcadores visíveis e informa quando há mais resultados.
+- `ColumnPreferences.tsx` e `ListStatusMenu.tsx`: preferências de colunas e ações de status na lista.
+- `CoreNotifications.tsx`: alertas in-app por Realtime e atualização da visão autorizada.
+- `RiskZonePanel.tsx` e `StatusConfigurationPanel.tsx`: telas administrativas de zonas de risco e regras de status.
 
-`OccurrencePhoto` é renderizado no detalhe somente quando a API autorizada informa `privateData.hasPhoto`. Consulta não recebe esse campo. O componente solicita a URL privada sob demanda, evita o otimizador/cache público, remove a referência ao expirar e limpa o estado ao trocar de ocorrência. A API revalida a permissão a cada leitura.
+A página e as rotas do servidor continuam responsáveis por aplicar a autorização. Estes componentes não devem buscar dados privados diretamente da Data API do Supabase.
