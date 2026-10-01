@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import {can} from '@/features/access/domain/permissions';
 import {withSession} from '@/server/access/session';
 import {listOccurrences} from '@/server/occurrences/list';
 import {parseListFilters,listHref,statuses,columnLabels,ListInputError,type ListResult,type Column,type ListItem} from '@/features/occurrences/list-input';
@@ -10,14 +11,20 @@ function cell(item:ListItem,column:Column){
   if(column==='groupId')return item.groupName;
   return item[column]??'—';
 }
+function exportHref(filters:ListResult['filters']){
+  const params=new URLSearchParams();
+  for(const [key,value]of Object.entries({...filters,page:1,pageSize:100}))if(value!==undefined)params.set(key,Array.isArray(value)?value.join(','):String(value));
+  return `/api/core/occurrences/export?${params.toString()}`;
+}
 export default async function Occurrences({searchParams}:{searchParams:Promise<Record<string,string|string[]|undefined>>}){
   let result:ListResult;
   let canCreate=false;
   let canAdminister=false;
+  let canExport=false;
   try{
     const params=new URLSearchParams();for(const [key,value]of Object.entries(await searchParams))if(Array.isArray(value))value.forEach(v=>params.append(key,v));else if(value!==undefined)params.set(key,value);
-    const loaded=await withSession(async(tx,actor)=>({result:await listOccurrences(tx,actor,parseListFilters(params)),canCreate:actor.role!=='CONSULTA',canAdminister:actor.role==='ADMINISTRADOR'}));
-    result=loaded.result;canCreate=loaded.canCreate;canAdminister=loaded.canAdminister;
+    const loaded=await withSession(async(tx,actor)=>({result:await listOccurrences(tx,actor,parseListFilters(params)),canCreate:actor.role!=='CONSULTA',canAdminister:actor.role==='ADMINISTRADOR',canExport:can(actor,'export',{municipalityId:actor.municipalityId,groupId:actor.groupIds[0]})}));
+    result=loaded.result;canCreate=loaded.canCreate;canAdminister=loaded.canAdminister;canExport=loaded.canExport;
   }catch(error){
     return <section className="p-6"><h1 className="text-2xl font-bold">Ocorrências</h1><p role="alert" className="my-4">{error instanceof ListInputError?'Verifique os filtros e as colunas; o grupo deve estar autorizado.':'Não foi possível carregar a lista. Tente novamente.'}</p><Link href="/painel/ocorrencias">Limpar filtros e tentar novamente</Link></section>;
   }
@@ -25,6 +32,7 @@ export default async function Occurrences({searchParams}:{searchParams:Promise<R
   const pages=Math.max(1,Math.ceil(total/filters.pageSize));
   return <section className="space-y-5 p-4 md:p-6">
     <h1 className="text-2xl font-bold">Ocorrências</h1>
+    {canExport&&<a className="inline-flex rounded border border-emerald-400/30 px-3 py-2 text-sm text-emerald-100" href={exportHref(filters)}>Baixar CSV das ocorrências filtradas</a>}
     {canAdminister&&<Link className="inline-flex rounded border border-amber-400/30 px-3 py-2 text-sm text-amber-100" href="/painel/ocorrencias/excluidas">Excluídas e restauração</Link>}
     {canCreate&&groups.length>0&&<ManualOccurrenceForm groups={groups}/>}
     <nav aria-label="Atalhos por status" className="flex flex-wrap gap-3"><Link href={listHref(filters,{status:undefined,page:1})}>Todos os status</Link>{statuses.map(status=><Link key={status} href={listHref(filters,{status,page:1})}>{labels[status]}</Link>)}</nav>

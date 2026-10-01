@@ -1,9 +1,9 @@
 import 'server-only';
 import {Prisma} from '../../../prisma/generated/client/client';
 import type {Actor} from '@/features/access/contracts';
-import {availableColumns,validateColumns,ListInputError,type ListFilters,type ListItem,type ListResult} from '@/features/occurrences/list-input';
+import {availableColumns,validateColumns,ListInputError,type Column,type ListFilters,type ListItem,type ListResult} from '@/features/occurrences/list-input';
 import {getColumns} from '@/features/access/infrastructure/preferences';
-export async function listOccurrences(tx:Prisma.TransactionClient,actor:Actor,filters:ListFilters):Promise<ListResult>{
+async function queryContext(tx:Prisma.TransactionClient,actor:Actor,filters:ListFilters){
   const groups=await tx.$queryRaw<{id:string;name:string}[]>`SELECT id,name FROM public.groups ORDER BY name,id`;
   if(filters.groupId&&!groups.some(g=>g.id===filters.groupId))throw new ListInputError(403);
   const allowed=availableColumns(actor.role!=='CONSULTA');
@@ -24,6 +24,11 @@ export async function listOccurrences(tx:Prisma.TransactionClient,actor:Actor,fi
   if(columns.includes('reporterContact'))privateFields.push(Prisma.sql`d.reporter_contact AS "reporterContact"`);
   const extra=privateFields.length?Prisma.sql`,${Prisma.join(privateFields)}`:Prisma.empty;
   const join=privateFields.length?Prisma.sql`LEFT JOIN public.occurrence_private_data d ON d.occurrence_id=o.id`:Prisma.empty;
+  return {groups,allowed,columns,where,sort,pageSort,direction,extra,join};
+}
+
+export async function listOccurrences(tx:Prisma.TransactionClient,actor:Actor,filters:ListFilters):Promise<ListResult>{
+  const {groups,allowed,columns,where,sort,pageSort,direction,extra,join}=await queryContext(tx,actor,filters);
   // Total and page share one SQL statement/snapshot; only the limited page leaves the DB.
   const rows=await tx.$queryRaw<{total:number;items:ListItem[]}[]>(Prisma.sql`
     WITH counted AS(SELECT count(*)::int AS total FROM public.occurrences o WHERE ${where}),
@@ -32,4 +37,22 @@ export async function listOccurrences(tx:Prisma.TransactionClient,actor:Actor,fi
       ORDER BY ${sort} ${direction},o.id ASC LIMIT ${filters.pageSize} OFFSET ${(filters.page-1)*filters.pageSize})
     SELECT total,coalesce((SELECT jsonb_agg(to_jsonb(p) ORDER BY ${pageSort} ${direction},p.id ASC) FROM page p),'[]'::jsonb) AS items FROM counted`);
   return {items:rows[0].items,total:rows[0].total,page:filters.page,pageSize:filters.pageSize,filters,columns,availableColumns:allowed,groups};
+}
+
+export async function exportOccurrences(tx:Prisma.TransactionClient,actor:Actor,filters:ListFilters):Promise<{items:ListItem[];total:number;columns:Column[]}>{
+  const {allowed,columns,where,direction,extra,join}=await queryContext(tx,actor,filters);
+  const order={createdAt:Prisma.sql`"createdAt"`,priority:Prisma.sql`priority`,status:Prisma.sql`status`}[filters.sort];
+  const rows=await tx.$queryRaw<{item:ListItem;total:number}[]>(Prisma.sql`
+    WITH filtered AS (
+      SELECT o.id,o.protocol,o.type,o.status,o.priority,o.version,
+        o.created_at AS "createdAt",o.updated_at AS "updatedAt",o.group_id AS "groupId",g.name AS "groupName" ${extra}
+      FROM public.occurrences o JOIN public.groups g ON g.id=o.group_id ${join}
+      WHERE ${where}
+    )
+    SELECT to_jsonb(filtered) AS item,count(*) OVER()::int AS total
+    FROM filtered
+    ORDER BY ${order} ${direction},id ASC
+  `);
+  const total=rows[0]?.total??0;
+  return {items:rows.map(row=>row.item),total,columns:validateColumns(columns,allowed)};
 }
