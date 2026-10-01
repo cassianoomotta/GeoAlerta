@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, Suspense } from "react";
 import {ListStatusMenu} from '@/features/occurrences/ui/ListStatusMenu';
 import { supabase } from "@/lib/supabase";
+import {CoreNotifications} from '@/features/occurrences/ui/CoreNotifications';
 import { 
-  Bell, 
   Map as MapIcon, 
   List, 
   LogOut, 
@@ -19,8 +19,7 @@ import {
   PhoneCall
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { formatTimeAgo } from "@/lib/dateUtils";
+import { usePathname, useRouter } from "next/navigation";
 import { getEnabledModules } from "@/modules/registry";
 import { MapPin, Boxes, Truck } from "lucide-react";
 
@@ -34,63 +33,13 @@ const MODULE_ICONS: Record<string, React.ReactNode> = {
 };
 
 export default function PainelLayout({ children }: { children: React.ReactNode }) {
-  const [unread, setUnread] = useState(0);
-  const [notifications, setNotifications] = useState<any[]>([]);
-  const [showDropdown, setShowDropdown] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
-
-  // Fechar gaveta mobile e dropdown ao navegar
-  useEffect(() => {
-    setMobileMenuOpen(false);
-    setShowDropdown(false);
-  }, [pathname]);
-
-  useEffect(() => {
-    // The detail route uses the capability-filtered Core API. Do not load the
-    // legacy Supabase feed here: it contains citizen fields used by old screens.
-    if (pathname.startsWith('/painel/ocorrencias/')) {
-      setNotifications([]);
-      setShowDropdown(false);
-      return;
-    }
-
-    // Busca as últimas 10 ocorrências ao carregar a página
-    const fetchOldNotifications = async () => {
-      const { data } = await supabase
-        .from('occurrences')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(10);
-      if (data) {
-        setNotifications(data);
-      }
-    };
-    
-    fetchOldNotifications();
-
-    const channel = supabase
-      .channel('public:occurrences')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'occurrences' }, (payload) => {
-        setUnread((prev) => prev + 1);
-        setNotifications((prev) => [payload.new, ...prev]);
-        
-        try {
-          const audio = new Audio('/notification.mp3');
-          audio.volume = 0.5;
-          audio.play().catch(err => console.log("Áudio bloqueado pelo navegador:", err));
-        } catch(e) {}
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [pathname]);
+  const router = useRouter();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    window.location.href = '/login';
+    router.push('/login');
   };
 
   return (
@@ -274,61 +223,7 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
           </div>
 
           {/* Lado Direito (Sininho de Notificações) */}
-          <div className="relative">
-            <button 
-              onClick={() => { setShowDropdown(!showDropdown); setUnread(0); }}
-              className="flex items-center justify-center p-2 sm:p-2.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 transition-all relative"
-              aria-label="Notificações"
-            >
-              <Bell size={18} />
-              {unread > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full min-w-[18px] h-[18px] flex items-center justify-center text-[10px] font-bold shadow-[0_0_10px_rgba(239,68,68,0.8)] border border-background">
-                  {unread}
-                </span>
-              )}
-            </button>
-
-            {/* Dropdown Adaptado para Celular */}
-            {showDropdown && !pathname.startsWith('/painel/ocorrencias/') && (
-              <div className="absolute top-[120%] right-0 w-[calc(100vw-1.5rem)] max-w-[360px] z-50 p-2 flex flex-col gap-1 max-h-[75vh] md:max-h-[500px] overflow-y-auto glass-card shadow-2xl">
-                <div className="px-3 py-2 border-b border-white/5 mb-1 flex items-center justify-between">
-                  <h4 className="text-sm font-semibold text-white">Últimas Ocorrências</h4>
-                  <button onClick={() => setShowDropdown(false)} className="text-slate-400 hover:text-white sm:hidden p-1">
-                    <X size={14} />
-                  </button>
-                </div>
-                {notifications.length === 0 ? (
-                  <p className="text-sm text-slate-500 py-4 text-center">Nenhuma nova notificação.</p>
-                ) : (
-                  notifications.map((n, i) => (
-                    <div 
-                      key={i} 
-                      onClick={() => {
-                        window.dispatchEvent(new CustomEvent('flyToMarker', { detail: n.id }));
-                        setShowDropdown(false);
-                      }}
-                      className="p-2.5 rounded-xl bg-transparent hover:bg-white/5 border border-transparent hover:border-white/5 text-sm cursor-pointer transition-all flex gap-3 group"
-                    >
-                      {n.photo_url ? (
-                        <img src={n.photo_url} alt="Foto" className="w-11 h-11 object-cover rounded-lg shrink-0 border border-white/10" />
-                      ) : (
-                        <div className="w-11 h-11 rounded-lg shrink-0 border border-white/10 flex items-center justify-center bg-white/5 text-slate-500">
-                          <AlertTriangle size={16} />
-                        </div>
-                      )}
-                      <div className="flex flex-col flex-1 min-w-0 justify-center">
-                        <strong className="text-red-400 text-xs sm:text-sm truncate">{n.type}</strong>
-                        <p className="my-0.5 text-slate-300 text-[11px] truncate">{n.description || 'Sem descrição'}</p>
-                        <span className="text-[10px] text-slate-500 font-medium tracking-wide">
-                          {n.reporter_name || 'Anônimo'} • há {formatTimeAgo(n.created_at)}
-                        </span>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
-          </div>
+          <CoreNotifications />
         </header>
 
         {/* 4. Container de Conteúdo (Filhos) com espaçamento responsivo */}
