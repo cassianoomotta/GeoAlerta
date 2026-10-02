@@ -126,19 +126,29 @@ Este arquivo substitui `requirements.txt` como catálogo de produto em Markdown.
 
 ## US-07 — Desativação preservando legado
 
-**Como** gestor do produto, **quero** retirar os módulos adicionais da release, **para** concentrar operação e manutenção nas ocorrências.
+**Como** gestor do produto, **quero** manter os módulos legados de recursos, equipes/GPS e voluntários desativados, preservando apenas o catálogo administrativo de abrigos necessário à orientação após uma ocorrência.
 
 **Rotas desativadas:** `/painel/recursos`, `/painel/abrigos`, `/painel/equipes`, `/painel/voluntarios`, `/rastreio`. **Requisito:** `RF-017`.
 
 | ID | Requisito |
 |---|---|
-| RF-017 | Recursos, abrigos, equipes/GPS e voluntários ficam inacessíveis na release, com código e dados preservados. |
+| RF-017 | Recursos, o módulo legado de abrigos, equipes/GPS e voluntários ficam inacessíveis na release, com código e dados preservados. A exceção é o catálogo restrito de abrigos descrito em RF-021. |
 
 **Critérios de aceite:**
 
 - Dada release Core ativa, quando abro menu, rota direta ou operação desses módulos, então não consigo operá-los.
 - Dada desativação, quando uso a aplicação, então não são iniciadas assinaturas nem transmissão GPS dos módulos inativos.
 - Dada migration Core, quando comparo o legado antes e depois, então código, tabelas, registros e arquivos desses módulos permanecem preservados.
+
+## US-08 — Orientação e administração de abrigos
+
+**Como** cidadão, **quero** ver os abrigos ativos e abertos depois de registrar qualquer ocorrência e abrir uma rota, **para** encontrar acolhimento disponível.
+
+| ID | Requisito |
+|---|---|
+| RF-021 | A confirmação lista abrigos de Santo Antônio da Patrulha ativos e com situação `Aberto`, com endereço e rotas Google Maps/Waze. Administradores ativos mantêm o catálogo; exclusão com pessoas vinculadas é bloqueada e o registro pode ser desativado. |
+
+**Critérios de aceite:** a lista não depende do tipo de ocorrência; `Lotado`, `Encerrado`, inativo ou sem localização utilizável não aparecem. Falha no catálogo preserva o protocolo e oferece nova tentativa. O acesso público recebe somente nome, tipo, endereço, coordenadas e situação.
 
 ## Requisitos não funcionais e decisões transversais
 

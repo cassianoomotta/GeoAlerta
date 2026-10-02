@@ -54,6 +54,9 @@ export async function prepareAccessTests() {
       await db.query(`INSERT INTO public.occurrence_alerts(event_id,occurrence_id,group_id,priority,status) VALUES($1,$2,$3,'NORMAL','NOVA')`,[event,id,g]);
     }
     await prepareListTests(db);
+    const linkedShelter='50000000-0000-4000-8000-000000000001';
+    await db.query(`INSERT INTO public.shelters(id,municipio,name,type,address,lat,lng,status,is_active) VALUES($1,'sa_patrulha','FIXTURE vínculo de abrigo','humano','Rua Fixture, 10',-29.8,-50.5,'Aberto',false) ON CONFLICT(id) DO UPDATE SET name=EXCLUDED.name`,[linkedShelter]);
+    await db.query(`INSERT INTO public.shelter_people(id,shelter_id,full_name) VALUES('50000000-0000-4000-8000-000000000002',$1,'Pessoa sintética') ON CONFLICT(id) DO NOTHING`,[linkedShelter]);
     return url.toString();
   }finally{await db.end();}
 }

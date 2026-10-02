@@ -7,8 +7,9 @@ generator client {
 /// Shared fixed-minute counter; scoped to the trusted ingestion origin by RLS.
 model intake_rate_limits {
   origin_hash String
-  minute DateTime @db.Timestamptz(6)
-  attempts Int
+  minute      DateTime @db.Timestamptz(6)
+  attempts    Int
+
   @@id([origin_hash, minute])
 }
 
@@ -18,17 +19,17 @@ datasource db {
 
 /// Preserved deployed legacy geometry; never exposed through the Core API.
 model legacy_risk_zones {
-  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name String
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String
   description String?
-  risk_level String @default("Alto")
-  color String @default("#ef4444")
+  risk_level  String   @default("Alto")
+  color       String   @default("#ef4444")
   coordinates Json
-  geojson Json
-  municipio String @default("Santo Antônio da Patrulha")
-  created_by String?
-  created_at DateTime @default(now()) @db.Timestamptz(6)
-  updated_at DateTime @default(now()) @db.Timestamptz(6)
+  geojson     Json
+  municipio   String   @default("Santo Antônio da Patrulha")
+  created_by  String?
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime @default(now()) @db.Timestamptz(6)
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -119,7 +120,7 @@ model shelter_people {
   check_in_at  DateTime? @default(now()) @db.Timestamptz(6)
   check_out_at DateTime? @db.Timestamptz(6)
   created_at   DateTime? @default(now()) @db.Timestamptz(6)
-  shelters     shelters  @relation(fields: [shelter_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  shelters     shelters  @relation(fields: [shelter_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -136,6 +137,7 @@ model shelters {
   phone          String?
   manager        String?
   status         String           @default("Aberto")
+  is_active      Boolean          @default(true)
   notes          String?
   created_at     DateTime?        @default(now()) @db.Timestamptz(6)
   shelter_people shelter_people[]

@@ -6,14 +6,14 @@ test.beforeEach(async({page,request})=>{
   await page.route('**/*',route=>{const host=new URL(route.request().url()).hostname;return ['127.0.0.1','localhost'].includes(host)?route.continue():route.abort();});
 });
 async function fill(page:import('@playwright/test').Page){
-  await expect(page.getByLabel('Tipo de ocorrência').locator('option')).toHaveCount(31);
-  await page.getByLabel('Nome',{exact:true}).fill('Cidadão teste');await page.getByLabel('Contato',{exact:true}).fill('(51) 99999-0000');await page.getByLabel('Tipo de ocorrência').selectOption('Alagamentos/Inundação');await page.getByLabel('Descrição',{exact:true}).fill('<script>window.fixtureXss=true</script>');
+  await expect(page.getByRole('option',{name:'Alagamentos/Inundação',exact:true})).toBeAttached();
+  await page.getByRole('textbox',{name:'Nome'}).fill('Cidadão teste');await page.getByRole('textbox',{name:'Contato'}).fill('(51) 99999-0000');await page.getByRole('combobox',{name:'Tipo de ocorrência'}).selectOption('Alagamentos/Inundação');await page.getByRole('textbox',{name:'Descrição'}).fill('<script>window.fixtureXss=true</script>');
 }
 test('formulário público usa seletor claro e exibe as marcas institucionais',async({page})=>{
   await page.goto('/');
   for(const label of ['Nome *','Contato *','Tipo de ocorrência *','Descrição *','Localização do dispositivo *'])await expect(page.getByText(label,{exact:true})).toBeVisible();
-  await expect(page.getByLabel('Contato')).toHaveAttribute('required','');
-  await expect(page.getByLabel('Tipo de ocorrência')).toHaveAttribute('required','');
+  await expect(page.getByRole('textbox',{name:'Contato'})).toHaveAttribute('required','');
+  await expect(page.getByRole('combobox',{name:'Tipo de ocorrência'})).toHaveAttribute('required','');
   expect(await page.getByLabel('Tipo de ocorrência').evaluate(element=>getComputedStyle(element).colorScheme)).toBe('light');
   const optionStyle=await page.getByLabel('Tipo de ocorrência').locator('option').nth(1).evaluate(element=>({background:getComputedStyle(element).backgroundColor,color:getComputedStyle(element).color}));
   expect(optionStyle).toEqual({background:'rgb(255, 255, 255)',color:'rgb(15, 23, 42)'});
@@ -46,12 +46,30 @@ test('cidadão pode escolher um arquivo ou abrir a câmera traseira para anexar 
 test('RF-001 GPS nativo e confirmação com protocolo no desktop e celular',async({page,context})=>{
   await context.grantPermissions(['geolocation']);await context.setGeolocation({latitude:11,longitude:11,accuracy:8});
   await page.goto('/');await expect(page.getByRole('button',{name:'Obter localização'})).toBeEnabled();await fill(page);await page.getByLabel('Endereço da ocorrência (opcional)').fill('Rua de Teste, 123');
-  expect(await page.getByLabel('Nome',{exact:true}).evaluate(element=>(element as HTMLInputElement).required)).toBe(true);expect(await page.getByLabel('Contato (opcional)').evaluate(element=>(element as HTMLInputElement).required)).toBe(false);expect(await page.getByLabel('Endereço da ocorrência (opcional)').evaluate(element=>(element as HTMLInputElement).required)).toBe(false);
+  expect(await page.getByRole('textbox',{name:'Nome'}).evaluate(element=>(element as HTMLInputElement).required)).toBe(true);expect(await page.getByRole('textbox',{name:'Contato'}).evaluate(element=>(element as HTMLInputElement).required)).toBe(true);expect(await page.getByLabel('Endereço da ocorrência (opcional)').evaluate(element=>(element as HTMLInputElement).required)).toBe(false);
   await expect(page.getByRole('button',{name:'Enviar ocorrência'})).toBeDisabled();await page.getByRole('button',{name:'Obter localização'}).click();await expect(page.getByText('Localização obtida. Precisão: 8 metros.')).toBeVisible();
   const responsePromise=page.waitForResponse(r=>r.url().endsWith('/api/core/public/occurrences')&&r.request().method()==='POST');
   await page.getByRole('button',{name:'Enviar ocorrência'}).click();const response=await responsePromise;expect(response.status()).toBe(201);
-  const result=await response.json();expect(result.protocol).toMatch(/^\d+$/);await expect(page.getByRole('status')).toContainText(result.protocol);expect(await page.evaluate(()=>Object.hasOwn(window,'fixtureXss'))).toBe(false);
-  assertTestTarget(process.env.TEST_DATABASE_URL);const db=new pg.Client({connectionString:process.env.TEST_DATABASE_URL});await db.connect();try{const row=(await db.query('SELECT o.address,d.reporter_name,d.reporter_contact FROM public.occurrences o JOIN public.occurrence_private_data d ON d.occurrence_id=o.id WHERE o.id=$1',[result.id])).rows[0];expect(row).toEqual({address:'Rua de Teste, 123',reporter_name:'Cidadão teste',reporter_contact:null});}finally{await db.end();}
+  const result=await response.json();expect(result.protocol).toMatch(/^\d+$/);await expect(page.locator('section[role="status"]')).toContainText(result.protocol);expect(await page.evaluate(()=>Object.hasOwn(window,'fixtureXss'))).toBe(false);
+  assertTestTarget(process.env.TEST_DATABASE_URL);const db=new pg.Client({connectionString:process.env.TEST_DATABASE_URL});await db.connect();try{const row=(await db.query('SELECT o.address,d.reporter_name,d.reporter_contact FROM public.occurrences o JOIN public.occurrence_private_data d ON d.occurrence_id=o.id WHERE o.id=$1',[result.id])).rows[0];expect(row).toEqual({address:'Rua de Teste, 123',reporter_name:'Cidadão teste',reporter_contact:'(51) 99999-0000'});}finally{await db.end();}
+});
+test('RF-004 após o registro exibe abrigos abertos com rotas Google Maps e Waze',async({page,context})=>{
+  await context.grantPermissions(['geolocation']);await context.setGeolocation({latitude:11,longitude:11,accuracy:8});
+  await page.route('**/api/core/public/shelters',route=>route.fulfill({status:200,contentType:'application/json',headers:{'Cache-Control':'no-store'},body:JSON.stringify({shelters:[{id:'50000000-0000-4000-8000-000000000001',name:'Abrigo Central',type:'humano',address:'Praça Central, Santo Antônio da Patrulha',lat:-29.82,lng:-50.52,status:'Aberto'}]})}));
+  await page.route('**/api/core/public/occurrences',route=>route.fulfill({status:201,contentType:'application/json',body:JSON.stringify({id:'60000000-0000-4000-8000-000000000001',protocol:'9001',status:'NOVA',priority:'NORMAL',version:1})}));
+  await page.goto('/');await expect(page.getByRole('button',{name:'Obter localização'})).toBeEnabled();await fill(page);await page.getByLabel('Tipo de ocorrência').selectOption('Chuvas Intensas');await page.getByRole('button',{name:'Obter localização'}).click();
+  await page.getByRole('button',{name:'Enviar ocorrência'}).click();
+  await expect(page.getByRole('heading',{name:'Abrigos disponíveis'})).toBeVisible();await expect(page.getByText('Abrigo Central')).toBeVisible();await expect(page.getByText('Situação: Aberto')).toBeVisible();
+  await expect(page.getByRole('link',{name:'Rota no Google Maps'})).toHaveAttribute('href','https://www.google.com/maps/dir/?api=1&destination=-29.82%2C-50.52');
+  await expect(page.getByRole('link',{name:'Rota no Waze'})).toHaveAttribute('href','https://waze.com/ul?ll=-29.82%2C-50.52&navigate=yes');
+});
+test('RF-004 falha ao carregar abrigos preserva protocolo e permite tentar de novo',async({page,context})=>{
+  await context.grantPermissions(['geolocation']);await context.setGeolocation({latitude:11,longitude:11,accuracy:8});let catalogAttempts=0;
+  await page.route('**/api/core/public/shelters',route=>{catalogAttempts++;return catalogAttempts===1?route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:{code:'SERVICE_UNAVAILABLE'}})}):route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({shelters:[]})});});
+  await page.route('**/api/core/public/occurrences',route=>route.fulfill({status:201,contentType:'application/json',body:JSON.stringify({id:'60000000-0000-4000-8000-000000000002',protocol:'9002',status:'NOVA',priority:'NORMAL',version:1})}));
+  await page.goto('/');await expect(page.getByRole('button',{name:'Obter localização'})).toBeEnabled();await fill(page);await page.getByRole('button',{name:'Obter localização'}).click();await page.getByRole('button',{name:'Enviar ocorrência'}).click();
+  await expect(page.getByText('9002')).toBeVisible();await expect(page.getByText('A ocorrência foi registrada, mas não foi possível carregar a lista de abrigos.')).toBeVisible();await page.getByRole('button',{name:'Tentar carregar abrigos novamente'}).click();
+  await expect(page.getByText('No momento, não há abrigos ativos')).toBeVisible();await expect(page.getByText('9002')).toBeVisible();expect(catalogAttempts).toBe(2);
 });
 test('RF-002 GPS negado indisponível timeout ausente ou inválido impede envio recuperável',async({page})=>{
   for(const scenario of [1,2,3,'missing','invalid'] as const){

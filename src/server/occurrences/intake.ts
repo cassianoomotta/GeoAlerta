@@ -3,6 +3,7 @@ import {createHash,randomUUID} from 'node:crypto';
 import {PrismaClient} from '../../../prisma/generated/client/client';
 import {PrismaPg} from '@prisma/adapter-pg';
 import type {PublicOccurrenceInput,OpenResult} from '@/features/occurrences/contracts';
+import type {PublicShelter} from '@/features/shelters/contracts';
 import {classifyOccurrence,persistOccurrence} from './persist';
 import {resolvePhotoToken} from '@/features/occurrences/photos/token';
 import {photoSecret} from '@/server/photos/storage';
@@ -19,6 +20,17 @@ function client(){
 export async function listActiveOccurrenceTypes():Promise<string[]>{
   const rows=await client().$queryRaw<{name:string}[]>`SELECT name FROM public.occurrence_types WHERE active ORDER BY display_order,name`;
   return rows.map(({name})=>name);
+}
+export async function listOpenShelters():Promise<PublicShelter[]>{
+  const rows=await client().$queryRaw<{id:string;name:string;type:string;address:string;lat:number;lng:number;status:'Aberto'}[]>`
+    SELECT id::text,name,type,address,lat,lng,status
+    FROM public.shelters
+    WHERE municipio='sa_patrulha' AND is_active AND status='Aberto'
+      AND address IS NOT NULL AND btrim(address)<>''
+      AND lat BETWEEN -90 AND 90 AND lng BETWEEN -180 AND 180
+    ORDER BY name,id
+  `;
+  return rows.map(row=>({...row,type:row.type as PublicShelter['type']}));
 }
 export async function openOccurrence(input:PublicOccurrenceInput,key:string,origin:string):Promise<{result:OpenResult;replay:boolean}>{
   const hash=createHash('sha256').update(JSON.stringify(input)).digest('hex');

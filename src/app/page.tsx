@@ -7,6 +7,8 @@ import {validatePublicInput} from '@/features/occurrences/public-input';
 import type {GeoPosition,OpenResult} from '@/features/occurrences/contracts';
 import {photoMetadata} from '@/features/occurrences/photos/contracts';
 import {sendPublicAttempt, PhotoUploadFailure, type PhotoAttempt} from '@/features/occurrences/photos/public-attempt';
+import type {PublicShelter} from '@/features/shelters/contracts';
+import {buildShelterDirections} from '@/features/shelters/domain/directions';
 const subscribe=()=>()=>{};
 export default function Home(){
   const ready=useSyncExternalStore(subscribe,()=>true,()=>false);
@@ -15,6 +17,9 @@ export default function Home(){
   const [sending,setSending]=useState(false);
   const [error,setError]=useState('');
   const [result,setResult]=useState<OpenResult|null>(null);
+  const [shelters,setShelters]=useState<PublicShelter[]>([]);
+  const [sheltersLoading,setSheltersLoading]=useState(false);
+  const [sheltersError,setSheltersError]=useState(false);
   const attempt=useRef<PhotoAttempt|null>(null);
   const photoPickerRef=useRef<HTMLInputElement|null>(null);
   const cameraPickerRef=useRef<HTMLInputElement|null>(null);
@@ -25,6 +30,15 @@ export default function Home(){
   const [occurrenceTypes,setOccurrenceTypes]=useState<string[]>([]);
   const [typesLoading,setTypesLoading]=useState(true);
   const [typesError,setTypesError]=useState(false);
+  function loadPublicShelters(){
+    setShelters([]);setSheltersLoading(true);setSheltersError(false);
+    fetch('/api/core/public/shelters',{cache:'no-store'}).then(async response=>{
+      if(!response.ok)throw new Error('shelter-catalog-unavailable');
+      const payload=await response.json();
+      if(!Array.isArray(payload.shelters))throw new Error('invalid-shelter-catalog');
+      setShelters(payload.shelters as PublicShelter[]);
+    }).catch(()=>{setSheltersError(true);}).finally(()=>{setSheltersLoading(false);});
+  }
   function selectPhoto(event:React.ChangeEvent<HTMLInputElement>){
     const file=event.currentTarget.files?.[0];
     if(!file)return;
@@ -89,7 +103,7 @@ export default function Home(){
           return result;
         },
       });
-      setResult(data);
+      setResult(data);loadPublicShelters();
     }catch(error){if(error instanceof PhotoUploadFailure)setPhotoFailed(true);setError(error instanceof Error?error.message:'Resposta não confirmada. Tente novamente com os mesmos dados; seu envio não será duplicado.');}
     finally{setSending(false);}
   }
@@ -114,6 +128,21 @@ export default function Home(){
             <p className="mt-3 text-sm text-slate-600">Status: {result.status}</p>
           </div>
         </div>
+        <section className="mt-7 border-t border-slate-100 pt-6" aria-labelledby="available-shelters-title">
+          <h3 id="available-shelters-title" className="text-lg font-semibold text-slate-900">Abrigos disponíveis</h3>
+          <p className="mt-1 text-sm leading-relaxed text-slate-600">Estes abrigos estão marcados como ativos e abertos. Escolha um para abrir a rota no aplicativo desejado.</p>
+          {sheltersLoading&&<p role="status" className="mt-4 text-sm text-slate-600">Consultando abrigos disponíveis…</p>}
+          {sheltersError&&<div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"><p>A ocorrência foi registrada, mas não foi possível carregar a lista de abrigos.</p><button type="button" onClick={loadPublicShelters} className="mt-2 rounded-lg border border-amber-700 px-3 py-2 font-semibold text-amber-900">Tentar carregar abrigos novamente</button></div>}
+          {!sheltersLoading&&!sheltersError&&shelters.length===0&&<p className="mt-4 rounded-xl bg-slate-50 p-4 text-sm text-slate-600">No momento, não há abrigos ativos com situação Aberto cadastrados.</p>}
+          {shelters.length>0&&<ul className="mt-4 grid gap-3 sm:grid-cols-2">{shelters.map(shelter=>{
+            const routes=buildShelterDirections(shelter.lat,shelter.lng);
+            return <li key={shelter.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <h4 className="font-semibold text-slate-900">{shelter.name}</h4><p className="mt-1 text-sm text-slate-600">{shelter.address}</p>
+              <p className="mt-2 inline-flex rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800">Situação: {shelter.status}</p>
+              <div className="mt-3 flex flex-wrap gap-2"><a href={routes.googleMaps} target="_blank" rel="noreferrer" className="inline-flex min-h-10 items-center rounded-lg bg-blue-700 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800">Rota no Google Maps</a><a href={routes.waze} target="_blank" rel="noreferrer" className="inline-flex min-h-10 items-center rounded-lg border border-sky-700 px-3 py-2 text-sm font-semibold text-sky-800 hover:bg-sky-50">Rota no Waze</a></div>
+            </li>;
+          })}</ul>}
+        </section>
       </section> : <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl shadow-slate-900/5">
         <div className="border-b border-slate-100 px-5 py-5 sm:px-8">
           <h2 className="text-xl font-semibold text-slate-900">Informações da ocorrência</h2>

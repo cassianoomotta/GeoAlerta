@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import {CoreNotifications} from '@/features/occurrences/ui/CoreNotifications';
 import { 
@@ -34,8 +34,25 @@ const MODULE_ICONS: Record<string, React.ReactNode> = {
 
 export default function PainelLayout({ children }: { children: React.ReactNode }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [canAdminister, setCanAdminister] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+
+  useEffect(() => {
+    let active = true;
+
+    fetch('/api/core/access?capability=administer', { cache: 'no-store' })
+      .then((response) => {
+        if (active && response.ok) setCanAdminister(true);
+      })
+      .catch(() => {
+        if (active) setCanAdminister(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -103,6 +120,14 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
               </Link>
             );
           })}
+          {canAdminister && (
+            <Link
+              href="/painel/admin/shelters"
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 ${pathname.startsWith('/painel/admin/shelters') ? 'bg-primary/10 text-primary border border-primary/20 font-semibold shadow-[0_0_15px_rgba(59,130,246,0.15)]' : 'text-slate-400 hover:text-white hover:bg-white/5 font-medium'}`}
+            >
+              <Building2 size={18} /> Abrigos
+            </Link>
+          )}
           <Link href="/painel/perfil" className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all ${pathname.startsWith('/painel/perfil') ? 'bg-primary/10 text-primary border border-primary/20 font-semibold' : 'text-slate-400 hover:text-white hover:bg-white/5 font-medium'}`}>
             <UserRound size={18} /> Meu perfil
           </Link>
@@ -161,6 +186,15 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
                   </Link>
                 );
               })}
+              {canAdminister && (
+                <Link
+                  href="/painel/admin/shelters"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${pathname.startsWith('/painel/admin/shelters') ? 'bg-primary/20 text-primary border border-primary/30' : 'text-slate-300 hover:bg-white/5'}`}
+                >
+                  <Building2 size={18} /> Abrigos
+                </Link>
+              )}
               <Link href="/painel/perfil" onClick={() => setMobileMenuOpen(false)} className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${pathname.startsWith('/painel/perfil') ? 'bg-primary/20 text-primary border border-primary/30' : 'text-slate-300 hover:bg-white/5'}`}>
                 <UserRound size={18} /> Meu perfil
               </Link>

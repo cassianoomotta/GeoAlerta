@@ -21,8 +21,8 @@ export default defineConfig({
   reporter: [['list'], ['html', { open: 'never' }], ['junit', { outputFile: 'test-results/junit.xml' }]],
   use: { baseURL, locale: 'pt-BR', timezoneId: 'America/Sao_Paulo', trace: 'on-first-retry', screenshot: 'only-on-failure' },
   webServer: needsServer ? [
-    {command:'node scripts/with-env.mjs tsx tests/fixtures/auth-server.ts',url:'http://127.0.0.1:3101/health',reuseExistingServer:false},
-    {command:'npm run dev -- --hostname 127.0.0.1 --port 3100',url:'http://127.0.0.1:3100',reuseExistingServer:false,env:{DATABASE_URL:process.env.CORE_ACCESS_RUNTIME_URL!,INGEST_DATABASE_URL:process.env.CORE_ACCESS_RUNTIME_URL!.replace('geoalerta_runtime','geoalerta_ingest'),VERCEL:'1',NEXT_PUBLIC_SUPABASE_URL:'http://127.0.0.1:3101',NEXT_PUBLIC_SUPABASE_ANON_KEY:'fixture-anon-key'}},
+    {command:'node scripts/with-env.mjs tsx tests/fixtures/auth-server.ts',url:'http://127.0.0.1:3101/health',reuseExistingServer:true},
+    {command:'npm run dev -- --hostname 127.0.0.1 --port 3100',url:'http://127.0.0.1:3100',reuseExistingServer:false,env:{CORE_TEST_NEXT_DIST_DIR:'.cache/next-test',DATABASE_URL:process.env.CORE_ACCESS_RUNTIME_URL!,INGEST_DATABASE_URL:process.env.CORE_ACCESS_RUNTIME_URL!.replace('geoalerta_runtime','geoalerta_ingest'),VERCEL:'1',NEXT_PUBLIC_SUPABASE_URL:'http://127.0.0.1:3101',NEXT_PUBLIC_SUPABASE_ANON_KEY:'fixture-anon-key'}},
     {command:'node scripts/with-env.mjs tsx tests/fixtures/ingress-server.ts',url:'http://127.0.0.1:3102/__fixture/health',reuseExistingServer:false},
   ] : undefined,
   projects: [

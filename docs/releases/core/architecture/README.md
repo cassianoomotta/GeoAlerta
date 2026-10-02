@@ -92,7 +92,7 @@ O volume de 100 novas ocorrências/hora, 10 operadores e 50 mil registros histó
 
 ## 7. Features legadas desativadas
 
-Recursos/estoques, abrigos, equipes/GPS e voluntários permanecem no repositório e no banco. Nesta release, remover suas entradas de navegação, bloquear rotas diretas e operações, encerrar assinaturas e não iniciar transmissão de GPS. A desativação é coberta por teste de rota e permissão; ocultar menu isoladamente não basta. Não executar migração destrutiva dessas tabelas.
+Recursos/estoques, o módulo legado de abrigos e acolhidos, equipes/GPS e voluntários permanecem no repositório e no banco. Suas rotas antigas e operações continuam desativadas e não iniciam assinaturas nem transmissão GPS. O catálogo limitado `public.shelters` é a exceção: sua gestão passa por `/painel/admin/shelters`, exige sessão ativa de Administrador e grava auditoria. O endpoint público usa `geoalerta_ingest`, retorna apenas abrigos ativos e `Aberto` com localização válida, e não lê `shelter_people`. A chave estrangeira restringe exclusão quando há pessoas vinculadas. Não executar migração destrutiva dessas tabelas.
 
 ## 8. Regras de desenvolvimento
 
@@ -102,13 +102,8 @@ Recursos/estoques, abrigos, equipes/GPS e voluntários permanecem no repositóri
 - **Arquivos focados:** um módulo deve expor interfaces claras. Componentes de tela não decidem prioridade, transição ou autorização.
 - **Mudanças versionadas:** Prisma Migrate organiza schema e SQL complementar em um histórico único; nenhuma alteração manual no banco é fonte exclusiva de verdade. Erros são retornados de forma estável e observável.
 - **Documentação:** cada pasta documental e nova unidade relevante terá `README.md` curto com propósito, interface, dependências e comandos de teste. Atualizar os índices quando o desenho mudar.
-<<<<<<< HEAD
-- **Execução por agentes:** implementar tarefas do plano com um agente responsável e um revisor independente; interfaces compartilhadas são definidas antes das tarefas dependentes. Não iniciar desenvolvimento nesta revisão documental.
-- **Governança:** o `AGENTS.md` fornecido mais recentemente reserva commit, push, merge e deploy ao usuário. A IA implementa/testa localmente e registra evidências no Notion. Mudanças compartilhadas de banco permanecem sob controle do usuário.
-=======
 - **Execução por agentes:** seguir histórias e dependências aprovadas; interfaces compartilhadas são definidas antes das tarefas dependentes. Não iniciar desenvolvimento nesta revisão documental.
 - **Governança:** a IA pode escrever e testar localmente. Apenas o usuário revisa, faz commit, push, merge e deploy, conforme `AGENTS.md`.
->>>>>>> af4f1cb (Ajuste da história 05 e ajuste dos testes das tarefas)
 
 ## 9. Ponto de atenção antes da implementação
 

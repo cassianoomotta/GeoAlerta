@@ -15,6 +15,7 @@ Sucesso significa que uma ocorrência válida aparece no painel com prioridade c
 - **Localização:** captura por API nativa de geolocalização do navegador; ausência ou coordenada inválida impede envio. A precisão informada pelo dispositivo é armazenada e exibida. Não se presume que um cliente anônimo seja incapaz de alterar os valores enviados.
 - **Município:** a release opera inicialmente em um município, mas o modelo de autorização mantém grupo/escopo explícito para evitar acesso cruzado futuro.
 - **Fotos:** opcionais; falha no envio da foto não deve resultar em ocorrência aparentemente concluída sem confirmação clara ao cidadão.
+- **Orientação de abrigos:** após qualquer ocorrência registrada, o cidadão pode consultar os abrigos ativos com situação `Aberto` e abrir a rota pelo Google Maps ou Waze. A administração do catálogo fica restrita ao Administrador.
 - **Notificações:** somente alertas in-app para o fluxo operacional. CSV é download local, sem sincronização com planilhas externas.
 - **Dados legados:** não apagar tabelas, fotos ou registros dos módulos desativados durante esta release.
 
@@ -52,12 +53,15 @@ Para Consulta, Operador e Gestor, “Sim” vale somente nos grupos atribuídos.
 | `/painel/ocorrencias/[id]` | Backoffice | Detalhe, edição, histórico e ações permitidas |
 | `/painel/perfil` | Backoffice | Dados e preferências da própria conta |
 | `/painel/admin` | Administrador | Usuários, grupos, papéis, regras de status e zonas de risco |
+| `/painel/admin/shelters` | Administrador | Cadastro, situação, ativação e remoção segura de abrigos |
 
 O menu lateral apresenta estados como atalhos para a lista. Filtro, ordenação e paginação ficam na URL para que a visão possa ser revisitada. Preferências de colunas são pessoais e não alteram a visão de outros operadores.
 
 **Campos mínimos da ocorrência:** protocolo, tipo, descrição, nome e contato obrigatórios informados pelo cidadão, latitude, longitude, precisão, evidência opcional, prioridade, status, grupo responsável, data de abertura e última atualização. A lista oferece como colunas protocolo, abertura, tipo, prioridade, status e grupo; coordenadas e dados do cidadão são restritos a usuários autorizados. Filtros incluem período, status, prioridade, tipo e grupo autorizado; ordenação fica restrita a campos indexáveis expostos pela API.
 
 **Campos mínimos da conta administrativa:** nome, e-mail institucional, telefone opcional, papel, grupos, estado de acesso, data de criação e último acesso. O próprio usuário edita apenas nome, telefone e preferências. O administrador altera papel, grupos e estado. Novas ocorrências públicas entram no grupo operacional padrão do município, configurado na administração; um usuário autorizado pode reatribuí-las com evento de auditoria.
+
+**Orientação após o registro:** a confirmação mantém protocolo e status mesmo se o catálogo falhar. Quando disponível, lista todos os abrigos ativos e com situação `Aberto`, informando nome, endereço e situação, com links de rota no Google Maps e Waze. O catálogo público não expõe capacidade, ocupação, telefone, responsável, observações ou pessoas vinculadas. Somente Administradores ativos podem cadastrar, editar, ativar, desativar ou excluir abrigos; a exclusão é bloqueada se houver pessoas vinculadas.
 
 ## 5. Histórias de usuário e comportamento esperado
 
@@ -157,7 +161,7 @@ Fila/worker e separação em containers **não são exigências desta release**.
 
 ## 9. Fora de escopo e estratégia de desativação
 
-Ficam fora do produto ativo: gestão de recursos/estoques, abrigos, equipes, telemetria GPS, voluntários, despacho automático de equipes, sincronização com planilhas, notificações operacionais por e-mail, aplicativo nativo e motor de workflow arbitrário. O código existente não será excluído nesta release.
+Ficam fora do produto ativo: gestão de recursos/estoques, o módulo legado de abrigos e acolhidos, gestão de equipes, telemetria GPS, voluntários, despacho automático de equipes, sincronização com planilhas, notificações operacionais por e-mail, aplicativo nativo e motor de workflow arbitrário. O catálogo restrito para localização de abrigos após ocorrências é a exceção especificada em RF-021. O código e os dados legados permanecem preservados.
 
 Desativar exige retirar navegação, proteger rotas diretas e impedir operações/assinaturas desses módulos. A migração de dados é aditiva e não usa `DROP` nas tabelas legadas. O rastreador `/rastreio`, hoje dedicado a equipes, também fica inativo.
 
