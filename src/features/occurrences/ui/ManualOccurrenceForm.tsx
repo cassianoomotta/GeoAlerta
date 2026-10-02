@@ -23,7 +23,7 @@ function locationErrorMessage(error: unknown) {
   return 'Este navegador não disponibiliza localização. Use um dispositivo com GPS habilitado.';
 }
 
-export function ManualOccurrenceForm({ groups }: { groups: GroupOption[] }) {
+export function ManualOccurrenceForm({ groups, types }: { groups: GroupOption[]; types: string[] }) {
   const [position, setPosition] = useState<ManualRequest['position'] | null>(null);
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState('');
@@ -99,28 +99,31 @@ export function ManualOccurrenceForm({ groups }: { groups: GroupOption[] }) {
       </summary>
       <form onSubmit={submit} onChange={() => { setCreated(null); setMessage(''); }} aria-busy={pending} className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <label className="grid gap-1 text-sm text-slate-200">
-          Tipo
-          <input className="rounded border border-slate-600 bg-slate-900 p-2 text-white" name="type" required maxLength={80} disabled={pending} />
+          Tipo <span aria-hidden="true" className="text-red-400">*</span>
+          <select className="rounded border border-slate-600 bg-slate-900 p-2 text-white" name="type" required defaultValue="" disabled={pending||!types.length}>
+            <option value="" disabled>Selecione o tipo</option>{types.map(type=><option key={type} value={type}>{type}</option>)}
+          </select>
         </label>
         <label className="grid gap-1 text-sm text-slate-200">
-          Grupo responsável
+          Grupo responsável <span aria-hidden="true" className="text-red-400">*</span>
           <select className="rounded border border-slate-600 bg-slate-900 p-2 text-white" name="groupId" required defaultValue={groups[0]?.id ?? ''} disabled={pending || !groups.length}>
             {groups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}
           </select>
         </label>
         <label className="grid gap-1 text-sm text-slate-200">
-          Nome de contato
+          Nome de contato <span aria-hidden="true" className="text-red-400">*</span>
           <input className="rounded border border-slate-600 bg-slate-900 p-2 text-white" name="reporterName" required maxLength={120} disabled={pending} />
         </label>
         <label className="grid gap-1 text-sm text-slate-200">
-          Contato
+          Contato <span aria-hidden="true" className="text-red-400">*</span>
           <input className="rounded border border-slate-600 bg-slate-900 p-2 text-white" name="reporterContact" required maxLength={40} disabled={pending} />
         </label>
         <label className="grid gap-1 text-sm text-slate-200 sm:col-span-2 lg:col-span-3">
-          Descrição
+          Descrição <span aria-hidden="true" className="text-red-400">*</span>
           <textarea className="min-h-24 rounded border border-slate-600 bg-slate-900 p-2 text-white" name="description" required maxLength={2000} disabled={pending} />
         </label>
         <div className="flex flex-wrap items-center gap-3 sm:col-span-2 lg:col-span-3">
+          <span className="text-sm text-slate-200">Localização GPS <span aria-hidden="true" className="text-red-400">*</span></span>
           <button type="button" onClick={captureLocation} disabled={pending} className="rounded border border-slate-500 px-4 py-2 text-sm font-medium text-slate-100 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60">
             Obter localização GPS
           </button>

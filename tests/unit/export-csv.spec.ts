@@ -3,7 +3,7 @@ import {buildOccurrencesCsv} from '../../src/features/occurrences/export-csv';
 import type {ListItem} from '../../src/features/occurrences/list-input';
 
 const item:ListItem={
-  id:'30000000-0000-4000-8000-000000000001',protocol:'GA-2026-0001',type:'Alagamento; rua “São João”',
+  id:'30000000-0000-4000-8000-000000000001',protocol:'2026',type:'Alagamento; rua “São João”',
   status:'NOVA',priority:'NORMAL',version:1,createdAt:'2026-10-01T03:00:00.000Z',updatedAt:'2026-10-01T03:00:00.000Z',
   groupId:'20000000-0000-4000-8000-000000000001',groupName:'Defesa Civil',reporterName:'José da Silva',reporterContact:'(51) 99999-0000',
 };

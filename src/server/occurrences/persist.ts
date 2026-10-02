@@ -39,20 +39,21 @@ export async function persistOccurrence(
 ): Promise<OpenResult> {
   const id = command.occurrenceId ?? randomUUID();
   const eventId = randomUUID();
+  const inserted = await tx.$queryRaw<{ protocol: string }[]>`
+    INSERT INTO public.occurrences(id,type,description,address,location,accuracy,status,priority,group_id)
+    VALUES(${id}::uuid,${command.input.type},${command.input.description},${command.input.address},
+      ST_SetSRID(ST_MakePoint(${command.input.position.longitude},${command.input.position.latitude}),4326)::geography,
+      ${command.input.position.accuracy},'NOVA',${command.classification.priority},${command.groupId}::uuid)
+    RETURNING protocol
+  `;
+  if (!inserted[0]) throw new Error('Occurrence protocol was not generated.');
   const result: OpenResult = {
     id,
-    protocol: `GA-${id}`,
+    protocol: inserted[0].protocol,
     status: 'NOVA',
     priority: command.classification.priority,
     version: 1,
   };
-
-  await tx.$executeRaw`
-    INSERT INTO public.occurrences(id,protocol,type,description,location,accuracy,status,priority,group_id)
-    VALUES(${id}::uuid,${result.protocol},${command.input.type},${command.input.description},
-      ST_SetSRID(ST_MakePoint(${command.input.position.longitude},${command.input.position.latitude}),4326)::geography,
-      ${command.input.position.accuracy},'NOVA',${result.priority},${command.groupId}::uuid)
-  `;
   await tx.$executeRaw`
     INSERT INTO public.occurrence_private_data(occurrence_id,reporter_name,reporter_contact,photo_object_key)
     VALUES(${id}::uuid,${command.input.reporterName},${command.input.reporterContact},${command.photoObjectKey ?? null})

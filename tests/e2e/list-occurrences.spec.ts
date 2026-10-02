@@ -7,15 +7,32 @@ test.beforeEach(async({page,context,request})=>{
   await request.put('/api/core/preferences/columns',{headers:{Cookie:cookies.map(c=>`${c.name}=${c.value}`).join('; ')},data:{columns:publicColumns}});
   await page.route('**/*',route=>['127.0.0.1','localhost'].includes(new URL(route.request().url()).hostname)?route.continue():route.abort());
 });
-test('RF-009 lista pagina preservando URL filtros sort e atalhos de status',async({page})=>{
+test('RF-009 lista filtra status e categoria pela barra preservando URL e paginação',async({page})=>{
   await page.goto(`/painel/ocorrencias?type=${listType()}&pageSize=50&sort=createdAt&direction=desc`);
+  await expect(page.locator('aside').getByRole('link',{name:'Ocorrências',exact:true})).toHaveCount(1);
+  await expect(page.locator('aside').getByRole('link',{name:'Nova',exact:true})).toHaveCount(0);
+  await expect(page.getByRole('link',{name:'Todos os status'})).toHaveCount(0);
   await expect(page.getByText('125 ocorrências · Página 1 de 3',{exact:true})).toBeVisible();await expect(page.locator('tbody tr')).toHaveCount(50);
+  const form=page.getByRole('form',{name:'Filtros de ocorrências'});
+  await expect(form.getByLabel('Tipo',{exact:true})).toHaveJSProperty('tagName','SELECT');
+  await expect(form.getByLabel('Situação da categoria',{exact:true})).toHaveJSProperty('tagName','SELECT');
   await page.getByRole('link',{name:'Próxima página'}).click();await expect(page).toHaveURL(/page=2/);await expect(page.locator('tbody tr')).toHaveCount(50);expect(new URL(page.url()).searchParams.get('type')).toBe(listType());
   await page.getByRole('columnheader',{name:'Status',exact:true}).getByRole('link').click();await expect(page).toHaveURL(/sort=status/);expect(new URL(page.url()).searchParams.get('page')).toBe('1');
-  await page.locator('aside').getByRole('link',{name:'Nova',exact:true}).click();await expect(page).toHaveURL(/status=NOVA/);expect(new URL(page.url()).searchParams.get('type')).toBe(listType());await expect(page.locator('tbody tr')).toHaveCount(25);
-  const form=page.getByRole('form',{name:'Filtros de ocorrências'});
+  await form.getByLabel('Status',{exact:true}).selectOption('NOVA');await page.getByRole('button',{name:'Aplicar filtros'}).click();await expect(page).toHaveURL(/status=NOVA/);expect(new URL(page.url()).searchParams.get('type')).toBe(listType());await expect(page.locator('tbody tr')).toHaveCount(25);
+  await form.getByLabel('Situação da categoria',{exact:true}).selectOption('active');await page.getByRole('button',{name:'Aplicar filtros'}).click();await expect(page).toHaveURL(/categoryStatus=active/);await expect(page.locator('tbody tr')).toHaveCount(25);
   await form.getByRole('combobox',{name:/^Prioridade/}).selectOption('ALTA');await form.getByLabel('De (UTC)',{exact:true}).fill('2025-01-02');await form.getByLabel('Até (UTC)',{exact:true}).fill('2025-01-03');await page.getByRole('button',{name:'Aplicar filtros'}).click();
   await expect(page).toHaveURL(/priority=ALTA/);await expect(form.getByLabel('Tipo',{exact:true})).toHaveValue(listType());await page.reload();await expect(form.getByRole('combobox',{name:/^Prioridade/})).toHaveValue('ALTA');
+});
+test('RF-010 protocolo abre o detalhe autorizado da ocorrência',async({page})=>{
+  await page.goto(`/painel/ocorrencias?type=${listType()}&pageSize=50&sort=createdAt&direction=desc`);
+  const firstRow=page.locator('tbody tr').first();
+  const protocol=(await firstRow.locator('td').first().innerText()).trim();
+  const protocolLink=firstRow.getByRole('link',{name:protocol,exact:true});
+  await expect(protocolLink).toHaveAttribute('href',/\/painel\/ocorrencias\/[0-9a-f-]{36}$/i);
+  await protocolLink.click();
+  await expect(page).toHaveURL(/\/painel\/ocorrencias\/[0-9a-f-]{36}$/i);
+  await expect(page.getByRole('heading',{name:'Detalhe da ocorrência'})).toBeVisible();
+  await expect(page.getByText(`Protocolo ${protocol}`,{exact:true})).toBeVisible();
 });
 test('RF-009 colunas pessoais são restauradas sem afetar Consulta e erro/vazio são recuperáveis',async({page,context})=>{
   await page.goto(`/painel/ocorrencias?type=${listType()}`);await page.getByText('Minhas colunas',{exact:true}).click();

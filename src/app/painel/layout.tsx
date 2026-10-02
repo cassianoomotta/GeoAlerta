@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
-import {ListStatusMenu} from '@/features/occurrences/ui/ListStatusMenu';
+import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import {CoreNotifications} from '@/features/occurrences/ui/CoreNotifications';
 import { 
@@ -104,7 +103,6 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
               </Link>
             );
           })}
-          <Suspense><ListStatusMenu/></Suspense>
           <Link href="/painel/perfil" className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all ${pathname.startsWith('/painel/perfil') ? 'bg-primary/10 text-primary border border-primary/20 font-semibold' : 'text-slate-400 hover:text-white hover:bg-white/5 font-medium'}`}>
             <UserRound size={18} /> Meu perfil
           </Link>
@@ -163,7 +161,6 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
                   </Link>
                 );
               })}
-              <Suspense><ListStatusMenu/></Suspense>
               <Link href="/painel/perfil" onClick={() => setMobileMenuOpen(false)} className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${pathname.startsWith('/painel/perfil') ? 'bg-primary/20 text-primary border border-primary/30' : 'text-slate-300 hover:bg-white/5'}`}>
                 <UserRound size={18} /> Meu perfil
               </Link>

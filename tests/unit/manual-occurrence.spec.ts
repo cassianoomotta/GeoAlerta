@@ -36,7 +36,7 @@ function ports(overrides: Partial<CreateManualOccurrencePorts> = {}) {
     createAtomically: async (command) => {
       calls.atomics.push(command);
       const classification = await command.classify();
-      return { result: { id: '00000000-0000-4000-8000-000000000041', protocol: 'GA-manual-1', status: 'NOVA', priority: classification.priority, version: 1 }, replay: false };
+      return { result: { id: '00000000-0000-4000-8000-000000000041', protocol: '1', status: 'NOVA', priority: classification.priority, version: 1 }, replay: false };
     },
     ...overrides,
   };
@@ -65,7 +65,7 @@ test('US-05 registra com triagem de zona e atribui a abertura ao operador autent
   const { deps, calls } = ports();
   const result = await createManualOccurrence(operator, body, key, deps);
 
-  expect(result).toEqual({ result: { id: '00000000-0000-4000-8000-000000000041', protocol: 'GA-manual-1', status: 'NOVA', priority: 'ALTA', version: 1 }, replay: false });
+  expect(result).toEqual({ result: { id: '00000000-0000-4000-8000-000000000041', protocol: '1', status: 'NOVA', priority: 'ALTA', version: 1 }, replay: false });
   expect(calls.groups).toEqual([[groupId, 'sa_patrulha']]);
   expect(calls.classifications).toEqual([{ latitude: -29.9, longitude: -50.5, accuracy: 8 }]);
   expect(calls.atomics).toHaveLength(1);

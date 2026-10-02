@@ -12,6 +12,7 @@ interface OccurrenceRow {
   protocol: string;
   type: string;
   description: string | null;
+  address: string | null;
   status: string;
   status_label: string;
   priority: string;
@@ -45,7 +46,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
     const result = await withSession(async (tx, actor) => {
       const rows = await tx.$queryRaw<OccurrenceRow[]>`
-        SELECT o.id::text AS id,o.protocol,o.type,o.description,o.status,s.label AS status_label,
+        SELECT o.id::text AS id,o.protocol,o.type,o.description,o.address,o.status,s.label AS status_label,
           o.priority,o.group_id::text AS group_id,g.name AS group_name,
           ST_Y(o.location::geometry)::float8 AS latitude,
           ST_X(o.location::geometry)::float8 AS longitude,
@@ -94,6 +95,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
         protocol: occurrence.protocol,
         type: occurrence.type,
         description: occurrence.description,
+        address: occurrence.address,
         status: { code: occurrence.status, label: occurrence.status_label },
         priority: occurrence.priority,
         group: { id: occurrence.group_id, name: occurrence.group_name },

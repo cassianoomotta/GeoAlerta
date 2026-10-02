@@ -37,7 +37,7 @@ function parseRequest(value: unknown): { groupId: string; input: PublicOccurrenc
     throw new PublicInputError();
   }
   const { groupId, ...occurrence } = body;
-  return { groupId, input: validatePublicInput(occurrence) };
+  return { groupId, input: validatePublicInput(occurrence, { allowCustomType: true }) };
 }
 
 export async function createManualOccurrence(

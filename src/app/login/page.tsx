@@ -62,7 +62,7 @@ export default function Login() {
           <div className="space-y-4">
             <div>
               <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                E-mail Institucional
+                E-mail Institucional <span aria-hidden="true" className="text-red-400">*</span>
               </label>
               <input 
                 type="email" 
@@ -76,7 +76,7 @@ export default function Login() {
 
             <div>
               <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                Senha de Acesso
+                Senha de Acesso <span aria-hidden="true" className="text-red-400">*</span>
               </label>
               <input 
                 type="password" 

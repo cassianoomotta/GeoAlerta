@@ -80,7 +80,7 @@ export function Field({ label, children, required }: { label: string; children: 
   return (
     <div className="flex flex-col gap-1.5">
       <label className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1">
-        {label} {required && <span className="text-red-400 font-extrabold">*</span>}
+        {label} {required && <span aria-hidden="true" className="text-red-400 font-extrabold">*</span>}
       </label>
       {children}
     </div>

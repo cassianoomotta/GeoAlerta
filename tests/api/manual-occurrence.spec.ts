@@ -63,16 +63,17 @@ test('US-05 criação manual valida grupo, classifica a zona e grava ator e audi
   const created = await request.post('/api/core/occurrences', { headers, data: input });
   expect(created.status()).toBe(201);
   const result = await created.json();
-  expect(result).toMatchObject({ protocol: `GA-${result.id}`, status: 'NOVA', priority: 'ALTA', version: 1 });
+  expect(result).toMatchObject({ status: 'NOVA', priority: 'ALTA', version: 1 });
+  expect(result.protocol).toMatch(/^\d+$/);
 
   const db = await database();
   try {
     const occurrence = (await db.query(`
-      SELECT o.status,o.priority,o.accuracy,o.group_id::text AS group_id,
+      SELECT o.protocol,o.status,o.priority,o.accuracy,o.group_id::text AS group_id,
         ST_Y(o.location::geometry)::float8 AS latitude,ST_X(o.location::geometry)::float8 AS longitude
       FROM public.occurrences o WHERE o.id=$1
     `, [result.id])).rows[0];
-    expect(occurrence).toEqual({ status: 'NOVA', priority: 'ALTA', accuracy: 8, group_id: groupA, latitude: -29.5, longitude: -50.5 });
+    expect(occurrence).toEqual({ protocol: result.protocol, status: 'NOVA', priority: 'ALTA', accuracy: 8, group_id: groupA, latitude: -29.5, longitude: -50.5 });
     expect((await db.query('SELECT reporter_name,reporter_contact FROM public.occurrence_private_data WHERE occurrence_id=$1', [result.id])).rows[0]).toEqual({ reporter_name: input.reporterName, reporter_contact: input.reporterContact });
     const expectedZones = (await db.query(`
       SELECT z.zone_id::text AS zone_id,z.version AS zone_version FROM public.risk_zones z

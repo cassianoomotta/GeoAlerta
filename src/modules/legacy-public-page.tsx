@@ -422,7 +422,7 @@ export default function Home() {
             <ShieldAlert size={19} className="text-amber-600 flex-shrink-0 mt-0.5" />
             <div>
               <p className="text-xs font-bold text-amber-900 uppercase tracking-wide">
-                Aviso Importante: Localização Obrigatória
+                Aviso Importante: Localização Obrigatória <span aria-hidden="true" className="text-red-500">*</span>
               </p>
               <p className="text-xs text-amber-800 mt-0.5 leading-relaxed">
                 <strong>O sistema NÃO funciona se a localização não for habilitada.</strong> Sem as coordenadas de GPS, as viaturas de socorro não conseguem encontrar o local do chamado.

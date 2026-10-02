@@ -15,7 +15,7 @@ async function readBody(request:Request){
 export async function POST(request:Request){
   try{
     const key=validateIdempotencyKey(request.headers.get('Idempotency-Key'));
-    const input=validatePublicInput(await readBody(request));
+    const input=validatePublicInput(await readBody(request),{allowCustomType:true});
     const {result,replay}=await openOccurrence(input,key,resolveOrigin(request.headers));
     return Response.json(result,{status:replay?200:201,headers:{'Cache-Control':'no-store'}});
   }catch(error){

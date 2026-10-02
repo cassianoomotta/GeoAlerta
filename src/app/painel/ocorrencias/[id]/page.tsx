@@ -12,6 +12,7 @@ interface OccurrenceDetail {
   protocol: string;
   type: string;
   description: string | null;
+  address: string | null;
   status: { code: Status; label: string };
   priority: Priority;
   group: { id: string; name: string };
@@ -117,6 +118,7 @@ function OccurrenceDetailView({id}: {id: string}) {
 
       <section className="glass-card p-5 sm:p-7" aria-labelledby="occurrence-location-title">
         <h2 id="occurrence-location-title" className="text-lg font-semibold text-white">Localização</h2>
+        {detail.address && <p className="mt-3 text-sm text-slate-100"><strong>Endereço informado:</strong> {detail.address}</p>}
         {detail.position ? (
           <div className="mt-4 grid gap-3 text-sm text-slate-100 sm:grid-cols-3">
             <p>Latitude: {formatCoordinate(detail.position.latitude)}</p>
@@ -250,12 +252,12 @@ function OccurrenceMutationControls({
       </div>
       <form className="grid gap-4 sm:grid-cols-2" onSubmit={submitEdit}>
         <label className="space-y-1 text-sm text-slate-200">
-          <span>Tipo</span>
+          <span>Tipo <span aria-hidden="true" className="text-red-400">*</span></span>
           <input required maxLength={80} value={type} onChange={(event) => setType(event.target.value)} className="w-full rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 text-white" />
         </label>
         <label className="space-y-1 text-sm text-slate-200">
-          <span>Grupo responsável</span>
-          <select value={groupId} onChange={(event) => setGroupId(event.target.value)} className="w-full rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 text-white">
+          <span>Grupo responsável <span aria-hidden="true" className="text-red-400">*</span></span>
+          <select required value={groupId} onChange={(event) => setGroupId(event.target.value)} className="w-full rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 text-white">
             {detail.availableGroups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}
           </select>
         </label>
@@ -269,7 +271,7 @@ function OccurrenceMutationControls({
       {detail.actions.availableTransitions.length > 0 && <div className="space-y-3 border-t border-white/10 pt-4">
         <h3 className="text-sm font-semibold text-white">Transições disponíveis</h3>
         <label className="block space-y-1 text-sm text-slate-200">
-          <span>Justificativa (quando exigida pela regra)</span>
+          <span>Justificativa (quando exigida pela regra){detail.actions.availableTransitions.some((transition) => transition.reasonRequired) && <span aria-hidden="true" className="ml-1 text-red-400">*</span>}</span>
           <textarea maxLength={500} rows={2} value={reason} onChange={(event) => setReason(event.target.value)} className="w-full rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 text-white" />
         </label>
         <div className="flex flex-wrap gap-2">
@@ -284,14 +286,14 @@ function OccurrenceMutationControls({
       {detail.actions.canReclassify && <div className="space-y-3 border-t border-white/10 pt-4">
         <h3 className="text-sm font-semibold text-white">Reclassificar prioridade</h3>
         <label className="block space-y-1 text-sm text-slate-200">
-          <span>Nova prioridade</span>
-          <select value={priority} onChange={(event) => setPriority(event.target.value as Priority)} className="w-full rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 text-white">
+          <span>Nova prioridade <span aria-hidden="true" className="text-red-400">*</span></span>
+          <select required value={priority} onChange={(event) => setPriority(event.target.value as Priority)} className="w-full rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 text-white">
             <option value="NORMAL">Normal</option>
             <option value="ALTA">Alta</option>
           </select>
         </label>
         <label className="block space-y-1 text-sm text-slate-200">
-          <span>Justificativa obrigatória</span>
+          <span>Justificativa obrigatória <span aria-hidden="true" className="text-red-400">*</span></span>
           <textarea required minLength={10} maxLength={500} rows={2} value={reason} onChange={(event) => setReason(event.target.value)} className="w-full rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 text-white" />
         </label>
         <button type="button" disabled={saving} onClick={() => void submit({ kind: 'reclassify', priority, reason: reason.trim() })} className="rounded-lg border border-amber-400/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-100 disabled:opacity-50">Salvar prioridade</button>
@@ -301,7 +303,7 @@ function OccurrenceMutationControls({
         <h3 className="text-sm font-semibold text-red-200">Excluir logicamente</h3>
         <p className="text-xs text-slate-300">A ocorrência e a foto serão preservadas. Um Administrador poderá restaurar o registro na visão de excluídas.</p>
         <label className="block space-y-1 text-sm text-slate-200">
-          <span>Justificativa obrigatória</span>
+          <span>Justificativa obrigatória <span aria-hidden="true" className="text-red-400">*</span></span>
           <textarea required minLength={10} maxLength={500} rows={2} value={deletionReason} onChange={(event) => setDeletionReason(event.target.value)} className="w-full rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 text-white" />
         </label>
         <button type="button" disabled={saving} onClick={() => void submit({ kind: 'delete', reason: deletionReason.trim() })} className="rounded-lg border border-red-400/40 bg-red-500/10 px-3 py-2 text-sm text-red-100 disabled:opacity-50">Excluir ocorrência</button>

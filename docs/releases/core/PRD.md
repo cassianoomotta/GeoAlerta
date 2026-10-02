@@ -55,7 +55,7 @@ Para Consulta, Operador e Gestor, “Sim” vale somente nos grupos atribuídos.
 
 O menu lateral apresenta estados como atalhos para a lista. Filtro, ordenação e paginação ficam na URL para que a visão possa ser revisitada. Preferências de colunas são pessoais e não alteram a visão de outros operadores.
 
-**Campos mínimos da ocorrência:** protocolo, tipo, descrição, nome e contato informado pelo cidadão, latitude, longitude, precisão, evidência opcional, prioridade, status, grupo responsável, data de abertura e última atualização. A lista oferece como colunas protocolo, abertura, tipo, prioridade, status e grupo; coordenadas e nome do cidadão são opcionais e só aparecem para quem pode lê-los. Filtros incluem período, status, prioridade, tipo e grupo autorizado; ordenação fica restrita a campos indexáveis expostos pela API.
+**Campos mínimos da ocorrência:** protocolo, tipo, descrição, nome e contato obrigatórios informados pelo cidadão, latitude, longitude, precisão, evidência opcional, prioridade, status, grupo responsável, data de abertura e última atualização. A lista oferece como colunas protocolo, abertura, tipo, prioridade, status e grupo; coordenadas e dados do cidadão são restritos a usuários autorizados. Filtros incluem período, status, prioridade, tipo e grupo autorizado; ordenação fica restrita a campos indexáveis expostos pela API.
 
 **Campos mínimos da conta administrativa:** nome, e-mail institucional, telefone opcional, papel, grupos, estado de acesso, data de criação e último acesso. O próprio usuário edita apenas nome, telefone e preferências. O administrador altera papel, grupos e estado. Novas ocorrências públicas entram no grupo operacional padrão do município, configurado na administração; um usuário autorizado pode reatribuí-las com evento de auditoria.
 
@@ -64,6 +64,8 @@ O menu lateral apresenta estados como atalhos para a lista. Filtro, ordenação 
 ### US-01 — Abertura pública (`RF-001` a `RF-004`)
 
 **Como** cidadão, **quero** informar tipo, descrição, nome/contato e evidência opcional usando minha localização atual, **para** pedir atendimento sem criar uma conta.
+
+Nome, contato, tipo, descrição e localização nativa são obrigatórios no envio. Endereço e foto são opcionais.
 
 - **Dado** que o navegador concedeu localização válida, **quando** envio uma ocorrência, **então** recebo um protocolo único após a gravação confirmada.
 - **Dado** que não há localização ou que a coordenada está fora dos intervalos válidos, **quando** tento enviar, **então** o registro é recusado com instrução para tentar obter a localização novamente.

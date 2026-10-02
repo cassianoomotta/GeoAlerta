@@ -2,7 +2,10 @@ import { isIP } from 'node:net';
 import { createHash } from 'node:crypto';
 // VERCEL is a server environment fact, never a request header.
 export function resolveOrigin(headers:Headers,env:Record<string,string|undefined>=process.env):string {
-  if(env.VERCEL!=='1') throw new Error('Trusted Vercel ingress is required.');
+  if(env.VERCEL!=='1') {
+    if(env.NODE_ENV==='development') return createHash('sha256').update('geoalerta-local-development').digest('hex');
+    throw new Error('Trusted Vercel ingress is required.');
+  }
   const value=headers.get('x-vercel-forwarded-for')?.trim();
   if(!value || !isIP(value)) throw new Error('Trusted ingress address unavailable.');
   // Normalize equivalent IPv6 representations and IPv4-mapped IPv6.

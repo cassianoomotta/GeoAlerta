@@ -6,7 +6,7 @@ Fonte legada autorizada pelo usuário: `supabase.sql` e `supabase_migrations/`. 
 
 Em cópia legada compatível, usar `prisma migrate resolve --applied 0_legacy` e aplicar expansão sem reset. Em banco vazio, replay da baseline e expansão. Comandos exigem DIRECT_URL/SHADOW_DATABASE_URL na lista de teste; nenhuma migration é disparada por dev/build. Schemas auth/storage são pré-requisitos externos em Supabase. Docker puro usa `tests/fixtures/platform.sql` como fixture SQL declarada; isso não representa execução dos serviços Auth/Storage/Realtime.
 
-Estados desconhecidos ou localização ausente interrompem a expansão antes de DDL. Não se inventa GPS, precisão ou contato; legado compatível recebe protocolo determinístico, mantém estado original em legacy_status e sinaliza saneamento de precisão/contato. Novos registros exigem localização e precisão.
+Estados desconhecidos ou localização ausente interrompem a expansão antes de DDL. Não se inventa GPS, precisão ou contato; legado compatível mantém estado original em legacy_status e sinaliza saneamento de precisão/contato. A migration `202610020003_numeric_occurrence_protocols` renumera os protocolos legados em ordem de criação, preserva UUIDs e respostas idempotentes e instala uma sequência PostgreSQL para novos registros. A sequência garante unicidade crescente, mas pode deixar lacunas após rollback. Novos registros exigem localização e precisão.
 
 ## Adoção do banco remoto observado em 01/10/2026
 

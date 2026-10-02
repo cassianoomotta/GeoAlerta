@@ -92,6 +92,16 @@
     color: #f8fafc; /* slate-50 */
   }
 
+  /* O formulário público usa um tema claro, sem alterar os selects do painel. */
+  select.public-intake-select {
+    color-scheme: light;
+  }
+
+  select.public-intake-select option {
+    background-color: #fff;
+    color: #0f172a;
+  }
+
   /* Override Leaflet Popup with Solid High-Contrast Dark Card */
   .dark-popup .leaflet-popup-content-wrapper,
   .dark-popup .leaflet-popup-tip {

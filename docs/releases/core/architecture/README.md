@@ -8,7 +8,7 @@
 
 Manter um único aplicativo Next.js com API própria (Route Handlers ou funções de servidor adequadas à versão instalada), Prisma ORM/Prisma Migrate, Supabase Auth, PostgreSQL/PostGIS, Storage privado e Realtime autorizado. Não criar um segundo serviço de API, container exclusivo por módulo, fila ou worker para a carga de planejamento de 100 novas ocorrências/hora. Isso reduz pontos de operação sem impedir extração posterior.
 
-**Entrada de rede confirmada por Cassiano em 30/09/2026:** Vercel. A API pública aceita `x-vercel-forwarded-for` somente em processo com `VERCEL=1`, valida e normaliza o IP e usa seu hash como chave do contador compartilhado PostgreSQL. Não aceita headers alternativos de IP. Limite: 20 novas tentativas por minuto civil UTC/origem; replay da mesma chave/corpo não consome o contador. Fora do ingresso identificado, a ingestão falha fechada. Referência: [request headers da Vercel](https://vercel.com/docs/headers/request-headers). Testes locais modelam esse ingresso explicitamente; não comprovam a plataforma remota.
+**Entrada de rede confirmada por Cassiano em 30/09/2026:** Vercel. Em processo `VERCEL=1`, a API pública aceita `x-vercel-forwarded-for`, valida e normaliza o IP e usa seu hash como chave do contador compartilhado PostgreSQL. Não aceita headers alternativos de IP. Em `NODE_ENV=development` fora da Vercel, usa uma origem fixa compartilhada pelo servidor local e ignora headers de IP enviados pelo cliente; assim o limite continua valendo, mas é agregado para todos que usam aquela instância de desenvolvimento. Outros ambientes fora da Vercel falham fechados. Limite: 20 novas tentativas por minuto civil UTC/origem; replay da mesma chave/corpo não consome o contador. Referência: [request headers da Vercel](https://vercel.com/docs/headers/request-headers). Testes locais modelam o ingresso explicitamente; não comprovam a plataforma remota.
 
 O mapa e a geolocalização continuam no navegador porque usam APIs de dispositivo e Leaflet. Comandos operacionais entram por uma fronteira de servidor; o banco aplica restrições adicionais. A confirmação ao cidadão só ocorre depois de persistir ocorrência, classificação e protocolo.
 
@@ -122,7 +122,7 @@ Os valores abaixo são decisões técnicas propostas nesta revisão, sujeitas à
 
 | Entrada/consulta | Limite e comportamento |
 |---|---|
-| Formulário | Nome 1–120 caracteres, contato 1–40, descrição 1–2.000, tipo 1–80; validar após remover espaços nas extremidades. |
+| Formulário | Nome obrigatório com 1–120 caracteres; contato obrigatório com 1–40; descrição obrigatória com 1–2.000; tipo obrigatório com 1–80; validar após remover espaços nas extremidades. |
 | Localização | Latitude finita entre −90 e 90, longitude finita entre −180 e 180, precisão finita ≥ 0; captura nativa também na criação manual. |
 | Foto | JPEG/PNG/WebP até 5 MiB, com conteúdo verificado; token temporário vinculado à tentativa, sem associação arbitrária a outra ocorrência. URL de leitura autorizada expira em 60 segundos. |
 | Abuso público | 20 novas tentativas/minuto por origem confiável de rede, com contador compartilhado; replay idempotente não é nova tentativa. Não confiar em header de IP arbitrário. |

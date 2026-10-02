@@ -20,6 +20,7 @@ Este arquivo substitui `requirements.txt` como catálogo de produto em Markdown.
 **Critérios de aceite:**
 
 - Dado GPS válido e os campos obrigatórios, quando envio, então recebo protocolo único somente após a persistência confirmada, com status inicial `NOVA` e grupo operacional padrão do município.
+- Dado nome, contato ou tipo ausente ou vazio, quando envio, então a API recusa o registro; endereço e foto podem ficar vazios.
 - Dada ausência de localização, permissão negada, indisponibilidade, timeout ou coordenadas inválidas, quando envio, então o registro é bloqueado com orientação para tentar novamente.
 - Dado ponto que intersecta zona ativa, quando persisto, então a prioridade é `ALTA` e a classificação registra as zonas e versões consideradas; sem zona ativa correspondente, é `NORMAL`.
 - Dada repetição da mesma tentativa com a mesma chave de idempotência, quando reenvio, então recebo o mesmo protocolo sem duplicação.

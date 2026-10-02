@@ -115,7 +115,7 @@ function DeletedOccurrenceCard({ item, onRestored }: { item: DeletedOccurrence; 
       </div>
       <form onSubmit={restore} className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
         <label className="space-y-1 text-sm text-slate-200">
-          <span>Justificativa de restauração</span>
+          <span>Justificativa de restauração <span aria-hidden="true" className="text-red-400">*</span></span>
           <textarea required minLength={10} maxLength={500} rows={2} value={reason} onChange={(event) => setReason(event.target.value)} className="w-full rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 text-white" />
         </label>
         <button type="submit" disabled={saving} className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Restaurar</button>

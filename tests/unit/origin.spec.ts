@@ -8,6 +8,13 @@ test('RNF-002 origem só vem do header Vercel em processo Vercel',()=>{
   for(const value of ['', 'invalid', '192.0.2.1,192.0.2.2'])expect(()=>resolveOrigin(new Headers({'x-vercel-forwarded-for':value}),{VERCEL:'1'})).toThrow();
   expect(()=>resolveOrigin(new Headers({'x-forwarded-for':'192.0.2.1'}),{VERCEL:'1'})).toThrow();
 });
+test('RNF-002 desenvolvimento local usa uma origem fixa e não confia em headers do cliente',()=>{
+  const localEnv={NODE_ENV:'development'};
+  const origin=resolveOrigin(new Headers(),localEnv);
+  expect(origin).toMatch(/^[a-f0-9]{64}$/);
+  expect(resolveOrigin(new Headers({'x-vercel-forwarded-for':'203.0.113.9','x-forwarded-for':'198.51.100.1'}),localEnv)).toBe(origin);
+  expect(()=>resolveOrigin(new Headers({'x-vercel-forwarded-for':'192.0.2.1'}),{NODE_ENV:'production'})).toThrow();
+});
 test('RNF-002 representações equivalentes de IP não criam nova origem',()=>{
   const hash=(ip:string)=>resolveOrigin(new Headers({'x-vercel-forwarded-for':ip}),{VERCEL:'1'});
   expect(hash('::ffff:192.0.2.1')).toBe(hash('192.0.2.1'));

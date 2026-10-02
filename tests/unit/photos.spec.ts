@@ -10,9 +10,9 @@ import {validatePublicInput} from '../../src/features/occurrences/public-input';
 import type {Actor} from '../../src/features/access/contracts';
 const secret = 'synthetic-secret-for-unit-tests-0123456789';
 const user: Actor = {userId: 'synthetic', municipalityId: 'sa_patrulha', groupIds: ['a','b'], state: 'ATIVO', role: 'OPERADOR'};
-const result = {id:'synthetic',protocol:'GA-synthetic',status:'NOVA',priority:'NORMAL',version:1} as const;
+const result = {id:'synthetic',protocol:'1',status:'NOVA',priority:'NORMAL',version:1} as const;
 const key = 'attempt-a';
-const baseBody = JSON.stringify({type:'Alagamento',description:'Dados sintéticos',reporterName:'Sintético',reporterContact:'Sintético',position:{latitude:0,longitude:0,accuracy:1}});
+const baseBody = JSON.stringify({type:'Alagamentos/Inundação',description:'Dados sintéticos',reporterName:'Sintético',reporterContact:'Sintético',position:{latitude:0,longitude:0,accuracy:1}});
 const reference = {objectKey:'core/00000000-0000-4000-a000-000000000001.png',groupId:'b',municipalityId:'sa_patrulha'};
 function storageDouble() {
   const calls: string[] = [];
@@ -49,7 +49,7 @@ test('RF-004 token assinado vincula objeto a tentativa, expira e rejeita adulter
   const staged=issuePhotoToken(key,'png',secret,1000);
   expect(resolvePhotoToken(staged.photoToken,key,secret,1001)).toBe(staged.objectKey);
   for(const [token,attempt,tokenSecret,now] of [[staged.photoToken,'other',secret,1001],[staged.photoToken,key,'different-secret-synthetic-0123456789',1001],[staged.photoToken,key,secret,901000],[staged.photoToken+'x',key,secret,1001],['bad',key,secret,1001]] as const)expect(()=>resolvePhotoToken(token,attempt,tokenSecret,now)).toThrow(PhotoError);
-  const input=validatePublicInput({...JSON.parse(baseBody),photoToken:staged.photoToken});
+  const input=validatePublicInput({...JSON.parse(baseBody),photoToken:staged.photoToken},{allowCustomType:true});
   expect(input.photoToken).toBe(staged.photoToken);
   expect(()=>issuePhotoToken(key,'png','short')).toThrow(PhotoError);
 });

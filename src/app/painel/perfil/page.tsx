@@ -113,7 +113,7 @@ export default function ProfilePage() {
       <h2 id="profile-edit-title" className="text-lg font-semibold text-white">Meus dados</h2>
       <form onSubmit={saveProfile} className="grid gap-4 sm:grid-cols-2">
         <label className="space-y-1 text-sm text-slate-200">
-          <span>Nome</span>
+          <span>Nome <span aria-hidden="true" className="text-red-400">*</span></span>
           <input required maxLength={120} value={name} onChange={(event) => setName(event.target.value)} className="w-full rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 text-white" />
         </label>
         <label className="space-y-1 text-sm text-slate-200">

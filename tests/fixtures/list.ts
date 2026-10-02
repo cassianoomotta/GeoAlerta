@@ -4,6 +4,7 @@ import {groupA,groupB,groupOther,accounts} from './access';
 export const listType=()=>process.env.CORE_LIST_FIXTURE_TYPE!;
 export async function prepareListTests(db:pg.Client){
   const type=`list-${randomUUID()}`;process.env.CORE_LIST_FIXTURE_TYPE=type;
+  await db.query('INSERT INTO public.occurrence_types(name,active,display_order) VALUES($1,true,32767)',[type]);
   for(const [group,n,deleted]of [[groupA,125,false],[groupB,8,false],[groupOther,4,false],[groupA,3,true]] as const){
     await db.query(`INSERT INTO public.occurrences(id,protocol,type,description,location,accuracy,group_id,status,priority,created_at,deleted_at)
       SELECT gen_random_uuid(),'LIST-'||gen_random_uuid()::text,$1,'Synthetic list fixture',ST_SetSRID(ST_MakePoint(-50.5,-29.5),4326)::geography,5,$2,

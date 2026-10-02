@@ -29,6 +29,18 @@ test('RF-008 filtros e ordenações coincidem com consulta independente no PostG
     expect((await(await query(request,'operador',{type:'absent-fixture-type'})).json()).total).toBe(0);
   }finally{await db.end();}
 });
+test('RF-009 situação da categoria filtra o catálogo sem apagar o histórico',async({request})=>{
+  const db=await database();
+  try{
+    const active=await query(request,'operador',{categoryStatus:'active'});
+    expect(active.status()).toBe(200);expect((await active.json()).total).toBe(125);
+    await db.query('UPDATE public.occurrence_types SET active=false WHERE name=$1',[listType()]);
+    const inactive=await query(request,'operador',{categoryStatus:'inactive'});
+    expect(inactive.status()).toBe(200);expect((await inactive.json()).total).toBe(125);
+    expect((await query(request,'operador',{categoryStatus:'active'})).status()).toBe(200);
+    expect((await(await query(request,'operador',{categoryStatus:'active'})).json()).total).toBe(0);
+  }finally{await db.query('UPDATE public.occurrence_types SET active=true WHERE name=$1',[listType()]);await db.end();}
+});
 test('RNF-001 manipulação de grupo tamanho sort colunas e identidade não amplia acesso',async({request})=>{
   expect((await request.get(path)).status()).toBe(401);
   for(const name of ['pendente','suspenso','semgrupo','outromunicipio'])expect((await query(request,name)).status()).toBe(403);

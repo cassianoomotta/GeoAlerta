@@ -3,9 +3,20 @@ import pg from 'pg';
 import {randomUUID} from 'node:crypto';
 import {assertTestTarget} from '../fixtures/database';
 const path='/api/core/public/occurrences';
-const input={type:'Alagamento',description:'synthetic <script>alert(1)</script>',reporterName:'Synthetic citizen',reporterContact:'Synthetic contact',position:{latitude:11,longitude:11,accuracy:7}};
+const typesPath='/api/core/public/occurrence-types';
+const input={type:'Alagamentos/Inundação',description:'synthetic <script>alert(1)</script>',reporterName:'Synthetic citizen',reporterContact:'Synthetic contact',position:{latitude:11,longitude:11,accuracy:7}};
 async function database(){assertTestTarget(process.env.TEST_DATABASE_URL);const db=new pg.Client({connectionString:process.env.TEST_DATABASE_URL});await db.connect();return db;}
 test.beforeEach(async({request})=>{await request.post('/__fixture/rotate-origin');});
+test('RF-001 catálogo público reflete ativação e recusa tipo desativado no envio',async({request})=>{
+  const db=await database();const name=`Tipo fixture ${randomUUID()}`;
+  try{
+    await db.query('INSERT INTO public.occurrence_types(name,active,display_order) VALUES($1,true,32767)',[name]);
+    const active=await request.get(typesPath);expect(active.status()).toBe(200);expect((await active.json()).types).toContain(name);
+    await db.query('UPDATE public.occurrence_types SET active=false WHERE name=$1',[name]);
+    const inactive=await request.get(typesPath);expect(inactive.status()).toBe(200);expect((await inactive.json()).types).not.toContain(name);
+    const rejected=await request.post(path,{headers:{'Idempotency-Key':randomUUID()},data:{...input,type:name}});expect(rejected.status()).toBe(422);
+  }finally{await db.query('DELETE FROM public.occurrence_types WHERE name=$1',[name]);await db.end();}
+});
 test('RF-001 valida entrada sem gravar, sem confiar em prioridade/grupo do cidadão',async({request})=>{
   for(const data of [{...input,priority:'ALTA'},{...input,groupId:randomUUID()},{...input,reporterContact:''},{...input,position:{...input.position,latitude:91}},{...input,position:null}])expect((await request.post(path,{headers:{'Idempotency-Key':randomUUID()},data})).status()).toBe(422);
   expect((await request.post(path,{data:input})).status()).toBe(422);
@@ -13,7 +24,7 @@ test('RF-001 valida entrada sem gravar, sem confiar em prioridade/grupo do cidad
 });
 test('RF-001 confirmação ocorre após ocorrência privada evento auditoria alerta e GPS persistidos',async({request})=>{
   const response=await request.post(path,{headers:{'Idempotency-Key':randomUUID()},data:input});expect(response.status()).toBe(201);const result=await response.json();
-  expect(result).toMatchObject({status:'NOVA',priority:'NORMAL',version:1});expect(result.protocol).toMatch(/^GA-/);
+  expect(result).toMatchObject({status:'NOVA',priority:'NORMAL',version:1});expect(result.protocol).toMatch(/^\d+$/);
   const db=await database();try{
     const row=(await db.query('SELECT o.status,o.priority,o.accuracy,o.description,g.is_default,ST_X(o.location::geometry) AS longitude,ST_Y(o.location::geometry) AS latitude,ST_SRID(o.location::geometry) AS srid FROM public.occurrences o JOIN public.groups g ON g.id=o.group_id WHERE o.id=$1',[result.id])).rows[0];
     expect(row).toEqual({status:'NOVA',priority:'NORMAL',accuracy:7,description:input.description,is_default:true,longitude:11,latitude:11,srid:4326});
