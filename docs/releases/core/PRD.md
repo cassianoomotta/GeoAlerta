@@ -59,6 +59,10 @@ O menu lateral apresenta estados como atalhos para a lista. Filtro, ordenação 
 
 **Campos mínimos da ocorrência:** protocolo, tipo, descrição, nome e contato obrigatórios informados pelo cidadão, latitude, longitude, precisão, evidência opcional, prioridade, status, grupo responsável, data de abertura e última atualização. A lista oferece como colunas protocolo, abertura, tipo, prioridade, status e grupo; coordenadas e dados do cidadão são restritos a usuários autorizados. Filtros incluem período, status, prioridade, tipo e grupo autorizado; ordenação fica restrita a campos indexáveis expostos pela API.
 
+O detalhe é organizado em quatro seções: **Informações do cidadão** (nome, contato e foto conforme capacidade `privateData`); **Informações da ocorrência** (protocolo, tipo, descrição, endereço, coordenadas, prioridade, status, grupo e classificação registrada na abertura); **Impactos e triagem** (instituição registradora, bairro, localidade, situação, local atingido, vítimas e desabrigados/desalojados); e **Atendimento e ações** (órgão, responsável, data/hora, ação, resultado e solicitação de reforço). Os novos campos estruturados permanecem nulos para registros históricos sem informação. Booleanos desconhecidos são exibidos como “Não informado”.
+
+Operador, Gestor e Administrador autorizados no grupo podem acrescentar registros de atendimento. Cada envio é append-only; correções geram outro registro ligado ao original. Autor e horário de criação são definidos pelo servidor/banco, e o evento técnico de auditoria não contém texto de atendimento ou dados pessoais. Os filtros adicionais usam códigos de catálogo ou valores enumerados com igualdade, `IS NULL` explícito e intervalos de data semiabertos `[início, fim)`; não há busca textual genérica.
+
 **Campos mínimos da conta administrativa:** nome, e-mail institucional, telefone opcional, papel, grupos, estado de acesso, data de criação e último acesso. O próprio usuário edita apenas nome, telefone e preferências. O administrador altera papel, grupos e estado. Novas ocorrências públicas entram no grupo operacional padrão do município, configurado na administração; um usuário autorizado pode reatribuí-las com evento de auditoria.
 
 **Orientação após o registro:** a confirmação mantém protocolo e status mesmo se o catálogo falhar. Quando disponível, lista todos os abrigos ativos e com situação `Aberto`, informando nome, endereço e situação, com links de rota no Google Maps e Waze. O catálogo público não expõe capacidade, ocupação, telefone, responsável, observações ou pessoas vinculadas. Somente Administradores ativos podem cadastrar, editar, ativar, desativar ou excluir abrigos; a exclusão é bloqueada se houver pessoas vinculadas.
@@ -99,6 +103,7 @@ Nome, contato, tipo, descrição e localização nativa são obrigatórios no en
 
 - **Dado** que seleciono um status no menu lateral, **quando** abro a lista, **então** o filtro aparece na URL e os resultados são paginados no servidor.
 - **Dado** que aplico filtros e ordenação, **quando** mudo a página, **então** os mesmos critérios são preservados.
+- **Dado** que seleciono bairro, localidade, instituição, situação, impacto ou órgão de atendimento, **quando** aplico filtros, **então** a API compara códigos exatos e permite selecionar “Não informado” sem busca por texto.
 - **Dado** que oculto uma coluna, **quando** volto à lista, **então** minha preferência é restaurada sem afetar outros usuários.
 - **Dado** que sou gestor ou administrador, **quando** exporto CSV, **então** recebo o conjunto filtrado autorizado completo, independentemente da página visível, com células tratadas contra fórmulas executáveis.
 
@@ -107,6 +112,8 @@ Nome, contato, tipo, descrição e localização nativa são obrigatórios no en
 **Como** operador, **quero** ler, criar e atualizar ocorrências conforme minhas permissões, **para** acompanhar o atendimento; **como** administrador, quero excluir logicamente registros com justificativa.
 
 - **Dado** que tenho permissão e acesso ao grupo, **quando** abro o detalhe, **então** vejo campos, localização, foto autorizada e histórico pertinente; dados do cidadão são ocultados para papéis sem essa capacidade.
+- **Dado** que abro o detalhe, **quando** consulto o protocolo, **então** encontro as seções de cidadão, ocorrência, impactos/triagem e atendimento; campos históricos ausentes aparecem como “Não informado”.
+- **Dado** que opero dentro do grupo autorizado, **quando** registro uma ação de atendimento, **então** um novo item é acrescentado com autor e criação definidos pelo servidor, preservando os itens anteriores.
 - **Dado** que altero campos ou status, **quando** salvo, **então** a versão atual é verificada, a mudança é atômica e um evento de auditoria registra ator, momento e diferenças.
 - **Dado** que a transição de status é proibida, **quando** tento aplicá-la pela interface ou API, **então** a operação falha sem alteração parcial.
 - **Dado** que sou administrador, **quando** excluo uma ocorrência com motivo, **então** ela sai das listas operacionais, permanece recuperável e a ação é auditada.

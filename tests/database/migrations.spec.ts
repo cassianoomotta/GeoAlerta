@@ -112,7 +112,11 @@ test('RNF-007 Prisma baseline e expansão preservam registros IDs referências e
         expect((afterRows.find(({ row }) => (row as Record<string, unknown>).id === shelter)?.row as Record<string, unknown>).is_active).toBe(true);
       } else expect(afterRows).toEqual(before[table]);
     }
-    expect((await client.query('SELECT id,type,description,ST_AsEWKT(location::geometry) AS location,photo_url,reporter_name,assigned_to,created_at FROM public.occurrences ORDER BY id')).rows).toEqual(beforeOccurrences);
+    const afterOccurrences = (await client.query(`SELECT id,type,description,ST_AsEWKT(location::geometry) AS location,photo_url,reporter_name,assigned_to,created_at,
+      registering_institution_code,neighborhood_code,locality_code,occurrence_situation,damage_location_code,damage_location_detail,has_victims,has_displaced
+      FROM public.occurrences ORDER BY id`)).rows;
+    expect(afterOccurrences.map(({registering_institution_code,neighborhood_code,locality_code,occurrence_situation,damage_location_code,damage_location_detail,has_victims,has_displaced,...preserved})=>preserved)).toEqual(beforeOccurrences);
+    expect(afterOccurrences.every((row)=>[row.registering_institution_code,row.neighborhood_code,row.locality_code,row.occurrence_situation,row.damage_location_code,row.damage_location_detail,row.has_victims,row.has_displaced].every(value=>value===null))).toBe(true);
     expect(hash()).toBe(beforeHash);
     for (const [index,status] of ['NOVA','EM_ATENDIMENTO','RESOLVIDA','CANCELADA'].entries()) {
       const row = (await client.query('SELECT status,legacy_status,accuracy,needs_sanitation FROM public.occurrences WHERE id=$1',[occurrenceIds[index]])).rows[0];
@@ -131,10 +135,12 @@ test('RNF-007 histórico Prisma reproduz baseline expansão e SQL complementar e
     await prepare(client,false);
     prisma(['migrate','deploy'],process.env.SHADOW_DATABASE_URL!,process.env.TEST_DATABASE_URL!);
     const tables = (await client.query("SELECT table_name FROM information_schema.tables WHERE table_schema='public'")).rows.map((row) => row.table_name);
-    expect(tables).toEqual(expect.arrayContaining(['occurrences',...legacyTables,'groups','admin_profiles','risk_zones','occurrence_events','occurrence_private_data','occurrence_alerts','audit_events','idempotency_keys','status_transitions','status_presentations','user_group_memberships','user_preferences','occurrence_classification_zones']));
+    expect(tables).toEqual(expect.arrayContaining(['occurrences',...legacyTables,'groups','admin_profiles','risk_zones','occurrence_events','occurrence_private_data','occurrence_alerts','audit_events','idempotency_keys','status_transitions','status_presentations','user_group_memberships','user_preferences','occurrence_classification_zones','occurrence_registering_institutions','occurrence_neighborhoods','occurrence_localities','occurrence_damage_locations','occurrence_service_agencies','occurrence_service_records']));
+    expect((await client.query('SELECT count(*)::int AS count FROM public.occurrence_localities')).rows[0].count).toBe(50);
     expect((await client.query("SELECT column_default,is_nullable FROM information_schema.columns WHERE table_schema='public' AND table_name='shelters' AND column_name='is_active'")).rows).toEqual([{column_default:'true',is_nullable:'NO'}]);
     expect((await client.query("SELECT pubname FROM pg_publication_tables WHERE tablename='occurrence_alerts' AND schemaname='public'")).rows).toEqual([{pubname:`${scope}_publication`}]);
     expect((await client.query("SELECT relrowsecurity FROM pg_class WHERE oid='public.occurrence_private_data'::regclass")).rows[0].relrowsecurity).toBe(true);
+    expect((await client.query("SELECT relrowsecurity FROM pg_class WHERE oid='public.occurrence_service_records'::regclass")).rows[0].relrowsecurity).toBe(true);
     expect((await client.query("SELECT column_default,is_nullable FROM information_schema.columns WHERE table_schema='public' AND table_name='shelters' AND column_name='is_active'")).rows).toEqual([{column_default:'true',is_nullable:'NO'}]);
     expect((await client.query("SELECT confdeltype FROM pg_constraint WHERE conrelid='public.shelter_people'::regclass AND conname='shelter_people_shelter_id_fkey'")).rows).toEqual([{confdeltype:'r'}]);
     await expect(client.query("INSERT INTO public.occurrences(type,protocol,group_id,location) SELECT 'fixture','missing-accuracy',id,ST_SetSRID(ST_MakePoint(-50.5,-29.5),4326)::geography FROM public.groups LIMIT 1")).rejects.toThrow('occurrences_native_accuracy');

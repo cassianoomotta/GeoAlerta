@@ -22,9 +22,34 @@ interface OccurrenceDetail {
   version: number;
   classification: { zones: { id: string; name: string; version: number }[] } | null;
   events: { id: string; kind: string; actorId: string | null; at: string }[];
-  privateData?: {hasPhoto: boolean};
+  occurrenceContext: {
+    registeringInstitution: { code: string; label: string } | null;
+    neighborhood: { code: string; label: string } | null;
+    locality: { code: string; label: string } | null;
+  };
+  triage: {
+    situation: string | null;
+    damageLocation: { code: string; label: string; detail: string | null } | null;
+    hasVictims: boolean | null;
+    hasDisplaced: boolean | null;
+  };
+  privateData?: { reporterName: string | null; reporterContact: string | null; hasPhoto: boolean };
+  serviceRecords: {
+    id: string;
+    agency: { code: string; label: string };
+    attendingPerson: string;
+    attendedAt: string;
+    action: string;
+    outcome: string | null;
+    reinforcementRequested: boolean;
+    actorId: string;
+    createdAt: string;
+    correctionOfId: string | null;
+    correctionReason: string | null;
+  }[];
   actions: { canOperate: boolean; canReclassify: boolean; canAdminister: boolean; availableTransitions: {target: Status; reasonRequired: boolean}[] };
   availableGroups: { id: string; name: string }[];
+  serviceAgencyOptions: { code: string; label: string }[];
 }
 
 function formatDate(value: string) {
@@ -37,6 +62,14 @@ function formatDate(value: string) {
 
 function formatCoordinate(value: number) {
   return new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 6 }).format(value);
+}
+
+function displayBoolean(value: boolean | null) {
+  return value === null ? 'Não informado' : value ? 'Sim' : 'Não';
+}
+
+function displayValue(value: string | null | undefined) {
+  return value?.trim() ? value : 'Não informado';
 }
 
 export default function OccurrenceDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -103,22 +136,31 @@ function OccurrenceDetailView({id}: {id: string}) {
 
       {detail.actions.canOperate && <OccurrenceMutationControls key={`${detail.id}:${detail.version}`} detail={detail} onReload={reloadDetail} />}
 
-      <section className="glass-card p-5 sm:p-7" aria-labelledby="occurrence-summary-title">
-        <h2 id="occurrence-summary-title" className="text-lg font-semibold text-white">Resumo</h2>
+      <section className="glass-card p-5 sm:p-7" aria-labelledby="occurrence-citizen-title">
+        <h2 id="occurrence-citizen-title" className="text-lg font-semibold text-white">Informações do cidadão</h2>
         <dl className="mt-4 grid gap-4 sm:grid-cols-2">
-          <div><dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Tipo</dt><dd className="mt-1 text-sm text-slate-100">{detail.type}</dd></div>
-          <div><dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Status</dt><dd className="mt-1 text-sm text-slate-100">{detail.status.label}</dd></div>
-          <div><dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Prioridade</dt><dd className="mt-1 text-sm text-slate-100">{detail.priority}</dd></div>
-          <div><dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Grupo</dt><dd className="mt-1 text-sm text-slate-100">{detail.group.name}</dd></div>
-          <div className="sm:col-span-2"><dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Descrição</dt><dd className="mt-1 whitespace-pre-wrap text-sm text-slate-100">{detail.description || 'Sem descrição informada.'}</dd></div>
-          <div><dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Abertura</dt><dd className="mt-1 text-sm text-slate-100">{formatDate(detail.openedAt)}</dd></div>
-          <div><dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Última atualização</dt><dd className="mt-1 text-sm text-slate-100">{formatDate(detail.updatedAt)}</dd></div>
+          {detail.privateData ? <>
+            <div><dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Nome</dt><dd className="mt-1 text-sm text-slate-100">{displayValue(detail.privateData.reporterName)}</dd></div>
+            <div><dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Contato</dt><dd className="mt-1 text-sm text-slate-100">{displayValue(detail.privateData.reporterContact)}</dd></div>
+            <div><dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Foto</dt><dd className="mt-1 text-sm text-slate-100">{detail.privateData.hasPhoto ? 'Anexada' : 'Não informada'}</dd></div>
+          </> : <div className="sm:col-span-2"><p className="text-sm text-slate-300">Dados pessoais disponíveis somente para perfis autorizados.</p></div>}
         </dl>
       </section>
 
-      <section className="glass-card p-5 sm:p-7" aria-labelledby="occurrence-location-title">
-        <h2 id="occurrence-location-title" className="text-lg font-semibold text-white">Localização</h2>
-        {detail.address && <p className="mt-3 text-sm text-slate-100"><strong>Endereço informado:</strong> {detail.address}</p>}
+      <section className="glass-card p-5 sm:p-7" aria-labelledby="occurrence-information-title">
+        <h2 id="occurrence-information-title" className="text-lg font-semibold text-white">Informações da ocorrência</h2>
+        <dl className="mt-4 grid gap-4 sm:grid-cols-2">
+          <div><dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Tipo</dt><dd className="mt-1 text-sm text-slate-100">{detail.type}</dd></div>
+          <div><dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Protocolo</dt><dd className="mt-1 text-sm text-slate-100">{detail.protocol}</dd></div>
+          <div><dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Status</dt><dd className="mt-1 text-sm text-slate-100">{detail.status.label}</dd></div>
+          <div><dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Prioridade</dt><dd className="mt-1 text-sm text-slate-100">{detail.priority}</dd></div>
+          <div><dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Grupo responsável</dt><dd className="mt-1 text-sm text-slate-100">{detail.group.name}</dd></div>
+          <div><dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Abertura</dt><dd className="mt-1 text-sm text-slate-100">{formatDate(detail.openedAt)}</dd></div>
+          <div><dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Última atualização</dt><dd className="mt-1 text-sm text-slate-100">{formatDate(detail.updatedAt)}</dd></div>
+          <div className="sm:col-span-2"><dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Descrição do cidadão</dt><dd className="mt-1 whitespace-pre-wrap text-sm text-slate-100">{detail.description || 'Sem descrição informada.'}</dd></div>
+        </dl>
+        <h3 className="mt-6 text-sm font-semibold text-white">Localização informada</h3>
+        {detail.address && <p className="mt-3 text-sm text-slate-100"><strong>Endereço:</strong> {detail.address}</p>}
         {detail.position ? (
           <div className="mt-4 grid gap-3 text-sm text-slate-100 sm:grid-cols-3">
             <p>Latitude: {formatCoordinate(detail.position.latitude)}</p>
@@ -126,10 +168,7 @@ function OccurrenceDetailView({id}: {id: string}) {
             <p>Precisão: {detail.position.accuracy === null ? 'Indisponível' : `${formatCoordinate(detail.position.accuracy)} m`}</p>
           </div>
         ) : <p className="mt-3 text-sm text-slate-300">Localização indisponível</p>}
-      </section>
-
-      <section className="glass-card p-5 sm:p-7" aria-labelledby="occurrence-classification-title">
-        <h2 id="occurrence-classification-title" className="text-lg font-semibold text-white">Classificação na abertura</h2>
+        <h3 className="mt-6 text-sm font-semibold text-white">Classificação na abertura</h3>
         {detail.classification?.zones.length ? (
           <ul className="mt-4 space-y-2 text-sm text-slate-100">
             {detail.classification.zones.map((zone) => (
@@ -141,12 +180,45 @@ function OccurrenceDetailView({id}: {id: string}) {
         ) : <p className="mt-3 text-sm text-slate-300">Nenhuma zona registrada na abertura.</p>}
       </section>
 
-      {detail.privateData?.hasPhoto && <section className="glass-card p-5 sm:p-7">
+      {detail.privateData?.hasPhoto && <section className="glass-card p-5 sm:p-7" aria-label="Foto anexada">
         <OccurrencePhoto occurrenceId={detail.id} />
       </section>}
 
+      <section className="glass-card p-5 sm:p-7" aria-labelledby="occurrence-triage-title">
+        <h2 id="occurrence-triage-title" className="text-lg font-semibold text-white">Impactos e triagem</h2>
+        <dl className="mt-4 grid gap-4 sm:grid-cols-2">
+          <div><dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Instituição que registrou</dt><dd className="mt-1 text-sm text-slate-100">{displayValue(detail.occurrenceContext.registeringInstitution?.label)}</dd></div>
+          <div><dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Bairro</dt><dd className="mt-1 text-sm text-slate-100">{displayValue(detail.occurrenceContext.neighborhood?.label)}</dd></div>
+          <div><dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Localidade</dt><dd className="mt-1 text-sm text-slate-100">{displayValue(detail.occurrenceContext.locality?.label)}</dd></div>
+          <div><dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Situação</dt><dd className="mt-1 text-sm text-slate-100">{detail.triage.situation === 'EM_RISCO' ? 'Em risco de ocorrer' : detail.triage.situation === 'JA_OCORREU' ? 'Já ocorreu' : 'Não informado'}</dd></div>
+          <div><dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Local/estrutura atingida</dt><dd className="mt-1 text-sm text-slate-100">{displayValue(detail.triage.damageLocation?.label)}{detail.triage.damageLocation?.detail ? ` — ${detail.triage.damageLocation.detail}` : ''}</dd></div>
+          <div><dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Vítimas</dt><dd className="mt-1 text-sm text-slate-100">{displayBoolean(detail.triage.hasVictims)}</dd></div>
+          <div><dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Desabrigados/desalojados</dt><dd className="mt-1 text-sm text-slate-100">{displayBoolean(detail.triage.hasDisplaced)}</dd></div>
+        </dl>
+      </section>
+
+      <section className="glass-card p-5 sm:p-7" aria-labelledby="occurrence-attendance-title">
+        <h2 id="occurrence-attendance-title" className="text-lg font-semibold text-white">Atendimento e ações</h2>
+        {detail.serviceRecords.length ? (
+          <ol aria-label="Registros de atendimento" className="mt-4 space-y-0 border-l border-white/10 pl-5">
+            {detail.serviceRecords.map((record) => (
+              <li key={record.id} className="relative border-b border-white/5 py-4 last:border-b-0">
+                <span aria-hidden="true" className="absolute -left-[1.58rem] top-5 h-2 w-2 rounded-full bg-emerald-400" />
+                <div className="flex flex-wrap items-center justify-between gap-2"><h3 className="text-sm font-semibold text-slate-100">{record.agency.label}</h3><time className="text-xs text-slate-400" dateTime={record.attendedAt}>{formatDate(record.attendedAt)}</time></div>
+                <p className="mt-1 text-xs text-slate-300">Responsável: {record.attendingPerson}</p>
+                <p className="mt-3 whitespace-pre-wrap text-sm text-slate-100">{record.action}</p>
+                {record.outcome && <p className="mt-2 whitespace-pre-wrap text-sm text-slate-300"><strong>Resultado:</strong> {record.outcome}</p>}
+                <p className="mt-2 text-xs text-slate-300">Reforço solicitado: {record.reinforcementRequested ? 'Sim' : 'Não'}</p>
+                {record.correctionReason && <p className="mt-2 text-xs text-amber-200">Correção deste registro: {record.correctionReason}</p>}
+              </li>
+            ))}
+          </ol>
+        ) : <p className="mt-3 text-sm text-slate-300">Nenhuma ação de atendimento registrada.</p>}
+        {detail.actions.canOperate && <ServiceRecordForm key={detail.id} detail={detail} onReload={reloadDetail} />}
+      </section>
+
       <section className="glass-card p-5 sm:p-7" aria-labelledby="occurrence-history-title">
-        <h2 id="occurrence-history-title" className="text-lg font-semibold text-white">Histórico</h2>
+        <h2 id="occurrence-history-title" className="text-lg font-semibold text-white">Histórico técnico</h2>
         {detail.events.length ? (
           <ol aria-label="Histórico" className="mt-4 space-y-0 border-l border-white/10 pl-5">
             {detail.events.map((event) => (
@@ -170,6 +242,98 @@ const statusLabels: Record<Status, string> = {
   RESOLVIDA: 'Resolvida',
   CANCELADA: 'Cancelada',
 };
+
+function ServiceRecordForm({ detail, onReload }: { detail: OccurrenceDetail; onReload: () => Promise<boolean> }) {
+  const [agencyCode, setAgencyCode] = useState(detail.serviceAgencyOptions[0]?.code ?? '');
+  const [attendingPerson, setAttendingPerson] = useState('');
+  const [attendedAt, setAttendedAt] = useState(() => {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    return now.toISOString().slice(0, 16);
+  });
+  const [action, setAction] = useState('');
+  const [outcome, setOutcome] = useState('');
+  const [reinforcementRequested, setReinforcementRequested] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState('');
+
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSaving(true);
+    setMessage('');
+    try {
+      const response = await fetch(`/api/core/occurrences/${encodeURIComponent(detail.id)}/service-records`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          agencyCode,
+          attendingPerson,
+          attendedAt: new Date(attendedAt).toISOString(),
+          action,
+          outcome: outcome.trim() || null,
+          reinforcementRequested,
+        }),
+      });
+      const result = await response.json() as { error?: { message?: string } };
+      if (!response.ok) {
+        setMessage(result.error?.message ?? 'Não foi possível salvar o atendimento. Os dados preenchidos foram mantidos.');
+        return;
+      }
+      if (!await onReload()) {
+        setMessage('Atendimento salvo. Atualize a página para consultar o novo registro.');
+        return;
+      }
+      setAttendingPerson('');
+      setAction('');
+      setOutcome('');
+      setReinforcementRequested(false);
+      setMessage('Registro de atendimento salvo.');
+    } catch {
+      setMessage('Falha de comunicação. Confira o registro antes de tentar novamente; os dados preenchidos foram mantidos.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <form className="mt-6 space-y-4 border-t border-white/10 pt-5" onSubmit={submit} aria-labelledby="service-record-form-title">
+      <div>
+        <h3 id="service-record-form-title" className="text-base font-semibold text-white">Registrar ação de atendimento</h3>
+        <p className="mt-1 text-xs text-slate-400">Cada envio acrescenta um registro ao histórico; registros anteriores são preservados.</p>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label className="space-y-1 text-sm text-slate-200">
+          <span>Órgão responsável <span aria-hidden="true" className="text-red-400">*</span></span>
+          <select required value={agencyCode} onChange={(event) => setAgencyCode(event.target.value)} className="w-full rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 text-white">
+            {detail.serviceAgencyOptions.map((agency) => <option key={agency.code} value={agency.code}>{agency.label}</option>)}
+          </select>
+        </label>
+        <label className="space-y-1 text-sm text-slate-200">
+          <span>Agente ou responsável <span aria-hidden="true" className="text-red-400">*</span></span>
+          <input required maxLength={160} value={attendingPerson} onChange={(event) => setAttendingPerson(event.target.value)} className="w-full rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 text-white" />
+        </label>
+        <label className="space-y-1 text-sm text-slate-200">
+          <span>Data e hora do atendimento <span aria-hidden="true" className="text-red-400">*</span></span>
+          <input required type="datetime-local" value={attendedAt} onChange={(event) => setAttendedAt(event.target.value)} className="w-full rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 text-white" />
+        </label>
+        <label className="space-y-1 text-sm text-slate-200 sm:col-span-2">
+          <span>Ação realizada <span aria-hidden="true" className="text-red-400">*</span></span>
+          <textarea required minLength={1} maxLength={4000} rows={4} value={action} onChange={(event) => setAction(event.target.value)} className="w-full rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 text-white" />
+        </label>
+        <label className="space-y-1 text-sm text-slate-200 sm:col-span-2">
+          <span>Resultado ou observações</span>
+          <textarea maxLength={4000} rows={3} value={outcome} onChange={(event) => setOutcome(event.target.value)} className="w-full rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 text-white" />
+        </label>
+        <label className="flex items-center gap-2 text-sm text-slate-200 sm:col-span-2">
+          <input type="checkbox" checked={reinforcementRequested} onChange={(event) => setReinforcementRequested(event.target.checked)} className="h-4 w-4 rounded border-slate-500 bg-slate-950 text-blue-500" />
+          Foi solicitado reforço
+        </label>
+      </div>
+      <button type="submit" disabled={saving || !detail.serviceAgencyOptions.length} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{saving ? 'Salvando…' : 'Salvar atendimento'}</button>
+      {message && <p role="status" className="text-sm text-slate-200">{message}</p>}
+    </form>
+  );
+}
 
 function OccurrenceMutationControls({
   detail,

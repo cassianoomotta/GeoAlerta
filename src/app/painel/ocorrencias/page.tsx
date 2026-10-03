@@ -17,6 +17,12 @@ function exportHref(filters:ListResult['filters']){
   for(const [key,value]of Object.entries({...filters,page:1,pageSize:100}))if(value!==undefined)params.set(key,Array.isArray(value)?value.join(','):String(value));
   return `/api/core/occurrences/export?${params.toString()}`;
 }
+function inclusiveEndDate(value?:string){
+  if(!value)return '';
+  const date=new Date(value);
+  date.setUTCDate(date.getUTCDate()-1);
+  return date.toISOString().slice(0,10);
+}
 export default async function Occurrences({searchParams}:{searchParams:Promise<Record<string,string|string[]|undefined>>}){
   let result:ListResult;
   let canCreate=false;
@@ -29,7 +35,7 @@ export default async function Occurrences({searchParams}:{searchParams:Promise<R
   }catch(error){
     return <section className="p-6"><h1 className="text-2xl font-bold">Ocorrências</h1><p role="alert" className="my-4">{error instanceof ListInputError?'Verifique os filtros e as colunas; o grupo deve estar autorizado.':'Não foi possível carregar a lista. Tente novamente.'}</p><Link href="/painel/ocorrencias">Limpar filtros e tentar novamente</Link></section>;
   }
-  const {filters,columns,availableColumns,items,total,groups,statusPresentations,occurrenceTypes}=result;
+  const {filters,columns,availableColumns,items,total,groups,statusPresentations,occurrenceTypes,catalogs}=result;
   const labels=Object.fromEntries(statusPresentations.map(item=>[item.code,item.label]));
   const pages=Math.max(1,Math.ceil(total/filters.pageSize));
   return <section className="space-y-5 p-4 md:p-6">
@@ -40,11 +46,19 @@ export default async function Occurrences({searchParams}:{searchParams:Promise<R
     <form key={JSON.stringify(filters)} aria-label="Filtros de ocorrências" action="/painel/ocorrencias" method="get" className="grid gap-3 rounded border border-slate-600 p-4 sm:grid-cols-2 lg:grid-cols-4">
       <input type="hidden" name="page" value="1"/>{filters.columns&&<input type="hidden" name="columns" value={filters.columns.join(',')}/>}
       <label>De (UTC)<input className="block w-full rounded bg-slate-900 p-2" type="date" name="from" defaultValue={filters.from?.slice(0,10)}/></label>
-      <label>Até (UTC)<input className="block w-full rounded bg-slate-900 p-2" type="date" name="to" defaultValue={filters.to?.slice(0,10)}/></label>
+      <label>Até (UTC)<input className="block w-full rounded bg-slate-900 p-2" type="date" name="to" defaultValue={inclusiveEndDate(filters.to)}/></label>
       <label>Status<select className="block w-full rounded bg-slate-900 p-2" name="status" defaultValue={filters.status??''}><option value="">Todos</option>{statusPresentations.map(({code,label})=><option key={code} value={code}>{label}</option>)}</select></label>
       <label>Prioridade<select className="block w-full rounded bg-slate-900 p-2" name="priority" defaultValue={filters.priority??''}><option value="">Todas</option><option value="ALTA">Alta</option><option value="NORMAL">Normal</option></select></label>
       <label>Tipo<select className="block w-full rounded bg-slate-900 p-2" name="type" defaultValue={filters.type??''}><option value="">Todos os tipos</option>{occurrenceTypes.map(type=><option key={type.name} value={type.name}>{type.name}{type.active?'':' (desativada)'}</option>)}</select></label>
       <label>Situação da categoria<select className="block w-full rounded bg-slate-900 p-2" name="categoryStatus" defaultValue={filters.categoryStatus??''}><option value="">Todas</option><option value="active">Ativas</option><option value="inactive">Desativadas</option></select></label>
+      <label>Instituição que registrou<select className="block w-full rounded bg-slate-900 p-2" name="registeringInstitutionCode" defaultValue={filters.registeringInstitutionCode??''}><option value="">Todas</option><option value="__NULL__">Não informado</option>{catalogs.registeringInstitutions.map(item=><option key={item.code} value={item.code}>{item.label}</option>)}</select></label>
+      <label>Bairro<select className="block w-full rounded bg-slate-900 p-2" name="neighborhoodCode" defaultValue={filters.neighborhoodCode??''}><option value="">Todos</option><option value="__NULL__">Não informado</option>{catalogs.neighborhoods.map(item=><option key={item.code} value={item.code}>{item.label}</option>)}</select></label>
+      <label>Localidade<select className="block w-full rounded bg-slate-900 p-2" name="localityCode" defaultValue={filters.localityCode??''}><option value="">Todas</option><option value="__NULL__">Não informado</option>{catalogs.localities.map(item=><option key={item.code} value={item.code}>{item.label}</option>)}</select></label>
+      <label>Situação da ocorrência<select className="block w-full rounded bg-slate-900 p-2" name="situation" defaultValue={filters.situation??''}><option value="">Todas</option><option value="__NULL__">Não informado</option><option value="EM_RISCO">Em risco de ocorrer</option><option value="JA_OCORREU">Já ocorreu</option></select></label>
+      <label>Local atingido<select className="block w-full rounded bg-slate-900 p-2" name="damageLocationCode" defaultValue={filters.damageLocationCode??''}><option value="">Todos</option><option value="__NULL__">Não informado</option>{catalogs.damageLocations.map(item=><option key={item.code} value={item.code}>{item.label}</option>)}</select></label>
+      <label>Vítimas<select className="block w-full rounded bg-slate-900 p-2" name="hasVictims" defaultValue={filters.hasVictims??''}><option value="">Todas</option><option value="__NULL__">Não informado</option><option value="true">Sim</option><option value="false">Não</option></select></label>
+      <label>Desabrigados/desalojados<select className="block w-full rounded bg-slate-900 p-2" name="hasDisplaced" defaultValue={filters.hasDisplaced??''}><option value="">Todas</option><option value="__NULL__">Não informado</option><option value="true">Sim</option><option value="false">Não</option></select></label>
+      <label>Órgão que atendeu<select className="block w-full rounded bg-slate-900 p-2" name="agencyCode" defaultValue={filters.agencyCode??''}><option value="">Todos</option>{catalogs.serviceAgencies.map(item=><option key={item.code} value={item.code}>{item.label}</option>)}</select></label>
       <label>Grupo<select className="block w-full rounded bg-slate-900 p-2" name="groupId" defaultValue={filters.groupId??''}><option value="">Todos autorizados</option>{groups.map(g=><option key={g.id} value={g.id}>{g.name}</option>)}</select></label>
       <label>Ordenar por<select className="block w-full rounded bg-slate-900 p-2" name="sort" defaultValue={filters.sort}><option value="createdAt">Registro</option><option value="priority">Prioridade</option><option value="status">Status</option></select></label>
       <label>Direção<select className="block w-full rounded bg-slate-900 p-2" name="direction" defaultValue={filters.direction}><option value="desc">Decrescente</option><option value="asc">Crescente</option></select></label>

@@ -58,10 +58,85 @@ model occurrences {
   occurrence_classification_zones occurrence_classification_zones[]
   occurrence_events               occurrence_events[]
   occurrence_private_data         occurrence_private_data?
+  occurrence_service_records      occurrence_service_records[]
   groups                          groups                            @relation(fields: [group_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  registering_institution         occurrence_registering_institutions? @relation(fields: [registering_institution_code], references: [code], onDelete: NoAction, onUpdate: NoAction)
+  neighborhood                    occurrence_neighborhoods?          @relation(fields: [neighborhood_code], references: [code], onDelete: NoAction, onUpdate: NoAction)
+  locality                        occurrence_localities?             @relation(fields: [locality_code], references: [code], onDelete: NoAction, onUpdate: NoAction)
+  damage_location                 occurrence_damage_locations?       @relation(fields: [damage_location_code], references: [code], onDelete: NoAction, onUpdate: NoAction)
+  registering_institution_code    String?
+  neighborhood_code               String?
+  locality_code                   String?
+  occurrence_situation            String?
+  damage_location_code            String?
+  damage_location_detail          String?
+  has_victims                     Boolean?
+  has_displaced                   Boolean?
 
   @@index([group_id, created_at(sort: Desc), id], map: "occurrences_group_created")
+  @@index([registering_institution_code, created_at(sort: Desc), id], map: "occurrences_registering_created")
+  @@index([neighborhood_code, created_at(sort: Desc), id], map: "occurrences_neighborhood_created")
+  @@index([locality_code, created_at(sort: Desc), id], map: "occurrences_locality_created")
+  @@index([damage_location_code, created_at(sort: Desc), id], map: "occurrences_damage_location_created")
+  @@index([occurrence_situation, created_at(sort: Desc), id], map: "occurrences_situation_created")
   @@index([location], map: "occurrences_location", type: Gist)
+}
+
+model occurrence_registering_institutions {
+  code          String        @id
+  label         String        @unique
+  display_order Int           @db.SmallInt
+  occurrences   occurrences[]
+}
+
+model occurrence_neighborhoods {
+  code          String        @id
+  label         String        @unique
+  display_order Int           @db.SmallInt
+  occurrences   occurrences[]
+}
+
+model occurrence_localities {
+  code          String        @id
+  label         String        @unique
+  display_order Int           @db.SmallInt
+  occurrences   occurrences[]
+}
+
+model occurrence_damage_locations {
+  code          String        @id
+  label         String        @unique
+  display_order Int           @db.SmallInt
+  occurrences   occurrences[]
+}
+
+model occurrence_service_agencies {
+  code          String                       @id
+  label         String                       @unique
+  display_order Int                          @db.SmallInt
+  records       occurrence_service_records[]
+}
+
+model occurrence_service_records {
+  id                      String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  occurrence_id           String                       @db.Uuid
+  agency_code             String
+  attending_person        String
+  attended_at             DateTime                     @db.Timestamptz(6)
+  action                  String
+  outcome                 String?
+  reinforcement_requested Boolean                      @default(false)
+  actor_id                String                       @default(dbgenerated("auth.uid()")) @db.Uuid
+  created_at              DateTime                     @default(now()) @db.Timestamptz(6)
+  correction_of_id        String?                      @db.Uuid
+  correction_reason       String?
+  occurrences             occurrences                  @relation(fields: [occurrence_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  agency                  occurrence_service_agencies  @relation(fields: [agency_code], references: [code], onDelete: NoAction, onUpdate: NoAction)
+  correction_of           occurrence_service_records?  @relation("ServiceRecordCorrection", fields: [correction_of_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  corrections             occurrence_service_records[] @relation("ServiceRecordCorrection")
+
+  @@index([occurrence_id, attended_at, id], map: "occurrence_service_records_timeline")
+  @@index([agency_code, occurrence_id], map: "occurrence_service_records_agency")
 }
 
 /// Publicly selectable occurrence categories. Existing occurrence.type values remain free text for legacy history.

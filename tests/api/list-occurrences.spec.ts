@@ -2,7 +2,7 @@ import {test,expect,type APIRequestContext} from '@playwright/test';
 import pg from 'pg';
 import {fixtureCookies} from '../fixtures/session';
 import {listType} from '../fixtures/list';
-import {accounts,groupA,groupB,groupOther} from '../fixtures/access';
+import {accounts,groupA,groupB,groupOther,occurrenceA} from '../fixtures/access';
 import {assertTestTarget} from '../fixtures/database';
 import {publicColumns} from '../../src/features/occurrences/list-input';
 const path='/api/core/occurrences';
@@ -23,11 +23,37 @@ test('RF-008 filtros e ordenações coincidem com consulta independente no PostG
     for(const sort of ['createdAt','priority','status'])for(const direction of ['asc','desc']){
       const result=await(await query(request,'operador',{from:'2025-01-02',to:'2025-01-03',status:'NOVA',priority:'ALTA',groupId:groupA,sort,direction,pageSize:'100'})).json();
       const field={createdAt:'created_at',priority:'priority',status:'status'}[sort];
-      const expected=(await db.query(`SELECT id FROM public.occurrences WHERE type=$1 AND group_id=$2 AND deleted_at IS NULL AND created_at>='2025-01-02T00:00:00Z' AND created_at<='2025-01-03T23:59:59.999Z' AND status='NOVA' AND priority='ALTA' ORDER BY ${field} ${direction},id ASC`,[listType(),groupA])).rows;
+      const expected=(await db.query(`SELECT id FROM public.occurrences WHERE type=$1 AND group_id=$2 AND deleted_at IS NULL AND created_at>='2025-01-02T00:00:00Z' AND created_at<'2025-01-04T00:00:00Z' AND status='NOVA' AND priority='ALTA' ORDER BY ${field} ${direction},id ASC`,[listType(),groupA])).rows;
       expect(result.total).toBe(expected.length);expect(result.items.map((i:{id:string})=>i.id)).toEqual(expected.map(i=>i.id));
     }
     expect((await(await query(request,'operador',{type:'absent-fixture-type'})).json()).total).toBe(0);
   }finally{await db.end();}
+});
+test('RF-009 filtros categóricos usam códigos exatos e valores desconhecidos são rejeitados',async({request})=>{
+  const db=await database();
+  const recordId='92000000-0000-4000-8000-000000000022';
+  let previous:{registering_institution_code:string|null;neighborhood_code:string|null;locality_code:string|null;occurrence_situation:string|null;damage_location_code:string|null;damage_location_detail:string|null;has_victims:boolean|null;has_displaced:boolean|null}|undefined;
+  try{
+    previous=(await db.query('SELECT registering_institution_code,neighborhood_code,locality_code,occurrence_situation,damage_location_code,damage_location_detail,has_victims,has_displaced FROM public.occurrences WHERE id=$1',[occurrenceA])).rows[0];
+    await db.query(`UPDATE public.occurrences SET registering_institution_code='CIDADAO',neighborhood_code='CENTRO',locality_code='PINHEIRINHOS_4D',occurrence_situation='EM_RISCO',damage_location_code='OUTROS',damage_location_detail='Fixture',has_victims=NULL,has_displaced=false WHERE id=$1`,[occurrenceA]);
+    await db.query('BEGIN');
+    const operator=accounts.find(account=>account.name==='operador')!;
+    await db.query('SELECT set_config($1,$2,true),set_config($3,$4,true)',['request.jwt.claim.sub',operator.id,'request.jwt.claims',JSON.stringify({sub:operator.id})]);
+    await db.query(`INSERT INTO public.occurrence_service_records(id,occurrence_id,agency_code,attending_person,attended_at,action) VALUES($1,$2,'DEFESA_CIVIL','Filtro fixture','2026-10-02T15:30:00Z','Filtro fixture') ON CONFLICT(id) DO NOTHING`,[recordId,occurrenceA]);
+    await db.query('COMMIT');
+    const params={registeringInstitutionCode:'CIDADAO',neighborhoodCode:'CENTRO',localityCode:'PINHEIRINHOS_4D',situation:'EM_RISCO',damageLocationCode:'OUTROS',hasVictims:'__NULL__',hasDisplaced:'false',agencyCode:'DEFESA_CIVIL'};
+    const response=await query(request,'operador',{type:'fixture',...params});
+    expect(response.status()).toBe(200);
+    const result=await response.json();
+    expect(result.total).toBe(1);
+    expect(result.items[0].id).toBe(occurrenceA);
+    expect((await query(request,'operador',{neighborhoodCode:'CENTRO%'})).status()).toBe(422);
+    expect((await query(request,'operador',{neighborhoodCode:'NAO_EXISTE'})).status()).toBe(422);
+  }finally{
+    await db.query('DELETE FROM public.occurrence_service_records WHERE id=$1',[recordId]);
+    if(previous)await db.query(`UPDATE public.occurrences SET registering_institution_code=$1,neighborhood_code=$2,locality_code=$3,occurrence_situation=$4,damage_location_code=$5,damage_location_detail=$6,has_victims=$7,has_displaced=$8 WHERE id=$9`,[previous.registering_institution_code,previous.neighborhood_code,previous.locality_code,previous.occurrence_situation,previous.damage_location_code,previous.damage_location_detail,previous.has_victims,previous.has_displaced,occurrenceA]);
+    await db.end();
+  }
 });
 test('RF-009 situação da categoria filtra o catálogo sem apagar o histórico',async({request})=>{
   const db=await database();

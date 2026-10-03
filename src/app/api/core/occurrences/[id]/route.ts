@@ -39,21 +39,51 @@ interface EventRow {
   at: Date;
 }
 
+interface ServiceRecordRow {
+  id: string;
+  agency_code: string;
+  agency_label: string;
+  attending_person: string;
+  attended_at: Date;
+  action: string;
+  outcome: string | null;
+  reinforcement_requested: boolean;
+  actor_id: string;
+  created_at: Date;
+  correction_of_id: string | null;
+  correction_reason: string | null;
+}
+
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     if (!uuidPattern.test(id)) throw new AccessError(404, 'NOT_FOUND');
 
     const result = await withSession(async (tx, actor) => {
-      const rows = await tx.$queryRaw<OccurrenceRow[]>`
+      const rows = await tx.$queryRaw<(OccurrenceRow & {
+        registering_institution_code: string | null; registering_institution_label: string | null;
+        neighborhood_code: string | null; neighborhood_label: string | null;
+        locality_code: string | null; locality_label: string | null;
+        occurrence_situation: string | null; damage_location_code: string | null;
+        damage_location_label: string | null; damage_location_detail: string | null;
+        has_victims: boolean | null; has_displaced: boolean | null;
+      })[]>`
         SELECT o.id::text AS id,o.protocol,o.type,o.description,o.address,o.status,s.label AS status_label,
           o.priority,o.group_id::text AS group_id,g.name AS group_name,
           ST_Y(o.location::geometry)::float8 AS latitude,
           ST_X(o.location::geometry)::float8 AS longitude,
-          o.accuracy::float8 AS accuracy,o.created_at AS opened_at,o.updated_at,o.version
+          o.accuracy::float8 AS accuracy,o.created_at AS opened_at,o.updated_at,o.version,
+          o.registering_institution_code,ri.label AS registering_institution_label,
+          o.neighborhood_code,n.label AS neighborhood_label,o.locality_code,l.label AS locality_label,
+          o.occurrence_situation,o.damage_location_code,d.label AS damage_location_label,
+          o.damage_location_detail,o.has_victims,o.has_displaced
         FROM public.occurrences o
         JOIN public.groups g ON g.id=o.group_id
         JOIN public.status_presentations s ON s.code=o.status
+        LEFT JOIN public.occurrence_registering_institutions ri ON ri.code=o.registering_institution_code
+        LEFT JOIN public.occurrence_neighborhoods n ON n.code=o.neighborhood_code
+        LEFT JOIN public.occurrence_localities l ON l.code=o.locality_code
+        LEFT JOIN public.occurrence_damage_locations d ON d.code=o.damage_location_code
         WHERE o.id=${id}::uuid AND o.deleted_at IS NULL
       `;
       const occurrence = rows[0];
@@ -71,13 +101,16 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
         FROM public.core_occurrence_history(${id}::uuid)
         ORDER BY at,id
       `;
-      const hasPhoto = await privatePhotoAvailable(actor, {municipalityId: 'sa_patrulha', groupId: occurrence.group_id}, async () => {
-        const photos = await tx.$queryRaw<{photo_object_key: string | null}[]>`SELECT photo_object_key FROM public.occurrence_private_data WHERE occurrence_id=${id}::uuid`;
-        return photos[0]?.photo_object_key ?? null;
-      });
-      const canOperate = can(actor, 'operate', {municipalityId: 'sa_patrulha', groupId: occurrence.group_id});
-      const canReclassify = can(actor, 'reclassify', {municipalityId: 'sa_patrulha', groupId: occurrence.group_id});
-      const canAdminister = can(actor, 'administer', {municipalityId: 'sa_patrulha', groupId: occurrence.group_id});
+      const scope = { municipalityId: 'sa_patrulha', groupId: occurrence.group_id };
+      const privateCapability = can(actor, 'privateData', scope);
+      const privateRows = privateCapability ? await tx.$queryRaw<{reporter_name: string | null; reporter_contact: string | null; photo_object_key: string | null}[]>`
+        SELECT reporter_name,reporter_contact,photo_object_key FROM public.occurrence_private_data WHERE occurrence_id=${id}::uuid
+      ` : [];
+      const privateRow = privateRows[0];
+      const hasPhoto = privateRow ? await privatePhotoAvailable(actor, scope, async () => privateRow.photo_object_key) : false;
+      const canOperate = can(actor, 'operate', scope);
+      const canReclassify = can(actor, 'reclassify', scope);
+      const canAdminister = can(actor, 'administer', scope);
       const transitionRows = canOperate ? await tx.$queryRaw<{to_status: string; enabled: boolean; roles: unknown; reason_required: boolean}[]>`
         SELECT to_status,enabled,roles,reason_required FROM public.status_transitions WHERE from_status=${occurrence.status}
       ` : [];
@@ -89,6 +122,18 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
         SELECT id::text AS id,name FROM public.groups
         WHERE municipality_id='sa_patrulha' ORDER BY name,id
       ` : [];
+      const serviceAgencyOptions = canOperate ? await tx.$queryRaw<{code: string; label: string}[]>`
+        SELECT code,label FROM public.occurrence_service_agencies ORDER BY display_order,code
+      ` : [];
+      const serviceRows = await tx.$queryRaw<ServiceRecordRow[]>`
+        SELECT r.id::text AS id,r.agency_code,a.label AS agency_label,r.attending_person,r.attended_at,
+          r.action,r.outcome,r.reinforcement_requested,r.actor_id::text AS actor_id,r.created_at,
+          r.correction_of_id::text AS correction_of_id,r.correction_reason
+        FROM public.occurrence_service_records r
+        JOIN public.occurrence_service_agencies a ON a.code=r.agency_code
+        WHERE r.occurrence_id=${id}::uuid
+        ORDER BY r.attended_at,r.id
+      `;
 
       return {
         id: occurrence.id,
@@ -106,10 +151,39 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
         updatedAt: occurrence.updated_at,
         version: occurrence.version,
         classification: zones.length ? { zones } : null,
+        occurrenceContext: {
+          registeringInstitution: occurrence.registering_institution_code ? { code: occurrence.registering_institution_code, label: occurrence.registering_institution_label } : null,
+          neighborhood: occurrence.neighborhood_code ? { code: occurrence.neighborhood_code, label: occurrence.neighborhood_label } : null,
+          locality: occurrence.locality_code ? { code: occurrence.locality_code, label: occurrence.locality_label } : null,
+        },
+        triage: {
+          situation: occurrence.occurrence_situation,
+          damageLocation: occurrence.damage_location_code ? { code: occurrence.damage_location_code, label: occurrence.damage_location_label, detail: occurrence.damage_location_detail } : null,
+          hasVictims: occurrence.has_victims,
+          hasDisplaced: occurrence.has_displaced,
+        },
+        serviceRecords: serviceRows.map((record) => ({
+          id: record.id,
+          agency: { code: record.agency_code, label: record.agency_label },
+          attendingPerson: record.attending_person,
+          attendedAt: record.attended_at,
+          action: record.action,
+          outcome: record.outcome,
+          reinforcementRequested: record.reinforcement_requested,
+          actorId: record.actor_id,
+          createdAt: record.created_at,
+          correctionOfId: record.correction_of_id,
+          correctionReason: record.correction_reason,
+        })),
         events,
         actions: { canOperate, canReclassify, canAdminister, availableTransitions },
         availableGroups,
-        ...(hasPhoto ? {privateData: {hasPhoto: true}} : {}),
+        serviceAgencyOptions,
+        ...(privateCapability ? { privateData: {
+          reporterName: privateRow?.reporter_name ?? null,
+          reporterContact: privateRow?.reporter_contact ?? null,
+          hasPhoto,
+        } } : {}),
       };
     });
     return Response.json(result, { headers: { 'Cache-Control': 'no-store' } });
