@@ -1,12 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
 import {CoreNotifications} from '@/features/occurrences/ui/CoreNotifications';
 import { 
   Map as MapIcon, 
   List, 
-  LogOut, 
   ShieldAlert, 
   Flame, 
   HardHat, 
@@ -19,7 +17,7 @@ import {
   UserRound,
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { getEnabledModules } from "@/modules/registry";
 import { MapPin, Boxes, Truck } from "lucide-react";
 
@@ -36,7 +34,6 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [canAdminister, setCanAdminister] = useState(false);
   const pathname = usePathname();
-  const router = useRouter();
 
   useEffect(() => {
     let active = true;
@@ -53,11 +50,6 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
       active = false;
     };
   }, []);
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push('/login');
-  };
 
   return (
     <div className="flex h-screen bg-background text-foreground overflow-hidden selection:bg-primary/30">
@@ -133,14 +125,6 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
           </Link>
         </nav>
 
-        <div className="p-6 border-t border-white/5">
-           <button 
-             onClick={handleLogout}
-             className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 transition-colors text-sm font-medium border border-white/5"
-           >
-             <LogOut size={16} /> Encerrar Sessão
-           </button>
-        </div>
       </aside>
 
       {/* 2. Gaveta / Drawer Mobile Lateral */}
@@ -223,14 +207,6 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
               </a>
             </div>
 
-            <div className="pt-4 mt-4 border-t border-white/10">
-              <button 
-                onClick={handleLogout}
-                className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-colors text-sm font-semibold border border-red-500/20"
-              >
-                <LogOut size={16} /> Encerrar Sessão
-              </button>
-            </div>
           </div>
         </div>
       )}

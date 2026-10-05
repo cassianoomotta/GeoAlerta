@@ -1,15 +1,36 @@
 import {expect,test} from '@playwright/test';
 import {getDashboardMap,DashboardMapAccessError} from '../../src/features/occurrences/application/get-dashboard-map';
-import {DashboardQueryError,parseDashboardQuery,shapeDashboardView} from '../../src/features/occurrences/domain/dashboard-map';
+import {DashboardQueryError,dashboardMapBounds,parseDashboardQuery,shapeDashboardView} from '../../src/features/occurrences/domain/dashboard-map';
+import {resizeDashboardMapViewport} from '../../src/features/occurrences/ui/map-viewport';
 import type {Actor} from '../../src/features/access/contracts';
 
 const now=new Date('2026-10-01T12:00:00.000Z');
 
-test('RF-007 mapa usa recorte municipal inicial e sete dias por padrão',()=>{
-  expect(parseDashboardQuery(new URLSearchParams(),now)).toEqual({
-    west:-50.65,south:-29.95,east:-50.35,north:-29.70,
-    from:'2026-09-24T12:00:00.000Z',to:'2026-10-01T12:00:00.000Z',
-  });
+test('RF-007 mapa recalcula tamanho do Leaflet e consulta o viewport visível após redimensionar',()=>{
+  const calls:unknown[]=[];
+  const map={
+    invalidateSize:(options:unknown)=>calls.push(['invalidate',options]),
+    getBounds:()=>({getWest:()=>-50.6,getSouth:()=>-29.9,getEast:()=>-50.4,getNorth:()=>-29.7}),
+  };
+  let viewport:unknown;
+
+  resizeDashboardMapViewport(map,next=>{viewport=next;});
+
+  expect(calls).toEqual([['invalidate',{pan:false,debounceMoveend:true}]]);
+  expect(viewport).toEqual({west:-50.6,south:-29.9,east:-50.4,north:-29.7});
+});
+
+test('RF-007 mapa sem filtros consulta o histórico sem limites temporais ou espaciais',()=>{
+  const query=parseDashboardQuery(new URLSearchParams(),now);
+  expect(dashboardMapBounds([
+    {latitude:-29.84,longitude:-50.50},
+    {latitude:-29.60,longitude:-50.30},
+  ])).toEqual([[-29.84,-50.50],[-29.60,-50.30]]);
+  expect(query).toEqual({});
+});
+
+test('RF-007 mapa inclui pontos fora do retângulo municipal fixo e enquadra ponto único',()=>{
+  expect(dashboardMapBounds([{latitude:-29.60,longitude:-50.30}])).toEqual([[-29.61,-50.31],[-29.59,-50.29]]);
 });
 
 test('RF-007 mapa aceita bounds válidos e período máximo de 31 dias',()=>{

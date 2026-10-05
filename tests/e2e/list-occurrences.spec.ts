@@ -23,6 +23,21 @@ test('RF-009 lista filtra status e categoria pela barra preservando URL e pagina
   await form.getByRole('combobox',{name:/^Prioridade/}).selectOption('ALTA');await form.getByLabel('De (UTC)',{exact:true}).fill('2025-01-02');await form.getByLabel('Até (UTC)',{exact:true}).fill('2025-01-03');await page.getByRole('button',{name:'Aplicar filtros'}).click();
   await expect(page).toHaveURL(/priority=ALTA/);await expect(form.getByLabel('Tipo',{exact:true})).toHaveValue(listType());await page.reload();await expect(form.getByRole('combobox',{name:/^Prioridade/})).toHaveValue('ALTA');
 });
+test('RF-009 filtros começam recolhidos e o seletor de grupo só aparece quando há mais de um grupo autorizado',async({page,context})=>{
+  await page.goto(`/painel/ocorrencias?type=${listType()}`);
+  const filters=page.getByRole('group',{name:'Filtros de ocorrências'});
+  await expect(filters).toHaveJSProperty('open',false);
+  await filters.locator('summary').click();
+  await expect(filters.getByLabel('Tipo',{exact:true})).toBeVisible();
+  await expect(filters.getByLabel('Grupo',{exact:true})).toHaveCount(0);
+
+  await context.clearCookies();
+  await context.addCookies((await fixtureCookies('gestor')).map(c=>({...c,url:'http://127.0.0.1:3102'})));
+  await page.goto(`/painel/ocorrencias?type=${listType()}`);
+  const managerFilters=page.getByRole('group',{name:'Filtros de ocorrências'});
+  await managerFilters.locator('summary').click();
+  await expect(managerFilters.getByLabel('Grupo',{exact:true})).toBeVisible();
+});
 test('RF-010 protocolo abre o detalhe autorizado da ocorrência',async({page})=>{
   await page.goto(`/painel/ocorrencias?type=${listType()}&pageSize=50&sort=createdAt&direction=desc`);
   const firstRow=page.locator('tbody tr').first();

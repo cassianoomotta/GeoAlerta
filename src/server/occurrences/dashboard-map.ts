@@ -1,10 +1,14 @@
 import 'server-only';
-import type {Prisma} from '../../../prisma/generated/client/client';
+import {Prisma} from '../../../prisma/generated/client/client';
 import type {Priority,Status} from '@/features/occurrences/contracts';
 import type {DashboardMapData} from '@/features/occurrences/application/get-dashboard-map';
 import type {DashboardMapQuery} from '@/features/occurrences/domain/dashboard-map';
 
 export async function readDashboardMap(tx:Prisma.TransactionClient,query:DashboardMapQuery,markerLimit:number):Promise<DashboardMapData>{
+  const fromFilter=query.from?Prisma.sql`AND o.created_at>=${new Date(query.from)}`:Prisma.empty;
+  const toFilter=query.to?Prisma.sql`AND o.created_at<=${new Date(query.to)}`:Prisma.empty;
+  const spatialFilter=query.west===undefined?Prisma.empty:Prisma.sql`
+        AND ST_Intersects(o.location,ST_MakeEnvelope(${query.west},${query.south},${query.east},${query.north},4326)::geography)`;
   const rows=await tx.$queryRaw<{
     markers:{id:string;latitude:number;longitude:number;priority:Priority;status:Status}[];
     by_status:Partial<Record<Status,number>>;
@@ -15,8 +19,9 @@ export async function readDashboardMap(tx:Prisma.TransactionClient,query:Dashboa
         o.priority,o.status,o.created_at
       FROM public.occurrences o
       WHERE o.deleted_at IS NULL
-        AND o.created_at>=${new Date(query.from)} AND o.created_at<=${new Date(query.to)}
-        AND ST_Intersects(o.location,ST_MakeEnvelope(${query.west},${query.south},${query.east},${query.north},4326)::geography)
+        ${fromFilter}
+        ${toFilter}
+        ${spatialFilter}
     ),
     status_counts AS (SELECT status,count(*)::int AS total FROM filtered GROUP BY status),
     priority_counts AS (SELECT priority,count(*)::int AS total FROM filtered GROUP BY priority),

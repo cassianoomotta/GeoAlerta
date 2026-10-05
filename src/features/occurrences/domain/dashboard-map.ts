@@ -1,12 +1,25 @@
 import type {DashboardView,Priority,Status} from '../contracts';
 
-export type DashboardMapQuery={west:number;south:number;east:number;north:number;from:string;to:string};
+export type DashboardBounds={west:number;south:number;east:number;north:number};
+export type DashboardMapQuery=Partial<DashboardBounds>&{from?:string;to?:string};
 export type DashboardMarker=DashboardView['markers'][number];
 export class DashboardQueryError extends Error{}
 
 const statusValues:readonly Status[]=['NOVA','EM_TRIAGEM','EM_ATENDIMENTO','RESOLVIDA','CANCELADA'];
 const priorityValues:readonly Priority[]=['NORMAL','ALTA'];
 const cityBounds={west:-50.65,south:-29.95,east:-50.35,north:-29.70};
+
+export function dashboardMapBounds(markers:readonly Pick<DashboardMarker,'latitude'|'longitude'>[]=[]):[[number,number],[number,number]]{
+  if(!markers.length)return [[cityBounds.south,cityBounds.west],[cityBounds.north,cityBounds.east]];
+  const latitudes=markers.map(marker=>marker.latitude),longitudes=markers.map(marker=>marker.longitude);
+  const minLatitude=Math.min(...latitudes),maxLatitude=Math.max(...latitudes);
+  const minLongitude=Math.min(...longitudes),maxLongitude=Math.max(...longitudes);
+  const latitudeCenter=(minLatitude+maxLatitude)/2,longitudeCenter=(minLongitude+maxLongitude)/2;
+  const latitudeRadius=Math.max((maxLatitude-minLatitude)/2,0.01);
+  const longitudeRadius=Math.max((maxLongitude-minLongitude)/2,0.01);
+  const round=(coordinate:number)=>Math.round(coordinate*1_000_000)/1_000_000;
+  return [[round(latitudeCenter-latitudeRadius),round(longitudeCenter-longitudeRadius)],[round(latitudeCenter+latitudeRadius),round(longitudeCenter+longitudeRadius)]];
+}
 
 function readDate(value:string|undefined,fallback:Date,end:boolean):Date{
   if(value===undefined)return fallback;
@@ -23,14 +36,16 @@ export function parseDashboardQuery(params:URLSearchParams,now=new Date()):Dashb
   const boundNames=['west','south','east','north'] as const;
   const present=boundNames.filter(name=>params.has(name)).length;
   if(present!==0&&present!==4)throw new DashboardQueryError('INVALID_BOUNDS');
-  const bounds=present===0?cityBounds:Object.fromEntries(boundNames.map(name=>{
+  const bounds=present===0?undefined:Object.fromEntries(boundNames.map(name=>{
     const value=Number(params.get(name));
     if(!Number.isFinite(value))throw new DashboardQueryError('INVALID_BOUNDS');
     return [name,value];
-  })) as typeof cityBounds;
-  if(bounds.west < -180||bounds.east>180||bounds.south < -90||bounds.north>90||bounds.west>=bounds.east||bounds.south>=bounds.north)throw new DashboardQueryError('INVALID_BOUNDS');
+  })) as DashboardBounds;
+  if(bounds&&(bounds.west < -180||bounds.east>180||bounds.south < -90||bounds.north>90||bounds.west>=bounds.east||bounds.south>=bounds.north))throw new DashboardQueryError('INVALID_BOUNDS');
+  const hasDateFilter=params.has('from')||params.has('to');
+  if(!hasDateFilter)return {...bounds};
   const to=readDate(params.get('to')??undefined,now,true);
-  const from=readDate(params.get('from')??undefined,new Date(to.getTime()-7*24*60*60*1000),false);
+  const from=readDate(params.get('from')??undefined,new Date(to.getTime()-31*24*60*60*1000),false);
   const duration=to.getTime()-from.getTime();
   if(duration<0||duration>31*24*60*60*1000)throw new DashboardQueryError('INVALID_DATE_RANGE');
   return {...bounds,from:from.toISOString(),to:to.toISOString()};

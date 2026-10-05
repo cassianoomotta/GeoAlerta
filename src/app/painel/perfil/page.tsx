@@ -3,6 +3,9 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { ColumnPreferences } from '@/features/occurrences/ui/ColumnPreferences';
 import type { Column, ListFilters } from '@/features/occurrences/list-input';
+import { LogOut } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
 
 type Profile = {
   userId: string;
@@ -36,11 +39,13 @@ const profileFilters: ListFilters = {
 };
 
 export default function ProfilePage() {
+  const router = useRouter();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
 
@@ -86,6 +91,19 @@ export default function ProfilePage() {
     }
   }
 
+  async function signOut() {
+    setSigningOut(true);
+    setError('');
+    const { error: signOutError } = await supabase.auth.signOut();
+    if (signOutError) {
+      setError('Não foi possível encerrar a sessão. Tente novamente.');
+      setSigningOut(false);
+      return;
+    }
+    router.replace('/login');
+    router.refresh();
+  }
+
   if (loading) return <main className="mx-auto w-full max-w-3xl p-6 text-slate-300" role="status">Carregando perfil…</main>;
   if (!profile) return <main className="mx-auto w-full max-w-3xl p-6"><h1 className="text-2xl font-bold text-white">Meu perfil</h1><p role="alert" className="mt-4 text-red-200">{error || 'Não foi possível carregar seu perfil.'}</p></main>;
 
@@ -127,6 +145,14 @@ export default function ProfilePage() {
     <section className="glass-card space-y-3 p-5" aria-labelledby="profile-preferences-title">
       <h2 id="profile-preferences-title" className="text-lg font-semibold text-white">Preferências de lista</h2>
       <ColumnPreferences columns={profile.columns} available={profile.availableColumns} filters={profileFilters} returnTo="/painel/perfil" />
+    </section>
+
+    <section className="glass-card space-y-3 p-5" aria-labelledby="profile-session-title">
+      <h2 id="profile-session-title" className="text-lg font-semibold text-white">Sessão</h2>
+      <p className="text-sm text-slate-300">Encerre seu acesso ao painel neste dispositivo.</p>
+      <button type="button" onClick={signOut} disabled={signingOut} className="inline-flex items-center gap-2 rounded-lg border border-red-400/30 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-200 hover:bg-red-500/20 disabled:opacity-50">
+        <LogOut size={16} /> {signingOut ? 'Encerrando sessão…' : 'Encerrar Sessão'}
+      </button>
     </section>
   </main>;
 }
