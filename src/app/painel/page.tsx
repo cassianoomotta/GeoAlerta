@@ -23,6 +23,16 @@ const MapComponent = dynamic(() => import("@/components/MapComponent"), {
   )
 });
 
+type MapOccurrenceSnapshot = {
+  id: string;
+  protocol: string;
+  type: string;
+  status: string;
+  priority: string;
+  created_at: string;
+  location: { type: "Point"; coordinates: [number, number] };
+};
+
 export const ORGAN_DEFAULT_BASES: Record<string, { lat: number; lng: number }> = {
   "Defesa Civil": { lat: -29.8285, lng: -50.5192 },
   "Bombeiros": { lat: -29.8214, lng: -50.5140 },
@@ -38,6 +48,7 @@ function PainelContent() {
 
   // ---------- Estado: Ocorrências ----------
   const [occurrences, setOccurrences] = useState<any[]>([]);
+  const [occurrencesLoadError, setOccurrencesLoadError] = useState("");
   const [selectedFilter, setSelectedFilter] = useState<string>("TODOS");
   const [loading, setLoading] = useState(false);
   const [selectedOccurrence, setSelectedOccurrence] = useState<any | null>(null);
@@ -128,15 +139,13 @@ function PainelContent() {
   // ---------- Fetch: Ocorrências ----------
   const fetchOccurrences = useCallback(async () => {
     try {
-      const { data, error } = await supabase
-        .from('occurrences')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setOccurrences(data || []);
-    } catch (e) {
-      console.error('Erro ao buscar ocorrências:', e);
+      const response = await fetch('/api/map/occurrences', { cache: 'no-store' });
+      const body = await response.json() as { items?: MapOccurrenceSnapshot[]; error?: { message?: string } };
+      if (!response.ok || !Array.isArray(body.items)) throw new Error(body.error?.message || 'Não foi possível carregar as ocorrências.');
+      setOccurrences(body.items);
+      setOccurrencesLoadError("");
+    } catch {
+      setOccurrencesLoadError('Não foi possível carregar as ocorrências. Verifique sua sessão e tente novamente.');
     }
   }, []);
 
@@ -376,20 +385,6 @@ function PainelContent() {
     fetchVolunteers();
     fetchRiskZones();
 
-    // Real-time: ocorrências
-    const occChannel = supabase
-      .channel('public:occurrences:map')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'occurrences' }, (payload) => {
-        const newOcc = payload.new;
-        setOccurrences((prev) => [newOcc, ...prev]);
-        setRealtimeAlert(newOcc);
-      })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'occurrences' }, (payload) => {
-        setOccurrences((prev) => prev.map(o => o.id === payload.new.id ? payload.new : o));
-        setSelectedOccurrence((prev: any) => (prev && prev.id === payload.new.id ? payload.new : prev));
-      })
-      .subscribe();
-
     // Real-time: equipes GPS (atualiza a cada insert, update ou delete imediato)
     const teamChannel = supabase
       .channel('team-locations-map')
@@ -418,15 +413,21 @@ function PainelContent() {
     const heartbeat = setInterval(() => {
       fetchLiveTeams();
     }, 15000);
+    const refreshOccurrences = () => {
+      if (document.visibilityState === 'visible') void fetchOccurrences();
+    };
+    const occurrencesHeartbeat = setInterval(refreshOccurrences, 15000);
+    document.addEventListener('visibilitychange', refreshOccurrences);
 
     return () => {
-      supabase.removeChannel(occChannel);
       supabase.removeChannel(teamChannel);
       supabase.removeChannel(shelterChannel);
       supabase.removeChannel(riskZoneChannel);
       clearInterval(heartbeat);
+      clearInterval(occurrencesHeartbeat);
+      document.removeEventListener('visibilitychange', refreshOccurrences);
     };
-  }, [fetchShelters, fetchLiveTeams, fetchResources, fetchVolunteers, fetchRiskZones]);
+  }, [fetchOccurrences, fetchShelters, fetchLiveTeams, fetchResources, fetchVolunteers, fetchRiskZones]);
 
   useEffect(() => {
     if (focusId && occurrences.length > 0) {
@@ -954,6 +955,7 @@ function PainelContent() {
           </div>
         )}
 
+        {occurrencesLoadError && <p role="alert" className="mx-4 rounded-lg border border-amber-400/30 bg-amber-500/10 p-3 text-sm text-amber-100">{occurrencesLoadError}</p>}
         <MapComponent 
           occurrences={filteredOccurrences} 
           onMarkerClick={setSelectedOccurrence} 

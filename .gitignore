@@ -12,6 +12,12 @@
 
 # testing
 /coverage
+/playwright-report/
+/test-results/
+
+# local validation artifacts and generated Prisma client
+/.cache/
+/prisma/generated/
 
 # next.js
 /.next/
