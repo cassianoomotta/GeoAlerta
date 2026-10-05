@@ -37,7 +37,11 @@ export async function GET(){
       const message=error.status===403?'Seu perfil não tem acesso às ocorrências deste município.':'Não foi possível validar o acesso ao mapa.';
       return Response.json({error:{code:error.code,message}},{status:error.status,headers});
     }
-    console.error(JSON.stringify({event:'OCCURRENCE_MAP_READ_FAILED'}));
+    const errorCode=error&&typeof error==='object'&&'code' in error&&typeof error.code==='string'&&/^[0-9A-Z]{5}$/.test(error.code)
+      ? error.code
+      : undefined;
+    const errorName=error instanceof Error?error.name:'UnknownError';
+    console.error(JSON.stringify({event:'OCCURRENCE_MAP_READ_FAILED',errorName,errorCode}));
     return Response.json({error:{code:'SERVICE_UNAVAILABLE',message:'Não foi possível carregar as ocorrências agora.'}},{status:503,headers});
   }
 }

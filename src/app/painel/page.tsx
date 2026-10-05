@@ -140,12 +140,16 @@ function PainelContent() {
   const fetchOccurrences = useCallback(async () => {
     try {
       const response = await fetch('/api/map/occurrences', { cache: 'no-store' });
-      const body = await response.json() as { items?: MapOccurrenceSnapshot[]; error?: { message?: string } };
-      if (!response.ok || !Array.isArray(body.items)) throw new Error(body.error?.message || 'Não foi possível carregar as ocorrências.');
+      const body = await response.json().catch(() => null) as { items?: MapOccurrenceSnapshot[]; error?: { message?: string } } | null;
+      if (!response.ok) {
+        setOccurrencesLoadError(body?.error?.message || `Não foi possível carregar as ocorrências (HTTP ${response.status}).`);
+        return;
+      }
+      if (!body || !Array.isArray(body.items)) throw new Error('Resposta inválida ao carregar as ocorrências.');
       setOccurrences(body.items);
       setOccurrencesLoadError("");
     } catch {
-      setOccurrencesLoadError('Não foi possível carregar as ocorrências. Verifique sua sessão e tente novamente.');
+      setOccurrencesLoadError('Falha de comunicação ao carregar as ocorrências. Verifique sua conexão e tente novamente.');
     }
   }, []);
 
@@ -890,6 +894,12 @@ function PainelContent() {
         </div>
       </div>
 
+      {occurrencesLoadError && (
+        <p role="alert" className="mb-3 rounded-lg border border-amber-400/30 bg-amber-500/10 p-3 text-sm text-amber-100">
+          {occurrencesLoadError}
+        </p>
+      )}
+
       {/* Container do Mapa Tático */}
       <div className="glass-card flex-1 min-h-[300px] p-1 overflow-hidden relative group rounded-2xl">
         
@@ -955,7 +965,6 @@ function PainelContent() {
           </div>
         )}
 
-        {occurrencesLoadError && <p role="alert" className="mx-4 rounded-lg border border-amber-400/30 bg-amber-500/10 p-3 text-sm text-amber-100">{occurrencesLoadError}</p>}
         <MapComponent 
           occurrences={filteredOccurrences} 
           onMarkerClick={setSelectedOccurrence} 
