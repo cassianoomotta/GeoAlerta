@@ -2,7 +2,8 @@ import { booleanValid, unkinkPolygon } from '@turf/turf';
 
 export type ZoneGeometry = { type: 'Polygon' | 'MultiPolygon'; coordinates: unknown[] };
 export type RiskZoneInput = { name: string; type: 'INUNDACAO' | 'RISCO'; active: boolean; validFrom: string | null; validTo: string | null; geometry: ZoneGeometry };
-export type RiskZoneUpdate = RiskZoneInput & { zoneId: string; expectedVersion: number };
+export type RiskZoneCreate = RiskZoneInput & { reason: string; replacesZoneId?: string; duplicateOverrideReason?: string };
+export type RiskZoneUpdate = RiskZoneInput & { zoneId: string; expectedVersion: number; reason: string; replacesZoneId?: string; duplicateOverrideReason?: string };
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export class RiskZoneInputError extends Error {
@@ -10,6 +11,10 @@ export class RiskZoneInputError extends Error {
 }
 export class RiskZoneVersionConflictError extends Error {
   constructor() { super('RISK_ZONE_VERSION_CONFLICT'); }
+}
+
+export class RiskZoneDuplicateError extends Error {
+  constructor() { super('RISK_ZONE_DUPLICATE'); }
 }
 
 export function assertRiskZoneVersion(currentVersion: number, expectedVersion: number) {
@@ -58,14 +63,41 @@ function parseFields(input: Record<string, unknown>): RiskZoneInput {
   return { name, type: input.type as RiskZoneInput['type'], active: input.active, validFrom, validTo, geometry: input.geometry };
 }
 
-export function parseCreateRiskZone(value: unknown): RiskZoneInput {
+function requiredReason(value: unknown): string {
+  if (typeof value !== 'string') throw new RiskZoneInputError();
+  const reason = value.trim();
+  if (!reason || reason.length > 500) throw new RiskZoneInputError();
+  return reason;
+}
+
+function optionalZoneReference(value: unknown): string | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== 'string' || !uuid.test(value)) throw new RiskZoneInputError();
+  return value;
+}
+
+function optionalOverrideReason(value: unknown): string | undefined {
+  return value === undefined ? undefined : requiredReason(value);
+}
+
+export function parseCreateRiskZone(value: unknown): RiskZoneCreate {
   const input = record(value);
-  if (Object.keys(input).some((key) => !['name','type','active','validFrom','validTo','geometry'].includes(key))) throw new RiskZoneInputError();
-  return parseFields(input);
+  if (Object.keys(input).some((key) => !['name','type','active','validFrom','validTo','geometry','reason','replacesZoneId','duplicateOverrideReason'].includes(key))) throw new RiskZoneInputError();
+  const reason = requiredReason(input.reason);
+  const replacesZoneId = optionalZoneReference(input.replacesZoneId);
+  const duplicateOverrideReason = optionalOverrideReason(input.duplicateOverrideReason);
+  const fields = parseFields({ ...input, active: false });
+  return { ...fields, active: false, reason, replacesZoneId, duplicateOverrideReason };
 }
 
 export function parseUpdateRiskZone(value: unknown): RiskZoneUpdate {
   const input = record(value);
-  if (Object.keys(input).some((key) => !['zoneId','expectedVersion','name','type','active','validFrom','validTo','geometry'].includes(key)) || typeof input.zoneId !== 'string' || !uuid.test(input.zoneId) || typeof input.expectedVersion !== 'number' || !Number.isSafeInteger(input.expectedVersion) || input.expectedVersion < 1) throw new RiskZoneInputError();
-  return { ...parseFields(input), zoneId: input.zoneId, expectedVersion: input.expectedVersion };
+  if (Object.keys(input).some((key) => !['zoneId','expectedVersion','name','type','active','validFrom','validTo','geometry','reason','replacesZoneId','duplicateOverrideReason'].includes(key)) || typeof input.zoneId !== 'string' || !uuid.test(input.zoneId) || typeof input.expectedVersion !== 'number' || !Number.isSafeInteger(input.expectedVersion) || input.expectedVersion < 1) throw new RiskZoneInputError();
+  const fields = parseFields(input);
+  if (!fields.validFrom) throw new RiskZoneInputError();
+  const reason = requiredReason(input.reason);
+  const replacesZoneId = optionalZoneReference(input.replacesZoneId);
+  if (replacesZoneId === input.zoneId) throw new RiskZoneInputError();
+  const duplicateOverrideReason = optionalOverrideReason(input.duplicateOverrideReason);
+  return { ...fields, zoneId: input.zoneId, expectedVersion: input.expectedVersion, reason, replacesZoneId, duplicateOverrideReason };
 }

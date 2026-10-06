@@ -1,7 +1,8 @@
 import type {Actor} from '@/features/access/contracts';
 import {can} from '@/features/access/domain/permissions';
 import type {DashboardView,Priority,Status} from '../contracts';
-import {shapeDashboardView,type DashboardMapQuery,type DashboardMarker} from '../domain/dashboard-map';
+import type {DashboardMarkerInput} from '../domain/dashboard-map';
+import {shapeDashboardView,type DashboardMapQuery} from '../domain/dashboard-map';
 
 export type DashboardMapData={markers:DashboardMarker[];byStatus:Partial<Record<Status,number>>;byPriority:Partial<Record<Priority,number>>;availableTypes?:string[];matchingCount?:number};
 export type DashboardMapPort={read(query:DashboardMapQuery,markerLimit:number):Promise<DashboardMapData>};

@@ -10,7 +10,7 @@ export async function classifyOccurrence(
 ): Promise<OccurrenceClassification> {
   const zones = await tx.$queryRaw<{ zone_id: string; version: number }[]>`
     SELECT z.zone_id::text AS zone_id,z.version FROM public.risk_zones z
-    WHERE z.version=(SELECT max(current_zone.version) FROM public.risk_zones current_zone WHERE current_zone.zone_id=z.zone_id)
+    WHERE z.version=geoalerta_private.effective_risk_zone_version(z.zone_id,transaction_timestamp())
       AND z.active
       AND (z.valid_from IS NULL OR z.valid_from<=transaction_timestamp())
       AND (z.valid_to IS NULL OR z.valid_to>transaction_timestamp())

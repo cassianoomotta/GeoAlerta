@@ -2,11 +2,15 @@
 
 import { useEffect, useState, type FormEvent } from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import type { ZoneGeometry } from '../domain/risk-zones';
+import type { ZoneSnapshot } from './RiskZoneHistoryMap';
+
+const RiskZoneHistoryMap = dynamic(() => import('./RiskZoneHistoryMap'), { ssr: false, loading: () => <div className="h-80 animate-pulse rounded-xl bg-slate-800" aria-label="Carregando mapa histórico" /> });
 
 type Zone = { zoneId: string; version: number; name: string; type: 'INUNDACAO' | 'RISCO'; active: boolean; validFrom: string | null; validTo: string | null; geometry: ZoneGeometry };
 type ZoneType = Zone['type'];
-const blank = { name: '', type: 'INUNDACAO' as ZoneType, active: true, validFrom: '', validTo: '', geometryText: '' };
+const blank = { name: '', type: 'INUNDACAO' as ZoneType, active: false, validFrom: '', validTo: '', geometryText: '', reason: '', replacesZoneId: '', duplicateOverrideReason: '' };
 
 export function RiskZonePanel() {
   const [zones, setZones] = useState<Zone[]>([]);
@@ -15,6 +19,11 @@ export function RiskZonePanel() {
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
+  const [historyAt, setHistoryAt] = useState('');
+  const [historyCompareAt, setHistoryCompareAt] = useState('');
+  const [historySnapshots, setHistorySnapshots] = useState<ZoneSnapshot[] | null>(null);
+  const [historyError, setHistoryError] = useState('');
+  const [historyBusy, setHistoryBusy] = useState(false);
 
   async function load() {
     const response = await fetch('/api/core/admin/risk-zones', { cache: 'no-store' });
@@ -35,7 +44,7 @@ export function RiskZonePanel() {
 
   function startEdit(zone: Zone) {
     setEditing(zone);
-    setForm({ name: zone.name, type: zone.type, active: zone.active, validFrom: toLocalInput(zone.validFrom), validTo: toLocalInput(zone.validTo), geometryText: JSON.stringify(zone.geometry, null, 2) });
+    setForm({ ...blank, name: zone.name, type: zone.type, active: zone.active, validFrom: toLocalInput(zone.validFrom), validTo: toLocalInput(zone.validTo), geometryText: JSON.stringify(zone.geometry, null, 2) });
     setError(''); setMessage('');
   }
 
@@ -51,6 +60,9 @@ export function RiskZonePanel() {
         validFrom: form.validFrom ? new Date(form.validFrom).toISOString() : null,
         validTo: form.validTo ? new Date(form.validTo).toISOString() : null,
         geometry,
+        reason: form.reason,
+        ...(form.replacesZoneId.trim() ? { replacesZoneId: form.replacesZoneId.trim() } : {}),
+        ...(form.duplicateOverrideReason.trim() ? { duplicateOverrideReason: form.duplicateOverrideReason.trim() } : {}),
         ...(editing ? { zoneId: editing.zoneId, expectedVersion: editing.version } : {}),
       };
       const response = await fetch('/api/core/admin/risk-zones', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: editing ? 'update' : 'create', ...payload }) });
@@ -61,6 +73,20 @@ export function RiskZonePanel() {
       await load();
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Falha ao salvar a zona.'); }
     finally { setBusy(false); }
+  }
+
+  async function compareHistory(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault(); setHistoryBusy(true); setHistoryError('');
+    try {
+      const at = new Date(historyAt).toISOString();
+      const compareAt = new Date(historyCompareAt).toISOString();
+      const query = new URLSearchParams({ at, compareAt });
+      const response = await fetch(`/api/core/admin/risk-zones?${query.toString()}`, { cache: 'no-store' });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error?.message ?? 'Não foi possível consultar o histórico.');
+      setHistorySnapshots(body.snapshots as ZoneSnapshot[]);
+    } catch (cause) { setHistoryError(cause instanceof Error ? cause.message : 'Falha ao consultar o histórico.'); }
+    finally { setHistoryBusy(false); }
   }
 
   return <main className="mx-auto w-full max-w-6xl space-y-6 p-4 sm:p-6" aria-labelledby="zones-title">

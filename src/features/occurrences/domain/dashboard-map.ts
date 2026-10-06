@@ -3,6 +3,7 @@ import type {DashboardView,Priority,Status} from '../contracts';
 export type DashboardBounds={west:number;south:number;east:number;north:number};
 export type DashboardMapQuery=Partial<DashboardBounds>&{from?:string;to?:string;statuses?:Status[];priorities?:Priority[];types?:string[]};
 export type DashboardMarker=DashboardView['markers'][number];
+export type DashboardMarkerInput=Omit<DashboardMarker,'state'>;
 export class DashboardQueryError extends Error{}
 
 const statusValues:readonly Status[]=['NOVA','EM_TRIAGEM','EM_ATENDIMENTO','RESOLVIDA','CANCELADA'];
@@ -64,14 +65,21 @@ export function parseDashboardQuery(params:URLSearchParams,now=new Date()):Dashb
 }
 
 export function shapeDashboardView(
-  candidates:readonly DashboardMarker[],
+  candidates:readonly DashboardMarkerInput[],
   byStatus:Partial<Record<Status,number>>,
   byPriority:Partial<Record<Priority,number>>,
   limit=1000,
   metadata:{availableTypes?:string[];matchingCount?:number}={},
 ):DashboardView{
+  const unique:DashboardMarkerInput[]=[];
+  const seen=new Set<string>();
+  for(const marker of candidates){
+    if(seen.has(marker.id))continue;
+    seen.add(marker.id);
+    unique.push(marker);
+  }
   return {
-    markers:candidates.slice(0,limit),
+    markers:unique.slice(0,limit).map(marker=>({...marker,state:marker.status==='RESOLVIDA'||marker.status==='CANCELADA'?'closed':'open'})),
     counts:{
       byStatus:Object.fromEntries(statusValues.map(status=>[status,byStatus[status]??0])) as Record<Status,number>,
       byPriority:Object.fromEntries(priorityValues.map(priority=>[priority,byPriority[priority]??0])) as Record<Priority,number>,

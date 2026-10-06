@@ -60,6 +60,13 @@ test('RF-007 limita marcadores sem cortar as contagens completas recebidas',()=>
   expect(view.counts.byStatus.RESOLVIDA).toBe(0);
 });
 
+test('RF-007 mapa mantém um único marcador por ocorrência quando consultas se sobrepõem',()=>{
+  const first={id:'30000000-0000-4000-8000-000000000001',latitude:-29.8,longitude:-50.5,type:'Alagamento',priority:'ALTA' as const,status:'NOVA' as const};
+  const other={id:'30000000-0000-4000-8000-000000000002',latitude:-29.81,longitude:-50.51,type:'Árvore',priority:'NORMAL' as const,status:'EM_TRIAGEM' as const};
+  const view=shapeDashboardView([first,{...first},other],{NOVA:2,EM_TRIAGEM:1},{ALTA:2,NORMAL:1});
+  expect(view.markers.map(marker=>marker.id)).toEqual([first.id,other.id]);
+  expect(view.limited).toBe(false);
+});
 test('RF-007 recorte com até mil pontos não informa limitação',()=>{
   const markers=Array.from({length:1000},(_,index)=>({id:String(index),protocol:String(index+1),type:'Incêndio',latitude:-29.8,longitude:-50.5,priority:'ALTA' as const,status:'EM_TRIAGEM' as const}));
   expect(shapeDashboardView(markers,{},{}).limited).toBe(false);
