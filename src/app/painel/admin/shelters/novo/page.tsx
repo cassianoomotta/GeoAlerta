@@ -25,9 +25,9 @@ export default async function NewShelterPage() {
 
   return (
     <main className="p-6">
-      <h1 className="text-2xl font-bold text-white">Cadastrar abrigo</h1>
-      <p role="alert" className="mt-4 text-red-200">{failureMessage}</p>
-      <Link href="/painel/admin/shelters" className="mt-4 inline-flex text-sm text-blue-200 underline">Voltar à lista</Link>
+      <h1 className="text-2xl font-bold text-foreground">Cadastrar abrigo</h1>
+      <p role="alert" className="mt-4 text-danger">{failureMessage}</p>
+      <Link href="/painel/admin/shelters" className="mt-4 inline-flex text-sm text-primary underline">Voltar à lista</Link>
     </main>
   );
 }

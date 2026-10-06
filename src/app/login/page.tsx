@@ -4,6 +4,10 @@ import { useState, useSyncExternalStore } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { ShieldAlert } from "lucide-react";
+import { Field } from '@/components/ui/field';
+import { Button } from '@/components/ui/button';
+import { InlineNotice } from '@/components/ui/inline-notice';
+import { ThemeSelect } from '@/components/theme/theme-select';
 const subscribe=()=>()=>{};
 
 export default function Login() {
@@ -40,68 +44,21 @@ export default function Login() {
     }
   };
 
-  return (
-    <main className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-sm">
-        
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/5 border border-white/10 mb-4">
-            <ShieldAlert size={32} className="text-blue-500" />
-          </div>
-          <h1 className="text-3xl font-extrabold text-white tracking-tight">Gabinete de Crise</h1>
-          <p className="text-slate-400 mt-2 text-sm font-medium">Acesso restrito a servidores autorizados</p>
-        </div>
-
-        <form onSubmit={handleLogin} className="bg-white/5 border border-white/10 p-6 rounded-2xl backdrop-blur-xl">
-          {error && (
-            <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm p-3 rounded-lg mb-4 text-center">
-              {error}
-            </div>
-          )}
-
-          <div className="space-y-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                E-mail Institucional <span aria-hidden="true" className="text-red-400">*</span>
-              </label>
-              <input 
-                type="email" 
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                required
-                className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all text-base sm:text-sm"
-                placeholder="operador@prefeitura.gov.br"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                Senha de Acesso <span aria-hidden="true" className="text-red-400">*</span>
-              </label>
-              <input 
-                type="password" 
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                required
-                className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all text-base sm:text-sm"
-                placeholder="••••••••"
-              />
-            </div>
-
-            <button 
-              type="submit"
-              disabled={loading || !ready}
-              className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition-colors mt-2 disabled:opacity-50"
-            >
-              {loading ? "Autenticando..." : "Entrar no Painel"}
-            </button>
-          </div>
-        </form>
-
-        <p className="text-center text-xs text-slate-500 mt-8">
-          Sistema desenvolvido para a Prefeitura de Santo Antônio da Patrulha. <br/>Uso exclusivo de órgãos oficiais.
-        </p>
-      </div>
-    </main>
-  );
+  return <main className="flex min-h-dvh flex-col items-center justify-center gap-8 bg-background px-4 py-8">
+    <div className="w-full max-w-sm">
+      <header className="mb-6">
+        <p className="text-xl font-semibold text-primary">GeoAlerta</p>
+        <h1 className="mt-6 text-2xl font-semibold">Gabinete de Crise</h1>
+        <p className="mt-2 text-sm text-muted-foreground">Acesso restrito a servidores autorizados</p>
+      </header>
+      <form onSubmit={handleLogin} className="surface-panel space-y-5 p-6" aria-busy={loading}>
+        {error && <InlineNotice tone="danger" role="alert">{error}</InlineNotice>}
+        <Field label="E-mail Institucional" type="email" autoComplete="username" value={email} onChange={event => setEmail(event.target.value)} required placeholder="operador@prefeitura.gov.br" disabled={loading} />
+        <Field label="Senha de Acesso" type="password" autoComplete="current-password" placeholder="••••••••" value={password} onChange={event => setPassword(event.target.value)} required disabled={loading} />
+        <Button type="submit" disabled={!ready} loading={loading} loadingLabel="Autenticando…" className="w-full"><ShieldAlert size={18} aria-hidden="true" />Entrar no Painel</Button>
+      </form>
+      <p className="mt-6 text-sm leading-5 text-muted-foreground">Sistema desenvolvido para a Prefeitura de Santo Antônio da Patrulha. Uso exclusivo de órgãos oficiais.</p>
+      <div className="mt-6"><ThemeSelect /></div>
+    </div>
+  </main>;
 }

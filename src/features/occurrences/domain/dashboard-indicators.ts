@@ -1,102 +1,58 @@
-import type {Status} from '../contracts';
-
-export const DASHBOARD_TIME_ZONE='America/Sao_Paulo';
-export type DashboardIndicatorsPeriod='today'|'week'|'month'|'custom';
-export type DashboardIndicatorsQuery={
-  period:DashboardIndicatorsPeriod;
-  from:string;
-  to:string;
-  neighborhoodCode?:string;
-};
-export type DashboardIndicatorsData={
-  totals:{registered:number;open:number;inService:number;resolved:number;cancelled:number};
-  daily:{date:string;total:number}[];
-  byNeighborhood:{code:string|null;label:string;total:number}[];
-  byType:{label:string;total:number}[];
-  neighborhoods:{code:string;label:string}[];
-  byStatus:Partial<Record<Status,number>>;
-};
-export type DashboardIndicatorsView=DashboardIndicatorsData&{
-  window:DashboardIndicatorsQuery&{timeZone:string};
-};
-export class DashboardIndicatorsQueryError extends Error{}
-
-function calendarDate(date:Date,timeZone:string):string{
-  const parts=new Intl.DateTimeFormat('en-CA',{timeZone,year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(date);
-  const part=(type:Intl.DateTimeFormatPartTypes)=>parts.find(item=>item.type===type)?.value??'';
-  return part('year')+'-'+part('month')+'-'+part('day');
+import {STATUSES,type Priority,type Status} from '../contracts';
+// UTC interval [from,to); the selected end date is included in full.
+export type IndicatorQuery={from?:string;to?:string};
+export type DailyActivity={day:string;opened:number;closed:number};
+export type IndicatorData={byStatus:Partial<Record<Status,number>>;byPriority:Partial<Record<Priority,number>>;byType:{type:string;count:number}[];daily:DailyActivity[]};
+export type IndicatorView={summary:{total:number;open:number;inProgress:number;highPriority:number};byStatus:Record<Status,number>;byType:IndicatorData['byType'];daily:DailyActivity[]};
+export class IndicatorQueryError extends Error{}
+const dayMs=86_400_000;
+const calendar=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'});
+export function indicatorDay(value:Date):string{
+  const parts=calendar.formatToParts(value);
+  const part=(name:string)=>parts.find(item=>item.type===name)!.value;
+  return `${part('year')}-${part('month')}-${part('day')}`;
 }
-
-function shiftDay(value:string,days:number):string{
-  const date=new Date(value+'T12:00:00.000Z');
-  date.setUTCDate(date.getUTCDate()+days);
-  return date.toISOString().slice(0,10);
+function readDay(value:string):number{
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(value))throw new IndicatorQueryError('INVALID_DATE');
+  const result=Date.parse(`${value}T00:00:00Z`);
+  if(!Number.isFinite(result)||new Date(result).toISOString().slice(0,10)!==value)throw new IndicatorQueryError('INVALID_DATE');
+  return result;
 }
-
-function localMidnight(value:string,timeZone:string):Date{
-  const [year,month,day]=value.split('-').map(Number);
-  const desired=Date.UTC(year,month-1,day);
-  let candidate=desired;
-  const formatter=new Intl.DateTimeFormat('en-US',{timeZone,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'});
-  for(let attempt=0;attempt<4;attempt++){
-    const parts=formatter.formatToParts(new Date(candidate));
-    const part=(type:Intl.DateTimeFormatPartTypes)=>Number(parts.find(item=>item.type===type)?.value??0);
-    const represented=Date.UTC(part('year'),part('month')-1,part('day'),part('hour'),part('minute'),part('second'));
-    const correction=desired-represented;
-    candidate+=correction;
-    if(correction===0)break;
+// Resolve the local day's start with the IANA zone, including historical offset changes.
+function localMidnight(day:number):number{
+  const clock=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'});
+  let candidate=day;
+  const seen=new Set<number>();
+  for(let index=0;index<4;index++){
+    seen.add(candidate);
+    const parts=clock.formatToParts(new Date(candidate));
+    const part=(name:string)=>parts.find(item=>item.type===name)!.value;
+    const wallTime=Date.parse(`${part('year')}-${part('month')}-${part('day')}T${part('hour')}:${part('minute')}:${part('second')}Z`);
+    const next=candidate+day-wallTime;
+    if(next===candidate)return candidate;
+    if(seen.has(next))return Math.max(candidate,next); // A historical DST jump may skip midnight.
+    candidate=next;
   }
-  return new Date(candidate);
+  return candidate;
 }
-
-function validCalendarDate(value:string|undefined):value is string{
-  return !!value&&/^\d{4}-\d{2}-\d{2}$/.test(value)&&new Date(value+'T12:00:00.000Z').toISOString().slice(0,10)===value;
+export function parseIndicatorQuery(params:URLSearchParams,now=new Date()):IndicatorQuery{
+  for(const key of params.keys())if(!['from','to'].includes(key)||params.getAll(key).length!==1)throw new IndicatorQueryError('INVALID_INPUT');
+  if(!params.size)return {};
+  const to=readDay(params.get('to')??indicatorDay(now));
+  const from=params.has('from')?readDay(params.get('from')!):to-30*dayMs;
+  if(to<from||to-from>30*dayMs)throw new IndicatorQueryError('INVALID_DATE_RANGE');
+  return {from:new Date(localMidnight(from)).toISOString(),to:new Date(localMidnight(to+dayMs)).toISOString()};
 }
-
-function calendarDaysBetween(start:string,end:string):number{
-  const first=Date.parse(start+'T12:00:00.000Z');
-  const last=Date.parse(end+'T12:00:00.000Z');
-  return Math.round((last-first)/86_400_000)+1;
-}
-
-export function parseDashboardIndicatorsQuery(
-  params:URLSearchParams,
-  now=new Date(),
-  timeZone=DASHBOARD_TIME_ZONE,
-):DashboardIndicatorsQuery{
-  const allowed=new Set(['period','from','to','neighborhood']);
-  for(const key of params.keys())if(!allowed.has(key)||params.getAll(key).length!==1)throw new DashboardIndicatorsQueryError('INVALID_INPUT');
-
-  const period=(params.get('period')??'today') as DashboardIndicatorsPeriod;
-  if(!['today','week','month','custom'].includes(period))throw new DashboardIndicatorsQueryError('INVALID_PERIOD');
-  const neighborhoodCode=params.get('neighborhood')??undefined;
-  if(neighborhoodCode!==undefined&&!/^[A-Za-z0-9_-]{1,40}$/.test(neighborhoodCode))throw new DashboardIndicatorsQueryError('INVALID_NEIGHBORHOOD');
-
-  let start:string;
-  let end:string;
-  if(period==='custom'){
-    const from=params.get('from')??undefined;
-    const to=params.get('to')??undefined;
-    if(!validCalendarDate(from)||!validCalendarDate(to)||from>to||calendarDaysBetween(from,to)>366)throw new DashboardIndicatorsQueryError('INVALID_DATE_RANGE');
-    start=from;
-    end=shiftDay(to,1);
-  }else{
-    if(params.has('from')||params.has('to'))throw new DashboardIndicatorsQueryError('INVALID_INPUT');
-    const today=calendarDate(now,timeZone);
-    end=shiftDay(today,1);
-    if(period==='today')start=today;
-    else if(period==='month')start=today.slice(0,8)+'01';
-    else{
-      const weekday=new Date(today+'T12:00:00.000Z').getUTCDay();
-      start=shiftDay(today,-((weekday+6)%7));
-    }
+export function shapeIndicatorView(data:IndicatorData,query:IndicatorQuery):IndicatorView{
+  const byStatus=Object.fromEntries(STATUSES.map(status=>[status,data.byStatus[status]??0])) as Record<Status,number>;
+  const days=new Map(data.daily.map(item=>[item.day,item]));
+  const sorted=[...days.keys()].sort();
+  const first=query.from?indicatorDay(new Date(query.from)):sorted[0];
+  const last=query.to?indicatorDay(new Date(new Date(query.to).getTime()-1)):sorted.at(-1);
+  const daily:DailyActivity[]=[];
+  if(first&&last)for(let day=readDay(first),end=readDay(last);day<=end;day+=dayMs){
+    const key=new Date(day).toISOString().slice(0,10);
+    daily.push(days.get(key)??{day:key,opened:0,closed:0});
   }
-
-  return {
-    period,
-    from:localMidnight(start,timeZone).toISOString(),
-    to:localMidnight(end,timeZone).toISOString(),
-    ...(neighborhoodCode?{neighborhoodCode}:{}),
-  };
+  return {summary:{total:Object.values(byStatus).reduce((sum,count)=>sum+count,0),open:byStatus.NOVA+byStatus.EM_TRIAGEM+byStatus.EM_ATENDIMENTO,inProgress:byStatus.EM_ATENDIMENTO,highPriority:data.byPriority.ALTA??0},byStatus,byType:data.byType,daily};
 }
-

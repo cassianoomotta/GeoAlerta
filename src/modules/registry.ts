@@ -29,9 +29,16 @@ export const MODULES: ModuleDef[] = [
   },
   {
     slug: "tabela",
-    label: "Ocorrências",
+    label: "Lista de ocorrências",
     href: "/painel/ocorrencias",
     description: "Relatórios e exportação CSV",
+    enabled: true,
+  },
+  {
+    slug: "nova-ocorrencia",
+    label: "Nova ocorrência",
+    href: "/painel/ocorrencias/nova",
+    description: "Registro manual de uma nova ocorrência",
     enabled: true,
   },
   {

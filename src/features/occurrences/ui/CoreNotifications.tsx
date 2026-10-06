@@ -2,8 +2,10 @@
 
 import {useCallback,useEffect,useRef,useState} from 'react';
 import Link from 'next/link';
-import {Bell,ShieldAlert} from 'lucide-react';
+import {Bell,X} from 'lucide-react';
 import {supabase} from '@/lib/supabase';
+import {PriorityBadge,StatusBadge} from './OccurrenceBadges';
+import {useStatusLabels} from './use-status-labels';
 import {formatTimeAgo} from '@/lib/dateUtils';
 import {isRealtimeAuthorizationFailure,mergeCoreAlerts,parseCoreAlert,type CoreAlert} from '../alerts';
 
@@ -11,6 +13,7 @@ const visibleAlerts=20;
 const recoveryLimit=50;
 
 export function CoreNotifications(){
+  const statusLabels=useStatusLabels();
   const [alerts,setAlerts]=useState<CoreAlert[]>([]);
   const [unread,setUnread]=useState(0);
   const [open,setOpen]=useState(false);
@@ -88,16 +91,16 @@ export function CoreNotifications(){
   },[receive]);
 
   return <div className="relative">
-    <button type="button" onClick={()=>{setOpen(value=>!value);setUnread(0);}} className="flex items-center justify-center p-2 sm:p-2.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 transition-all relative" aria-label={`Alertas in-app${unread?`, ${unread} não lidos`:''}`} aria-expanded={open}>
+    <span className="sr-only" aria-live="polite" aria-atomic="true">{unread?`${unread} novos alertas de ocorrências.`:''}</span>
+    <button type="button" onClick={()=>{setOpen(value=>!value);setUnread(0);}} className="flex items-center justify-center min-h-10 min-w-10 p-2 sm:p-2.5 rounded-md bg-surface hover:bg-surface-subtle border border-border text-muted-foreground transition-all relative" aria-label={`Alertas in-app${unread?`, ${unread} não lidos`:''}`} aria-expanded={open}>
       <Bell size={18}/>
-      {unread>0&&<span className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center text-[10px] font-bold border border-background">{unread>99?'99+':unread}</span>}
+      {unread>0&&<span className="absolute -top-1 -right-1 bg-danger text-danger-foreground rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center text-[10px] font-bold border border-background">{unread>99?'99+':unread}</span>}
     </button>
-    {open&&<section aria-label="Alertas in-app" className="absolute top-[120%] right-0 w-[calc(100vw-1.5rem)] max-w-[360px] z-50 p-2 flex flex-col gap-1 max-h-[75vh] md:max-h-[500px] overflow-y-auto glass-card shadow-2xl">
-      <header className="px-3 py-2 border-b border-white/5 flex items-center justify-between"><h2 className="text-sm font-semibold text-white">Alertas de ocorrências</h2><button type="button" onClick={()=>setOpen(false)} className="text-slate-400 hover:text-white" aria-label="Fechar alertas">×</button></header>
-      {error&&<p role="status" className="px-3 py-2 text-xs text-amber-200">{error}</p>}
-      {alerts.length===0?<p className="text-sm text-slate-400 py-4 text-center">Nenhum alerta recente.</p>:alerts.map(alert=><Link key={alert.eventId} href={`/painel/ocorrencias/${encodeURIComponent(alert.occurrenceId)}`} onClick={()=>setOpen(false)} className="p-3 rounded-xl hover:bg-white/5 text-sm flex gap-3">
-        <span className="w-9 h-9 rounded-lg border border-white/10 flex items-center justify-center bg-white/5 text-amber-300"><ShieldAlert size={16}/></span>
-        <span className="flex min-w-0 flex-col"><strong className="text-red-300 text-xs truncate">Nova ocorrência · Prioridade {alert.priority==='ALTA'?'alta':'normal'}</strong><span className="text-slate-300 text-xs">Status {alert.status}</span><time className="text-[10px] text-slate-500" dateTime={alert.at}>há {formatTimeAgo(alert.at)}</time></span>
+    {open&&<section aria-label="Alertas in-app" className="absolute top-[120%] right-0 w-[calc(100vw-1.5rem)] max-w-[360px] z-50 p-2 flex flex-col gap-1 max-h-[75vh] md:max-h-[500px] overflow-y-auto surface-panel ">
+      <header className="px-3 py-2 border-b border-border flex items-center justify-between"><h2 className="text-sm font-semibold text-foreground">Alertas de ocorrências</h2><button type="button" onClick={()=>setOpen(false)} className="btn btn-text px-3" aria-label="Fechar alertas"><X size={18} aria-hidden="true"/></button></header>
+      {error&&<p role="status" className="px-3 py-2 text-xs text-warning">{error}</p>}
+      {alerts.length===0?<p className="text-sm text-muted-foreground py-4 text-center">Nenhum alerta recente.</p>:alerts.map(alert=><Link key={alert.eventId} href={`/painel/ocorrencias/${encodeURIComponent(alert.occurrenceId)}`} onClick={()=>setOpen(false)} className="p-3 rounded-xl hover:bg-surface text-sm flex gap-3">
+        <span className="flex min-w-0 flex-col gap-2"><strong className="text-sm font-medium">Nova ocorrência</strong><PriorityBadge priority={alert.priority}/><StatusBadge status={alert.status} label={statusLabels[alert.status]}/><time className="text-sm text-muted-foreground" dateTime={alert.at}>há {formatTimeAgo(alert.at)}</time></span>
       </Link>)}
     </section>}
   </div>;

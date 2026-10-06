@@ -1,77 +1,28 @@
 import 'server-only';
 import {Prisma} from '../../../prisma/generated/client/client';
-import {DASHBOARD_TIME_ZONE,type DashboardIndicatorsData,type DashboardIndicatorsQuery} from '@/features/occurrences/domain/dashboard-indicators';
+import type {IndicatorData,IndicatorQuery} from '@/features/occurrences/domain/dashboard-indicators';
 
-type RawIndicators={
-  registered:number;
-  open:number;
-  in_service:number;
-  resolved:number;
-  cancelled:number;
-  daily:DashboardIndicatorsData['daily'];
-  by_neighborhood:DashboardIndicatorsData['byNeighborhood'];
-  by_type:DashboardIndicatorsData['byType'];
-  neighborhoods:DashboardIndicatorsData['neighborhoods'];
-  by_status:DashboardIndicatorsData['byStatus'];
-};
-
-export async function readDashboardIndicators(tx:Prisma.TransactionClient,query:DashboardIndicatorsQuery):Promise<DashboardIndicatorsData>{
-  const neighborhoodFilter=query.neighborhoodCode
-    ?Prisma.sql`AND o.neighborhood_code=${query.neighborhoodCode}`
-    :Prisma.empty;
-  const rows=await tx.$queryRaw<RawIndicators[]>(Prisma.sql`
+export async function readDashboardIndicators(tx:Prisma.TransactionClient,query:IndicatorQuery):Promise<IndicatorData>{
+  const from=query.from?new Date(query.from):null;
+  const to=query.to?new Date(query.to):null;
+  const rows=await tx.$queryRaw<IndicatorData[]>`
     WITH filtered AS MATERIALIZED (
-      SELECT o.created_at,o.status,o.type,o.neighborhood_code,
-        COALESCE(n.label,'Bairro não informado') AS neighborhood_label
-      FROM public.occurrences o
-      LEFT JOIN public.occurrence_neighborhoods n ON n.code=o.neighborhood_code
+      SELECT o.status,o.priority,o.type,o.created_at FROM public.occurrences o
       WHERE o.deleted_at IS NULL
-        AND o.created_at>=${new Date(query.from)}
-        AND o.created_at<${new Date(query.to)}
-        ${neighborhoodFilter}
+        AND (${from}::timestamptz IS NULL OR o.created_at>=${from}::timestamptz)
+        AND (${to}::timestamptz IS NULL OR o.created_at<${to}::timestamptz)
     ),
-    daily AS (
-      SELECT (created_at AT TIME ZONE ${DASHBOARD_TIME_ZONE})::date AS day,count(*)::int AS total
-      FROM filtered GROUP BY day
-    ),
-    day_series AS (
-      SELECT generate_series(
-        (CAST(${new Date(query.from)} AS timestamptz) AT TIME ZONE ${DASHBOARD_TIME_ZONE})::date,
-        ((CAST(${new Date(query.to)} AS timestamptz)-interval '1 millisecond') AT TIME ZONE ${DASHBOARD_TIME_ZONE})::date,
-        interval '1 day'
-      )::date AS day
-    ),
-    neighborhood_counts AS (
-      SELECT neighborhood_code AS code,neighborhood_label AS label,count(*)::int AS total
-      FROM filtered GROUP BY neighborhood_code,neighborhood_label
-    ),
-    type_counts AS (
-      SELECT COALESCE(NULLIF(btrim(type),''),'Não informado') AS label,count(*)::int AS total
-      FROM filtered GROUP BY COALESCE(NULLIF(btrim(type),''),'Não informado')
-    ),
-    status_counts AS (
-      SELECT status,count(*)::int AS total FROM filtered GROUP BY status
-    )
+    statuses AS (SELECT status,count(*)::int AS count FROM filtered GROUP BY status),
+    priorities AS (SELECT priority,count(*)::int AS count FROM filtered GROUP BY priority),
+    types AS (SELECT type,count(*)::int AS count FROM filtered GROUP BY type),
+    openings AS (SELECT to_char(created_at AT TIME ZONE 'America/Sao_Paulo','YYYY-MM-DD') AS day,count(*)::int AS opened FROM filtered GROUP BY 1),
+    closures AS (SELECT * FROM public.core_dashboard_closures(${from}::timestamptz,${to}::timestamptz)),
+    activity AS (SELECT coalesce(o.day,c.day) AS day,coalesce(o.opened,0) AS opened,coalesce(c.closed,0) AS closed FROM openings o FULL JOIN closures c ON o.day=c.day)
     SELECT
-      (SELECT count(*)::int FROM filtered) AS registered,
-      (SELECT count(*)::int FROM filtered WHERE status IN ('NOVA','EM_TRIAGEM')) AS open,
-      (SELECT count(*)::int FROM filtered WHERE status='EM_ATENDIMENTO') AS in_service,
-      (SELECT count(*)::int FROM filtered WHERE status='RESOLVIDA') AS resolved,
-      (SELECT count(*)::int FROM filtered WHERE status='CANCELADA') AS cancelled,
-      COALESCE((SELECT jsonb_agg(jsonb_build_object('date',to_char(days.day,'YYYY-MM-DD'),'total',COALESCE(daily.total,0)) ORDER BY days.day)
-        FROM day_series days LEFT JOIN daily USING(day)),'[]'::jsonb) AS daily,
-      COALESCE((SELECT jsonb_agg(jsonb_build_object('code',code,'label',label,'total',total) ORDER BY total DESC,label ASC) FROM neighborhood_counts),'[]'::jsonb) AS by_neighborhood,
-      COALESCE((SELECT jsonb_agg(jsonb_build_object('label',label,'total',total) ORDER BY total DESC,label ASC) FROM type_counts),'[]'::jsonb) AS by_type,
-      COALESCE((SELECT jsonb_agg(jsonb_build_object('code',code,'label',label) ORDER BY display_order,label) FROM public.occurrence_neighborhoods),'[]'::jsonb) AS neighborhoods,
-      COALESCE((SELECT jsonb_object_agg(status,total) FROM status_counts),'{}'::jsonb) AS by_status
-  `);
-  const row=rows[0];
-  return {
-    totals:{registered:row?.registered??0,open:row?.open??0,inService:row?.in_service??0,resolved:row?.resolved??0,cancelled:row?.cancelled??0},
-    daily:row?.daily??[],
-    byNeighborhood:row?.by_neighborhood??[],
-    byType:row?.by_type??[],
-    neighborhoods:row?.neighborhoods??[],
-    byStatus:row?.by_status??{},
-  };
+      coalesce((SELECT jsonb_object_agg(status,count) FROM statuses),'{}'::jsonb) AS "byStatus",
+      coalesce((SELECT jsonb_object_agg(priority,count) FROM priorities),'{}'::jsonb) AS "byPriority",
+      coalesce((SELECT jsonb_agg(jsonb_build_object('type',type,'count',count) ORDER BY count DESC,type) FROM types),'[]'::jsonb) AS "byType",
+      coalesce((SELECT jsonb_agg(jsonb_build_object('day',day,'opened',opened,'closed',closed) ORDER BY day) FROM activity),'[]'::jsonb) AS daily
+  `;
+  return rows[0]??{byStatus:{},byPriority:{},byType:[],daily:[]};
 }

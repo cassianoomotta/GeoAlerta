@@ -51,7 +51,7 @@ test('RF-007 mapa recusa datas inválidas e período maior que 31 dias',()=>{
 });
 
 test('RF-007 limita marcadores sem cortar as contagens completas recebidas',()=>{
-  const markers=Array.from({length:1001},(_,index)=>({id:String(index),latitude:-29.8,longitude:-50.5,type:'Alagamento',priority:'NORMAL' as const,status:'NOVA' as const}));
+  const markers=Array.from({length:1001},(_,index)=>({id:String(index),protocol:String(index+1),type:'Incêndio',latitude:-29.8,longitude:-50.5,priority:'NORMAL' as const,status:'NOVA' as const}));
   const view=shapeDashboardView(markers,{NOVA:1250},{NORMAL:1250});
   expect(view.markers).toHaveLength(1000);
   expect(view.limited).toBe(true);
@@ -68,7 +68,7 @@ test('RF-007 mapa mantém um único marcador por ocorrência quando consultas se
   expect(view.limited).toBe(false);
 });
 test('RF-007 recorte com até mil pontos não informa limitação',()=>{
-  const markers=Array.from({length:1000},(_,index)=>({id:String(index),latitude:-29.8,longitude:-50.5,type:'Alagamento',priority:'ALTA' as const,status:'EM_TRIAGEM' as const}));
+  const markers=Array.from({length:1000},(_,index)=>({id:String(index),protocol:String(index+1),type:'Incêndio',latitude:-29.8,longitude:-50.5,priority:'ALTA' as const,status:'EM_TRIAGEM' as const}));
   expect(shapeDashboardView(markers,{},{}).limited).toBe(false);
 });
 
@@ -88,8 +88,29 @@ test('RF-007 consulta solicita um marcador extra para detectar o limite e propag
   const query=parseDashboardQuery(new URLSearchParams(),now);
   const active:Actor={userId:'10000000-0000-4000-8000-000000000001',role:'GESTOR',state:'ATIVO',municipalityId:'sa_patrulha',groupIds:['20000000-0000-4000-8000-000000000001']};
   let requestedLimit=0;
-  const marker={id:'30000000-0000-4000-8000-000000000001',latitude:-29.8,longitude:-50.5,type:'Alagamento',priority:'ALTA' as const,status:'NOVA' as const};
+  const marker={id:'30000000-0000-4000-8000-000000000001',protocol:'25',type:'Incêndio',latitude:-29.8,longitude:-50.5,priority:'ALTA' as const,status:'NOVA' as const};
   await getDashboardMap(active,query,{read:async(_query,limit)=>{requestedLimit=limit;return {markers:Array.from({length:limit},()=>marker),byStatus:{NOVA:1200},byPriority:{ALTA:1200}};}});
   expect(requestedLimit).toBe(1001);
   await expect(getDashboardMap(active,query,{read:async()=>{throw new Error('repository unavailable');}})).rejects.toThrow('repository unavailable');
+});
+
+
+test('mapa combina vários status, prioridades e tipos sem alterar o recorte',()=>{
+  const query=parseDashboardQuery(new URLSearchParams('status=NOVA&status=EM_TRIAGEM&priority=ALTA&type=Queda+de+Árvore&type=Incêndio&from=2026-10-01&to=2026-10-02'),now);
+  expect(query).toMatchObject({statuses:['NOVA','EM_TRIAGEM'],priorities:['ALTA'],types:['Queda de Árvore','Incêndio']});
+});
+
+test('mapa distingue seleção vazia de todos os registros e recusa filtros inválidos',()=>{
+  expect(parseDashboardQuery(new URLSearchParams('status=&priority=&type='),now)).toEqual({statuses:[],priorities:[],types:[]});
+  expect(parseDashboardQuery(new URLSearchParams(),now)).toEqual({});
+  for(const input of ['status=INVALID','status=NOVA&status=NOVA','priority=URGENTE','type=&type=Incêndio','type= '+encodeURIComponent('a'.repeat(121))]){
+    expect(()=>parseDashboardQuery(new URLSearchParams(input),now),input).toThrow(DashboardQueryError);
+  }
+});
+
+
+test('mapa aceita a seleção dos tipos exibidos mesmo com mais de cem categorias históricas',()=>{
+  const params=new URLSearchParams();
+  for(let index=0;index<101;index++)params.append('type',`Categoria ${index}`);
+  expect(parseDashboardQuery(params).types).toHaveLength(101);
 });

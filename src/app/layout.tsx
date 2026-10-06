@@ -1,12 +1,13 @@
 import type { Metadata, Viewport } from "next";
-import "./globals.css";
 import "leaflet/dist/leaflet.css";
+import "./globals.css";
+import { ThemeProvider } from '@/components/theme/theme-provider';
+import { themeBootstrap } from '@/components/theme/theme';
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
-  themeColor: "#020617",
 };
 
 export const metadata: Metadata = {
@@ -21,8 +22,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR">
-      <body>{children}</body>
+    <html lang="pt-BR" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeBootstrap }} />
+      </head>
+      <body><ThemeProvider>{children}</ThemeProvider></body>
     </html>
   );
 }

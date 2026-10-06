@@ -1,13 +1,15 @@
 'use client';
 
-import Link from 'next/link';
-import MarkerClusterGroup from 'react-leaflet-cluster';
 import {MapContainer,TileLayer,Marker,Popup,useMap,useMapEvents} from 'react-leaflet';
 import {useEffect} from 'react';
-import {occurrenceIcon} from '@/lib/mapIcons';
-import type {DashboardView,Status} from '../contracts';
+import {divIcon,type DivIcon} from 'leaflet';
+import Link from 'next/link';
+import {PriorityBadge,StatusBadge} from './OccurrenceBadges';
+import type {Status} from '../contracts';
+import type {DashboardView} from '../contracts';
 import {dashboardMapBounds,type DashboardBounds} from '../domain/dashboard-map';
 import {resizeDashboardMapViewport} from './map-viewport';
+import {mapStatusAppearance,occurrenceMarkerHtml,occurrenceTypeIcon} from '../domain/map-presentation';
 
 function ViewportListener({onChange}:{onChange:(bounds:DashboardBounds)=>void}){
   const map=useMap();
@@ -26,31 +28,34 @@ function ViewportListener({onChange}:{onChange:(bounds:DashboardBounds)=>void}){
   return null;
 }
 
-export default function CoreMapCanvas({view,onViewportChange,statusLabels}:{
-  view:DashboardView;
-  onViewportChange:(bounds:DashboardBounds)=>void;
-  statusLabels:Partial<Record<Status,string>>;
-}){
-  return <div className="h-[min(65vh,620px)] min-h-80 overflow-hidden rounded-xl border border-slate-700">
+const markerIcons=new Map<string,DivIcon>();
+function markerIcon(marker:DashboardView['markers'][number]){
+  const key=`${occurrenceTypeIcon(marker.type)}:${marker.status}:${marker.priority}`;
+  if(!markerIcons.has(key))markerIcons.set(key,divIcon({
+    className:'occurrence-map-icon',iconSize:[34,34],iconAnchor:[17,17],popupAnchor:[0,-19],
+    html:occurrenceMarkerHtml(marker.type,marker.status,marker.priority),
+  }));
+  return markerIcons.get(key)!;
+}
+
+export default function CoreMapCanvas({view,onViewportChange,statusLabels}:{view:DashboardView;onViewportChange:(bounds:DashboardBounds)=>void;statusLabels:Record<Status,string>}){
+  function popup(marker:DashboardView['markers'][number]){
+    return <Popup><div className="space-y-3"><p className="font-medium">Ocorrência {marker.protocol}</p><p className="text-sm">{marker.type}</p><div className="flex flex-wrap gap-2"><PriorityBadge priority={marker.priority}/><StatusBadge status={marker.status} label={statusLabels[marker.status]}/></div><Link href={`/painel/ocorrencias/${encodeURIComponent(marker.id)}`} className="text-primary underline">Abrir ocorrência</Link></div></Popup>;
+  }
+  return <div className="space-y-3">
+    <div aria-label="Legenda do mapa" className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+      {(Object.keys(mapStatusAppearance) as Status[]).map(status=><span key={status} className="inline-flex items-center gap-1.5"><span aria-hidden="true" className="h-3 w-3 rounded-full" style={{backgroundColor:mapStatusAppearance[status].color}}/>{statusLabels[status]}</span>)}
+      <PriorityBadge priority="ALTA"/>
+    </div>
+    <div className="h-[min(65vh,620px)] min-h-80 overflow-hidden rounded-xl border border-border">
     <MapContainer bounds={dashboardMapBounds(view.markers)} boundsOptions={{padding:[24,24]}} scrollWheelZoom className="h-full w-full">
-      <TileLayer attribution="&copy; OpenStreetMap" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+      <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
       <ViewportListener onChange={onViewportChange}/>
-      <MarkerClusterGroup chunkedLoading maxClusterRadius={25} spiderfyOnMaxZoom disableClusteringAtZoom={12} spiderfyDistanceMultiplier={2.5}>
-        {view.markers.map(marker=>{
-          const statusLabel=statusLabels[marker.status]??marker.status;
-          const markerLabel=`${marker.type||'Tipo não informado'} · ${statusLabel} · ${marker.state==='open'?'Aberta':'Fechada'} · Prioridade ${marker.priority==='ALTA'?'alta':'normal'}`;
-          return <Marker key={marker.id} position={[marker.latitude,marker.longitude]} icon={occurrenceIcon(marker.type,marker.state==='open'?'Aberto':'Resolvido')} title={markerLabel} alt={markerLabel}>
-            <Popup>
-              <div className="min-w-44 space-y-1 text-slate-900">
-                <h3 className="font-semibold">{marker.type||'Tipo não informado'}</h3>
-                <p>Status: {statusLabel} · {marker.state==='open'?'Aberta':'Fechada'}</p>
-                <p>Prioridade: {marker.priority==='ALTA'?'Alta':'Normal'}</p>
-                <Link className="mt-2 inline-block font-semibold text-blue-700 underline" href={`/painel/ocorrencias/${encodeURIComponent(marker.id)}`}>Ver detalhes da ocorrência</Link>
-              </div>
-            </Popup>
-          </Marker>;
-        })}
-      </MarkerClusterGroup>
+      {view.markers.map(marker=><Marker key={marker.id} position={[marker.latitude,marker.longitude]} icon={markerIcon(marker)}
+        title={`Ocorrência ${marker.protocol} · ${marker.type} · ${statusLabels[marker.status]} · Prioridade ${marker.priority==='ALTA'?'alta':'normal'}`}
+        alt={`Ocorrência ${marker.protocol}: ${marker.type}, ${statusLabels[marker.status]}, prioridade ${marker.priority==='ALTA'?'alta':'normal'}`}>
+        {popup(marker)}
+      </Marker>)}
     </MapContainer>
-  </div>;
+  </div></div>;
 }

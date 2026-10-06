@@ -31,7 +31,7 @@ export class ManualOccurrenceConflictError extends Error {
 function parseRequest(value: unknown): { groupId: string; input: PublicOccurrenceInput } {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new PublicInputError();
   const body = value as Record<string, unknown>;
-  const allowed = ['type', 'description', 'reporterName', 'reporterContact', 'position', 'groupId'];
+  const allowed = ['type', 'description', 'reporterName', 'reporterContact', 'address', 'position', 'groupId'];
   if (Object.keys(body).some((key) => !allowed.includes(key))) throw new PublicInputError();
   if (typeof body.groupId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(body.groupId)) {
     throw new PublicInputError();

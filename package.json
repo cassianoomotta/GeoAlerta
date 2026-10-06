@@ -14,7 +14,10 @@
     "test:browsers": "node scripts/with-env.mjs playwright test --project=chromium --project=firefox --project=webkit --project=mobile-chromium --project=mobile-webkit",
     "test:restore": "node --experimental-strip-types scripts/test-restore.ts",
     "test:load": "node --experimental-strip-types scripts/test-load.ts",
-    "inventory:legacy": "node scripts/with-env.mjs tsx scripts/inventory-legacy.ts"
+    "inventory:legacy": "node scripts/with-env.mjs tsx scripts/inventory-legacy.ts",
+    "design:tokens": "node scripts/generate-design-tokens.mjs",
+    "design:check": "node scripts/generate-design-tokens.mjs --check",
+    "test:design-system": "playwright test --config=playwright.design-system.config.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.10.0",

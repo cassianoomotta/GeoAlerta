@@ -45,7 +45,7 @@ function ports(overrides: Partial<CreateManualOccurrencePorts> = {}) {
 
 test('RF-002 registro manual sem coordenadas nativas falha antes de consultar ou gravar', async () => {
   const { deps, calls } = ports();
-  const request = { ...body, position: undefined };
+  const request = { ...body, address: 'Rua das Flores, 123', position: undefined };
 
   await expect(createManualOccurrence(operator, request, key, deps)).rejects.toMatchObject({ code: 'INVALID_INPUT' });
   expect(calls.groups).toHaveLength(0);
@@ -70,6 +70,26 @@ test('US-05 registra com triagem de zona e atribui a abertura ao operador autent
   expect(calls.classifications).toEqual([{ latitude: -29.9, longitude: -50.5, accuracy: 8 }]);
   expect(calls.atomics).toHaveLength(1);
   expect(calls.atomics[0]).toMatchObject({ actorId: operator.userId, groupId, idempotencyKey: key, input: expect.objectContaining({ type: 'alagamento' }) });
+});
+
+test('registro manual encaminha o endereço normalizado para persistência sem alterar o GPS', async () => {
+  const { deps, calls } = ports();
+  await createManualOccurrence(operator, { ...body, address: '  Rua das Flores, 123  ' }, key, deps);
+  expect(calls.atomics[0]).toMatchObject({ input: { address: 'Rua das Flores, 123', position: { latitude: -29.9, longitude: -50.5, accuracy: 8 } } });
+});
+
+test('registro manual aceita endereço vazio e até 300 caracteres, e rejeita endereço inválido antes de gravar', async () => {
+  for (const [address, normalized] of [['', null], ['   ', null], ['a'.repeat(300), 'a'.repeat(300)]] as const) {
+    const { deps, calls } = ports();
+    await createManualOccurrence(operator, { ...body, address }, key, deps);
+    expect(calls.atomics[0]).toMatchObject({ input: { address: normalized } });
+  }
+  for (const address of ['a'.repeat(301), 123]) {
+    const { deps, calls } = ports();
+    await expect(createManualOccurrence(operator, { ...body, address }, key, deps)).rejects.toMatchObject({ code: 'INVALID_INPUT' });
+    expect(calls.groups).toHaveLength(0);
+    expect(calls.atomics).toHaveLength(0);
+  }
 });
 
 test('RF-015 falha ao persistir não confirma a ocorrência', async () => {

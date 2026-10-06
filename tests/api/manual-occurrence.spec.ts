@@ -61,6 +61,7 @@ test('US-05 criação manual valida grupo, classifica a zona e grava ator e audi
     description: 'Água avançando na via',
     reporterName: 'Pessoa sintética',
     reporterContact: '555-0101',
+    address: 'Rua das Flores, 123',
     groupId: groupA,
     position: { latitude: -29.5, longitude: -50.5, accuracy: 8 },
   };
@@ -74,11 +75,11 @@ test('US-05 criação manual valida grupo, classifica a zona e grava ator e audi
   const db = await database();
   try {
     const occurrence = (await db.query(`
-      SELECT o.protocol,o.status,o.priority,o.accuracy,o.group_id::text AS group_id,
+      SELECT o.protocol,o.status,o.priority,o.accuracy,o.address,o.group_id::text AS group_id,
         ST_Y(o.location::geometry)::float8 AS latitude,ST_X(o.location::geometry)::float8 AS longitude
       FROM public.occurrences o WHERE o.id=$1
     `, [result.id])).rows[0];
-    expect(occurrence).toEqual({ protocol: result.protocol, status: 'NOVA', priority: 'ALTA', accuracy: 8, group_id: groupA, latitude: -29.5, longitude: -50.5 });
+    expect(occurrence).toEqual({ protocol: result.protocol, status: 'NOVA', priority: 'ALTA', accuracy: 8, address: 'Rua das Flores, 123', group_id: groupA, latitude: -29.5, longitude: -50.5 });
     expect((await db.query('SELECT reporter_name,reporter_contact FROM public.occurrence_private_data WHERE occurrence_id=$1', [result.id])).rows[0]).toEqual({ reporter_name: input.reporterName, reporter_contact: input.reporterContact });
     const expectedZones = (await db.query(`
       SELECT z.zone_id::text AS zone_id,z.version AS zone_version FROM public.risk_zones z

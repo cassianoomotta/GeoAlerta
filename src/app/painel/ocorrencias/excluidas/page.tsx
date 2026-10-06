@@ -50,22 +50,22 @@ export default function DeletedOccurrencesPage() {
 
   return (
     <main className="mx-auto w-full max-w-5xl space-y-5 p-4 sm:p-6" aria-labelledby="deleted-occurrences-title">
-      <Link className="text-sm font-medium text-blue-300 hover:text-blue-200" href="/painel/ocorrencias">← Voltar para ocorrências</Link>
+      <Link className="text-sm font-medium text-primary hover:text-primary" href="/painel/ocorrencias">← Voltar para ocorrências</Link>
       <header>
-        <h1 id="deleted-occurrences-title" className="text-2xl font-bold text-white">Ocorrências excluídas</h1>
-        <p className="mt-2 text-sm text-slate-300">Visão administrativa. Os registros e as fotos permanecem preservados; restaurar exige justificativa.</p>
+        <h1 id="deleted-occurrences-title" className="text-2xl font-bold text-foreground">Ocorrências excluídas</h1>
+        <p className="mt-2 text-sm text-muted-foreground">Visão administrativa. Os registros e as fotos permanecem preservados; restaurar exige justificativa.</p>
       </header>
-      {error && <p role="alert" className="rounded-lg border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-100">{error}</p>}
-      {loading ? <p role="status" className="text-slate-300">Carregando ocorrências…</p> : data && <>
-        <p role="status" className="text-sm text-slate-300">{data.total} ocorrências excluídas · Página {page} de {pageCount}</p>
+      {error && <p role="alert" className="rounded-lg border border-danger/30 bg-danger-soft p-3 text-sm text-danger">{error}</p>}
+      {loading ? <p role="status" className="text-muted-foreground">Carregando ocorrências…</p> : data && <>
+        <p role="status" className="text-sm text-muted-foreground">{data.total} ocorrências excluídas · Página {page} de {pageCount}</p>
         {data.items.length ? <ul className="space-y-3">
           {data.items.map((item) => <li key={`${item.id}:${item.version}`}>
             <DeletedOccurrenceCard item={item} onRestored={() => setRefreshKey((current) => current + 1)} />
           </li>)}
-        </ul> : <p className="rounded-lg border border-white/10 p-5 text-sm text-slate-300">Nenhuma ocorrência excluída.</p>}
+        </ul> : <p className="rounded-lg border border-border p-5 text-sm text-muted-foreground">Nenhuma ocorrência excluída.</p>}
         <nav aria-label="Paginação de ocorrências excluídas" className="flex items-center gap-4">
-          <button type="button" disabled={page <= 1} onClick={() => setPage((current) => current - 1)} className="rounded border border-slate-600 px-3 py-2 text-sm text-slate-100 disabled:opacity-40">Página anterior</button>
-          <button type="button" disabled={page >= pageCount} onClick={() => setPage((current) => current + 1)} className="rounded border border-slate-600 px-3 py-2 text-sm text-slate-100 disabled:opacity-40">Próxima página</button>
+          <button type="button" disabled={page <= 1} onClick={() => setPage((current) => current - 1)} className="rounded border border-control-border px-3 py-2 text-sm text-foreground disabled:opacity-40">Página anterior</button>
+          <button type="button" disabled={page >= pageCount} onClick={() => setPage((current) => current + 1)} className="rounded border border-control-border px-3 py-2 text-sm text-foreground disabled:opacity-40">Próxima página</button>
         </nav>
       </>}
     </main>
@@ -107,20 +107,20 @@ function DeletedOccurrenceCard({ item, onRestored }: { item: DeletedOccurrence; 
     <article className="glass-card space-y-4 p-5" aria-label={`Ocorrência excluída ${item.protocol}`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{item.protocol}</p>
-          <h2 className="mt-1 text-lg font-semibold text-white">{item.type}</h2>
-          <p className="mt-1 text-sm text-slate-300">{item.status} · Prioridade {item.priority} · Grupo {item.group.name}</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{item.protocol}</p>
+          <h2 className="mt-1 text-lg font-semibold text-foreground">{item.type}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{item.status} · Prioridade {item.priority} · Grupo {item.group.name}</p>
         </div>
-        <time className="text-xs text-slate-400" dateTime={item.deletedAt}>Excluída em {new Intl.DateTimeFormat('pt-BR', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/Sao_Paulo' }).format(new Date(item.deletedAt))}</time>
+        <time className="text-xs text-muted-foreground" dateTime={item.deletedAt}>Excluída em {new Intl.DateTimeFormat('pt-BR', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/Sao_Paulo' }).format(new Date(item.deletedAt))}</time>
       </div>
       <form onSubmit={restore} className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
-        <label className="space-y-1 text-sm text-slate-200">
-          <span>Justificativa de restauração <span aria-hidden="true" className="text-red-400">*</span></span>
-          <textarea required minLength={10} maxLength={500} rows={2} value={reason} onChange={(event) => setReason(event.target.value)} className="w-full rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 text-white" />
+        <label className="space-y-1 text-sm text-foreground">
+          <span>Justificativa de restauração <span aria-hidden="true" className="text-danger">*</span></span>
+          <textarea required minLength={10} maxLength={500} rows={2} value={reason} onChange={(event) => setReason(event.target.value)} className="w-full rounded-lg border border-control-border bg-background px-3 py-2 text-foreground" />
         </label>
-        <button type="submit" disabled={saving} className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Restaurar</button>
+        <button type="submit" disabled={saving} className="rounded-lg bg-success px-4 py-2 text-sm font-semibold text-success-foreground disabled:opacity-50">Restaurar</button>
       </form>
-      {message && <p role={conflict ? 'alert' : 'status'} className="text-sm text-amber-100">{message}</p>}
+      {message && <p role={conflict ? 'alert' : 'status'} className="text-sm text-warning">{message}</p>}
     </article>
   );
 }

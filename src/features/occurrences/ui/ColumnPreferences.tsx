@@ -14,8 +14,8 @@ export function ColumnPreferences({columns,available,filters,returnTo}:{columns:
       setMessage('Colunas salvas para sua conta.');router.replace(returnTo??listHref(filters,{columns:undefined}));router.refresh();
     }catch{setMessage('Não foi possível salvar as colunas. Tente novamente.');}finally{setBusy(false);}
   }
-  return <details className="rounded border border-slate-600 p-3"><summary>Minhas colunas</summary><form onSubmit={save} className="mt-3 flex flex-wrap items-center gap-4">
+  return <details className="rounded border border-control-border p-3"><summary>Minhas colunas</summary><form onSubmit={save} className="mt-3 flex flex-wrap items-center gap-4">
     {available.map(column=><label key={column} className="flex gap-2"><input type="checkbox" checked={selected.includes(column)} onChange={e=>setSelected(e.target.checked?[...selected,column]:selected.filter(c=>c!==column))}/>{columnLabels[column]}</label>)}
-    <button disabled={!ready||busy||!selected.length} className="rounded bg-blue-700 px-3 py-2 disabled:opacity-50">Salvar colunas</button>{message&&<p role="status">{message}</p>}
+    <button disabled={!ready||busy||!selected.length} className="rounded bg-primary px-3 py-2 disabled:opacity-50 text-primary-foreground">Salvar colunas</button>{message&&<p role="status">{message}</p>}
   </form></details>;
 }

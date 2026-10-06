@@ -1,68 +1,82 @@
 'use client';
 
 import {useEffect,useState} from 'react';
-import type {DashboardIndicatorsPeriod,DashboardIndicatorsView} from '../domain/dashboard-indicators';
+import {RefreshCw} from 'lucide-react';
+import {Button} from '@/components/ui/button';
+import {Field} from '@/components/ui/field';
+import type {IndicatorQuery,IndicatorView} from '../domain/dashboard-indicators';
+import {DashboardCharts,defaultPresentations,type StatusPresentation} from './DashboardCharts';
 
-type DistributionMode='neighborhood'|'type';
-type DistributionItem={label:string;total:number};
+type ResponseData=IndicatorView&{window:IndicatorQuery;updatedAt:string};
+type Snapshot={key:string;data?:ResponseData;error?:string};
+const number=new Intl.NumberFormat('pt-BR');
+const dayFormat=new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo'});
+const timeFormat=new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit',second:'2-digit'});
 
-const periods:{value:DashboardIndicatorsPeriod;label:string}[]=[
-  {value:'today',label:'Hoje'},
-  {value:'week',label:'Semana'},
-  {value:'month',label:'Mês'},
-  {value:'custom',label:'Personalizado'},
-];
+export function CoreDashboardIndicators() {
+  const [from,setFrom]=useState('');
+  const [to,setTo]=useState('');
+  const [refresh,setRefresh]=useState(0);
+  const [snapshot,setSnapshot]=useState<Snapshot|null>(null);
+  const [presentations,setPresentations]=useState(defaultPresentations);
+  const params=new URLSearchParams();
+  if(from)params.set('from',from);
+  if(to)params.set('to',to);
+  const key=params.toString();
+  const view=snapshot?.key===key?snapshot.data:undefined;
+  const error=snapshot?.key===key?snapshot.error:undefined;
 
-function formatDay(value:string):string{
-  return new Date(value+'T12:00:00.000Z').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',timeZone:'UTC'});
-}
+  useEffect(()=>{
+    const controller=new AbortController();
+    void fetch('/api/core/status-presentations',{cache:'no-store',signal:controller.signal}).then(async response=>{
+      if(response.ok){const body=await response.json() as {items:StatusPresentation[]};if(!controller.signal.aborted)setPresentations(body.items);}
+    }).catch(()=>{});
+    return()=>controller.abort();
+  },[]);
+  useEffect(()=>{
+    const update=()=>{if(document.visibilityState==='visible')setRefresh(value=>value+1);};
+    const timer=setInterval(update,15_000);
+    document.addEventListener('visibilitychange',update);
+    return()=>{clearInterval(timer);document.removeEventListener('visibilitychange',update);};
+  },[]);
+  useEffect(()=>{
+    const controller=new AbortController();
+    void fetch(`/api/core/dashboard/indicators${key?`?${key}`:''}`,{cache:'no-store',signal:controller.signal}).then(async response=>{
+      const body=await response.json();
+      if(!response.ok)throw new Error(body.error?.message??'Não foi possível atualizar o quadro de situação.');
+      if(!controller.signal.aborted)setSnapshot({key,data:body as ResponseData});
+    }).catch(cause=>{
+      if(!controller.signal.aborted)setSnapshot(previous=>({key,data:previous?.key===key?previous.data:undefined,error:cause instanceof Error?cause.message:'Falha de conexão. Tente atualizar o painel.'}));
+    });
+    return()=>controller.abort();
+  },[key,refresh]);
 
-function dateRange(view:DashboardIndicatorsView):string{
-  const start=new Intl.DateTimeFormat('pt-BR',{day:'2-digit',month:'short',year:'numeric',timeZone:view.window.timeZone}).format(new Date(view.window.from));
-  const finalInstant=new Date(new Date(view.window.to).getTime()-1);
-  const end=new Intl.DateTimeFormat('pt-BR',{day:'2-digit',month:'short',year:'numeric',timeZone:view.window.timeZone}).format(finalInstant);
-  return start+' – '+end;
-}
-
-function TrendChart({items}:{items:DashboardIndicatorsView['daily']}){
-  const width=640,height=200,padding=24;
-  const maximum=Math.max(1,...items.map(item=>item.total));
-  const points=items.map((item,index)=>{
-    const x=items.length===1?width/2:padding+(index*(width-padding*2))/(items.length-1);
-    const y=height-padding-(item.total/maximum)*(height-padding*2);
-    return {x,y,item};
-  });
-  const path=points.map((point,index)=>(index?'L':'M')+' '+point.x+' '+point.y).join(' ');
-  return <figure className="rounded-xl border border-slate-700 bg-slate-950/40 p-3" aria-labelledby="daily-trend-title">
-    <figcaption id="daily-trend-title" className="mb-2 text-sm font-semibold">Ocorrências por dia</figcaption>
-    {items.length===0?<p role="status" className="text-sm text-slate-300">Sem dados para comparar neste período.</p>:<>
-      <svg viewBox={'0 0 '+width+' '+height} className="h-48 w-full overflow-visible" role="img" aria-label="Gráfico de linha com a quantidade de ocorrências por dia">
-        <line x1={padding} y1={height-padding} x2={width-padding} y2={height-padding} stroke="#475569" strokeWidth="1"/>
-        <path d={path} fill="none" stroke="#38bdf8" strokeWidth="3" strokeLinejoin="round" strokeLinecap="round"/>
-        {points.map(({x,y,item})=><circle key={item.date} cx={x} cy={y} r="4" fill="#7dd3fc"><title>{formatDay(item.date)+': '+item.total}</title></circle>)}
-      </svg>
-      <div className="mt-1 flex justify-between gap-2 text-xs text-slate-400">
-        <span>{formatDay(items[0].date)}</span><span>{items.length>2?formatDay(items[Math.floor(items.length/2)].date):''}</span><span>{formatDay(items[items.length-1].date)}</span>
+  const period=view?.window.from&&view.window.to?`${dayFormat.format(new Date(view.window.from))} a ${dayFormat.format(new Date(new Date(view.window.to).getTime()-1))}`:'Todo o histórico';
+  const metrics=view?[
+    {label:'Total de ocorrências',value:view.summary.total,hint:'Registradas no período',color:'text-foreground'},
+    {label:'Abertas',value:view.summary.open,hint:'Novas, em triagem e atendimento',color:'text-primary'},
+    {label:'Em atendimento',value:view.summary.inProgress,hint:'Situação atual dos registros',color:'text-info'},
+    {label:'Prioridade alta',value:view.summary.highPriority,hint:'Entre os registros do período',color:view.summary.highPriority?'text-danger':'text-foreground'},
+  ]:[];
+  return <div className="space-y-5">
+    <section aria-label="Período do quadro de situação" className="flex flex-wrap items-end justify-between gap-5 rounded-xl border border-border bg-surface p-5 sm:p-6">
+      <div className="min-w-0"><p className="font-semibold">{view?period:'Período de análise'}</p><p className="mt-1 text-sm text-muted-foreground">Horário de Brasília · filtros de até 31 dias</p>
+        <p className={`mt-2 text-sm ${error?'text-warning':'text-muted-foreground'}`}>{view?<>Última atualização: <time dateTime={view.updatedAt}>{timeFormat.format(new Date(view.updatedAt))}</time>{error?' · Dados desatualizados':' · Atualização a cada 15 s'}</>:error?'Atualização indisponível':'Consultando dados atuais…'}</p>
       </div>
+      <div className="flex w-full flex-wrap items-end gap-3 md:w-auto">
+        <div className="grid w-full min-w-0 flex-none grid-cols-2 gap-3 md:w-auto"><Field label="De" aria-label="Data inicial do dashboard" type="date" value={from} onChange={event=>setFrom(event.target.value)} className="md:w-40"/><Field label="Até" aria-label="Data final do dashboard" type="date" value={to} onChange={event=>setTo(event.target.value)} className="md:w-40"/></div>
+        <Button variant="secondary" onClick={()=>setRefresh(value=>value+1)}><RefreshCw size={16} aria-hidden="true"/>Atualizar</Button>
+        {(from||to)&&<Button variant="text" onClick={()=>{setFrom('');setTo('');}}>Limpar período</Button>}
+      </div>
+    </section>
+    {error&&<div role="alert" className="rounded-xl border border-danger/30 bg-danger-soft p-4 text-sm"><p className="font-medium">Não foi possível atualizar os dados.</p><p className="mt-1">{error}</p>{view&&<p className="mt-1">Os gráficos mostram a última consulta confirmada. Use Atualizar para tentar novamente.</p>}</div>}
+    {!view&&!error&&<div role="status" aria-label="Carregando quadro de situação" className="space-y-5"><div className="grid grid-cols-2 gap-4 lg:grid-cols-4">{[0,1,2,3].map(index=><div key={index} className="h-32 rounded-xl bg-surface-subtle"/>)}</div><div className="grid gap-5 xl:grid-cols-2">{[0,1,2,3].map(index=><div key={index} className="h-80 rounded-xl border border-border bg-surface"/>)}</div><span className="sr-only">Carregando indicadores e gráficos…</span></div>}
+    {view&&<>
+      <dl className="grid grid-cols-2 gap-x-5 gap-y-6 rounded-xl border border-border bg-surface p-5 sm:p-6 lg:grid-cols-4">{metrics.map(metric=><div key={metric.label} className="min-w-0"><dt className="text-sm font-medium text-muted-foreground">{metric.label}</dt><dd className={`mt-2 text-4xl font-semibold tabular-nums sm:text-5xl ${metric.color}`}>{number.format(metric.value)}</dd><dd className="mt-2 text-xs text-muted-foreground">{metric.hint}</dd></div>)}</dl>
+      <DashboardCharts view={view} presentations={presentations}/>
+      <p className="text-sm text-muted-foreground">Indicadores, status e tipos usam registros do período selecionado e sua situação atual. Dados limitados aos grupos que você pode consultar.</p>
     </>}
-  </figure>;
-}
-
-function DistributionChart({items,title}:{items:DistributionItem[];title:string}){
-  const maximum=Math.max(1,...items.map(item=>item.total));
-  return <figure className="rounded-xl border border-slate-700 bg-slate-950/40 p-3" aria-labelledby="distribution-title">
-    <figcaption id="distribution-title" className="mb-3 text-sm font-semibold">{title}</figcaption>
-    {items.length===0?<p role="status" className="text-sm text-slate-300">Sem dados para distribuir neste período.</p>:
-      <ol className="space-y-3">
-        {items.slice(0,8).map(item=><li key={item.label} className="grid grid-cols-[minmax(0,1fr)_3rem] items-center gap-x-3 gap-y-1">
-          <span className="truncate text-sm text-slate-200" title={item.label}>{item.label}</span>
-          <span className="text-right text-sm font-semibold tabular-nums">{item.total}</span>
-          <span className="col-span-2 h-2 overflow-hidden rounded-full bg-slate-800" role="img" aria-label={item.label+': '+item.total}>
-            <span className="block h-full rounded-full bg-cyan-500" style={{width:(item.total/maximum*100)+'%'}}/>
-          </span>
-        </li>)}
-      </ol>}
-  </figure>;
+  </div>;
 }
 
 export function CoreDashboardIndicators(){

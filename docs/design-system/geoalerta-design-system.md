@@ -1,6 +1,16 @@
 # GeoAlerta — Design system
 
-Versão 1.0 · 05/10/2026 · **Proposta visual para revisão; ainda não aplicada às telas do app.**
+Versão 1.1 · 06/10/2026 · **Base visual integrada à interface ativa; evoluções funcionais e cartografia escura pendentes.**
+
+## Adoção na aplicação
+
+A implementação local integra as cores e seus estados com `scripts/generate-design-tokens.mjs`, `src/styles/tokens.css` e Tailwind 3. Claro é o padrão. Claro/Escuro/Sistema são selecionáveis no login, cabeçalho desktop, menu mobile, perfil e catálogo; a preferência fica somente no navegador e é aplicada antes da primeira pintura. Sem armazenamento disponível, a troca continua funcionando durante a sessão.
+
+A base reutilizável em `src/components/ui/` inclui `Button`, `Field`, `Badge`, `InlineNotice`, `PageHeader`, `EmptyState` e `Skeleton`. `PriorityBadge` e `StatusBadge` pertencem à feature de ocorrências. O catálogo público `/design-system` apresenta exemplos fictícios sem operar dados. O shell do painel usa superfícies sólidas, sidebar de 224 px, navegação móvel e diálogo nativo com foco contido e Escape.
+
+Login, perfil, formulário público, lista, detalhe, administração e abrigos usam a paleta semântica. Lista, detalhe, mapa e centro de alertas separam prioridade de situação. Os rótulos configurados são mantidos; as marcas institucionais permanecem em placas brancas. O mapa recebe legenda, forma triangular para prioridade alta, popups temáticos e acesso à lista equivalente.
+
+**Limites:** os tiles continuam no OpenStreetMap claro, inclusive no tema escuro. Um provedor escuro exige decisão de serviço/licença/chave; a alternativa CARTO consultada exige chave de API conforme sua [documentação oficial](https://github.com/CartoDB/basemap-styles). Não se aplicam filtros CSS aos tiles. A migração não implementa novas regras de conflito, coordenação de filas, sincronização de preferências por conta, densidade compacta, nem componentes de módulos legados/desabilitados. As diretrizes abaixo que descrevem essas evoluções continuam sendo requisitos futuros.
 
 ## Objetivo e escopo
 
@@ -13,7 +23,7 @@ O briefing explícito pede modernidade, suavidade e uso prolongado. Adota-se com
 ## Base verificada no projeto
 
 - A marca institucional usa azul profundo, branco mineral e petróleo em `docs/brand/identidade-visual.md`. Sua aplicação em comunicação permanece válida.
-- A interface atual combina painel escuro e formulário público claro. O guia `Core/DESIGN.md` documenta a linguagem anterior, com brilhos e acentos intensos.
+- Antes desta integração, a interface combinava painel escuro e formulário público claro. O guia `Core/DESIGN.md` documenta a linguagem anterior, com brilhos e acentos intensos.
 - O registro modular habilita mapa e ocorrências; recursos, equipes e voluntários permanecem desabilitados. Há fluxos de administração e catálogo público de abrigos.
 - Prioridades de ocorrência: `NORMAL` e `ALTA`. Estados: `NOVA`, `EM_TRIAGEM`, `EM_ATENDIMENTO`, `RESOLVIDA` e `CANCELADA`. Rótulos e transições podem ser configurados.
 - Papéis: Consulta, Operador, Gestor e Administrador; o acesso também depende de município, grupo e situação da conta.
@@ -75,7 +85,7 @@ O petróleo operacional é um pouco mais escuro que o `#087F8C` institucional pa
 | `info` / `info-soft` | `#AAC8EA` / `#223140` |
 | `disabled` / `disabled-text` | `#253832` / `#A6B9B2` |
 
-Oferecer Claro, Escuro e Sistema no perfil, como melhoria proposta. Sem preferência anterior, usar Claro; Sistema segue a aparência do dispositivo somente quando selecionado. Persistir apenas a preferência visual local e aplicar antes da primeira pintura. Sincronização entre contas/dispositivos é evolução, pois o contrato atual de preferências não inclui tema. Não trocar automaticamente durante o turno.
+A interface oferece Claro, Escuro e Sistema no perfil e nas superfícies de acesso. Sem preferência anterior, usar Claro; Sistema segue a aparência do dispositivo somente quando selecionado. Persistir apenas a preferência visual local e aplicar antes da primeira pintura. Sincronização entre contas/dispositivos é evolução, pois o contrato atual de preferências não inclui tema. Não trocar automaticamente durante o turno.
 
 Os controles nativos usam `color-scheme` correspondente ao tema. Popups, gavetas e mapa devem acompanhar a escolha; evitar mapa branco brilhante no painel escuro. Não escurecer tiles com filtros CSS, pois isso pode alterar o significado das cores cartográficas.
 
@@ -278,9 +288,9 @@ Confirmações são curtas: “Alteração salva.”, “Ocorrência registrada.
 
 ## Organização técnica proposta
 
-O arquivo `tokens.json` é um inventário independente da aplicação, com cores claras/escuras, dimensões e semântica. Ele ainda não é importado pelo app.
+O arquivo `tokens.json` é a fonte de cores claras/escuras, dimensões e semântica. `npm run design:tokens` gera o CSS versionado; `npm run design:check` verifica sua consistência. A inicialização do tema também lê esse inventário. Depois de editar tokens, regenerar o CSS e conferir os pares reais de contraste.
 
-Na implementação, separar tokens primitivos, semânticos e componentes. Mapear `background`, `foreground`, `card`, `primary`, `muted`, `border`, `input` e `ring` existentes para o novo vocabulário. Acrescentar estados semânticos em vez de distribuir valores hexadecimais pelo JSX.
+A implementação concentra valores de cor no inventário e apresenta aliases semânticos e classes de componentes. Mapear `background`, `foreground`, `card`, `primary`, `muted`, `border`, `input` e `ring` existentes para o novo vocabulário. Acrescentar estados semânticos em vez de distribuir valores hexadecimais pelo JSX.
 
 Componentes genéricos vão em `src/components/ui/`; componentes de ocorrência permanecem na feature. Tokens globais são importados uma vez pelo layout; estilos específicos podem usar CSS Modules, conforme o guia local Next.js consultado. Preservar Tailwind 3 instalado; esta proposta não requer troca de versão ou biblioteca.
 
@@ -308,8 +318,8 @@ O levantamento encontrou `text-white`, `bg-slate-*`, brilhos e cores de estado f
 - Ordenação, filtros, CSV, permissões, rótulos configuráveis e idempotência preservados.
 - Avaliação com operadores em tarefas representativas e sessão prolongada; registrar dificuldades observadas, sem tratar preferência estética como medida de conforto.
 
-## Entrega e limites da validação
+## Entrega e limites da validação inicial
 
 Esta entrega inclui especificação, inventário de tokens, relatório numérico de contraste e prévia interativa ilustrativa. A prévia usa dados fictícios e não opera a plataforma. O cálculo cobre os pares declarados; validação de ergonomia, acessibilidade completa, interação com dados reais e cartografia acontece na implementação e no uso acompanhado.
 
-As referências anteriores e os arquivos de marca/apresentação foram preservados. Nenhuma tela funcional foi alterada nesta etapa.
+As referências anteriores e os arquivos de marca/apresentação foram preservados. A entrega inicial foi documental. A adoção visual local descrita no início deste documento altera as telas ativas; seus resultados de verificação ficam em `implementation-validation.md`.

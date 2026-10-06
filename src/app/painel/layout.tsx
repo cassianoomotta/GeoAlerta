@@ -1,292 +1,99 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import {CoreNotifications} from '@/features/occurrences/ui/CoreNotifications';
-import { 
-  Map as MapIcon, 
-  List, 
-  ShieldAlert, 
-  Flame, 
-  HardHat, 
-  HeartHandshake, 
-  Building2, 
-  AlertTriangle,
-  Menu,
-  X,
-  PhoneCall,
-  UserRound,
-  LayoutDashboard,
-} from "lucide-react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { getEnabledModules } from "@/modules/registry";
-import { MapPin, Boxes, Truck } from "lucide-react";
+import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { Building2, LayoutDashboard, List, MapPin, Menu, Plus, UserRound, X } from 'lucide-react';
+import { CoreNotifications } from '@/features/occurrences/ui/CoreNotifications';
+import { getEnabledModules } from '@/modules/registry';
+import { ThemeSelect } from '@/components/theme/theme-select';
+import { GeoAlertaLogo } from '@/components/brand/geoalerta-logo';
 
-const MODULE_ICONS: Record<string, React.ReactNode> = {
-  dashboard: <LayoutDashboard size={18} />,
-  monitoramento: <MapPin size={18} />,
-  tabela: <List size={18} />,
-  recursos: <Boxes size={18} />,
-  abrigos: <Building2 size={18} />,
-  equipes: <Truck size={18} />,
-  voluntarios: <HeartHandshake size={18} />,
+const icons: Record<string, React.ReactNode> = {
+  dashboard: <LayoutDashboard size={18} aria-hidden="true" />,
+  monitoramento: <MapPin size={18} aria-hidden="true" />,
+  tabela: <List size={18} aria-hidden="true" />,
+  "nova-ocorrencia": <Plus size={18} aria-hidden="true" />,
 };
-
+const contacts = [
+  { name: 'Defesa Civil', number: '199', href: 'tel:199' },
+  { name: 'Bombeiros', number: '193', href: 'tel:193' },
+  { name: 'Sec. de Obras', number: '3662-8400', href: 'tel:5136628400' },
+  { name: 'Assist. Social', number: '3662-8480', href: 'tel:5136628480' },
+];
 function isModuleActive(href: string, pathname: string) {
-  return href === "/painel" ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
+  if (href === '/painel/ocorrencias' && pathname === '/painel/ocorrencias/nova') return false;
+  return href === '/painel' ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
 }
 
 export default function PainelLayout({ children }: { children: React.ReactNode }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [canAdminister, setCanAdminister] = useState(false);
+  const dialog = useRef<HTMLDialogElement>(null);
   const pathname = usePathname();
 
   useEffect(() => {
     let active = true;
-
     fetch('/api/core/access?capability=administer', { cache: 'no-store' })
-      .then((response) => {
-        if (active && response.ok) setCanAdminister(true);
-      })
-      .catch(() => {
-        if (active) setCanAdminister(false);
-      });
-
-    return () => {
-      active = false;
-    };
+      .then(response => { if (active && response.ok) setCanAdminister(true); })
+      .catch(() => { if (active) setCanAdminister(false); });
+    return () => { active = false; };
   }, []);
 
-  return (
-    <div className="flex h-screen bg-background text-foreground overflow-hidden selection:bg-primary/30">
-      
-      {/* 1. Sidebar Desktop (Oculta no mobile) */}
-      <aside className="hidden md:flex md:w-[260px] lg:w-[280px] border-r border-white/5 bg-card/40 backdrop-blur-2xl flex-col shadow-2xl relative z-20 shrink-0">
-        <div className="p-6 border-b border-white/5">
-          <div className="flex items-center gap-3 mb-1">
-            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-red-500/10 border border-red-500/20 shrink-0">
-              <AlertTriangle size={18} className="text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
-            </div>
-            <h2 className="text-xl font-extrabold tracking-tight text-white">GeoAlerta</h2>
-          </div>
-          <span className="text-[0.7rem] font-bold text-primary uppercase tracking-widest block mt-2">
-            Gabinete de Crise Integrado
-          </span>
-          <span className="text-xs text-slate-500 block mt-1">
-            Santo Antônio da Patrulha - RS
-          </span>
+  useEffect(() => {
+    if (mobileMenuOpen) dialog.current?.showModal();
+    else dialog.current?.close();
+  }, [mobileMenuOpen]);
 
-          {/* 4 Órgãos Integrados e Telefones */}
-          <div className="mt-6 pt-5 border-t border-white/5 flex flex-col gap-3 text-xs">
-            <div className="flex items-center justify-between">
-              <span className="flex items-center gap-2 text-slate-400 font-medium">
-                <ShieldAlert size={14} className="text-amber-500 drop-shadow-[0_0_5px_rgba(245,158,11,0.5)]" /> Defesa Civil
-              </span>
-              <strong className="text-amber-500 font-mono">199</strong>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="flex items-center gap-2 text-slate-400 font-medium">
-                <Flame size={14} className="text-red-500 drop-shadow-[0_0_5px_rgba(239,68,68,0.5)]" /> Bombeiros
-              </span>
-              <strong className="text-red-500 font-mono">193</strong>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="flex items-center gap-2 text-slate-400 font-medium">
-                <HardHat size={14} className="text-blue-500 drop-shadow-[0_0_5px_rgba(59,130,246,0.5)]" /> Sec. de Obras
-              </span>
-              <strong className="text-blue-500 font-mono">3662-8400</strong>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="flex items-center gap-2 text-slate-400 font-medium">
-                <HeartHandshake size={14} className="text-fuchsia-500 drop-shadow-[0_0_5px_rgba(217,70,239,0.5)]" /> Assist. Social
-              </span>
-              <strong className="text-fuchsia-500 font-mono">3662-8480</strong>
-            </div>
-          </div>
+  const links = [
+    ...getEnabledModules().map(module => ({ href: module.href, label: module.label, icon: icons[module.slug] })),
+    ...(canAdminister ? [{ href: '/painel/admin/shelters', label: 'Abrigos', icon: <Building2 size={18} aria-hidden="true" /> }] : []),
+    { href: '/painel/perfil', label: 'Meu perfil', icon: <UserRound size={18} aria-hidden="true" /> },
+  ];
+  const navigation = <nav aria-label="Navegação do painel" className="flex flex-col gap-2">
+    {links.map(link => <Link key={link.href} href={link.href} onClick={() => setMobileMenuOpen(false)} aria-current={isModuleActive(link.href, pathname) ? 'page' : undefined}
+      className={`flex min-h-12 items-center gap-3 rounded-md px-3 py-3 text-sm font-medium transition-colors ${isModuleActive(link.href, pathname) ? 'bg-primary-soft text-primary' : 'text-muted-foreground hover:bg-surface-subtle hover:text-foreground'}`}>
+      {link.icon}{link.label}
+    </Link>)}
+  </nav>;
+  const identity = <div className="min-w-0">
+    <Link href="/painel" aria-label="Ir para o dashboard do GeoAlerta" className="inline-block max-w-full rounded-md">
+      <GeoAlertaLogo className="block h-auto w-40 max-w-full" />
+    </Link>
+    <p className="mt-1 text-sm text-muted-foreground">Gabinete de Crise Integrado</p>
+    <p className="mt-2 text-sm text-muted-foreground">Santo Antônio da Patrulha · RS</p>
+  </div>;
+  const phoneList = <section aria-label="Contatos de plantão" className="mt-auto border-t pt-5">
+    <h2 className="mb-3 text-sm font-medium text-foreground">Plantão</h2>
+    <div className="space-y-1">{contacts.map(contact => <a key={contact.href} href={contact.href} className="flex min-h-10 items-center justify-between gap-2 rounded-md py-2 text-sm text-muted-foreground hover:text-primary">
+      <span>{contact.name}</span><span className="shrink-0 tabular-nums text-foreground">{contact.number}</span>
+    </a>)}</div>
+  </section>;
+
+  return <div className="flex h-dvh overflow-hidden bg-background text-foreground">
+    <a href="#panel-content" className="skip-link">Pular para o conteúdo</a>
+    <aside className="hidden w-56 shrink-0 flex-col gap-6 overflow-y-auto border-r bg-surface p-5 lg:flex">
+      {identity}{navigation}{phoneList}
+    </aside>
+    <dialog ref={dialog} aria-labelledby="mobile-nav-title" onCancel={() => setMobileMenuOpen(false)} onClose={() => setMobileMenuOpen(false)} onClick={event => { if (event.target === event.currentTarget) setMobileMenuOpen(false); }}
+      className="mobile-navigation fixed inset-0 m-0 h-dvh max-h-none w-full max-w-none bg-transparent p-0 text-foreground">
+      <div className="flex h-full w-[min(85vw,320px)] flex-col gap-6 overflow-y-auto bg-surface p-5">
+        <div className="flex items-start justify-between gap-2"><div id="mobile-nav-title">{identity}</div><button type="button" onClick={() => setMobileMenuOpen(false)} aria-label="Fechar menu" className="btn btn-text shrink-0 px-3"><X size={20} aria-hidden="true" /></button></div>
+        {navigation}<ThemeSelect />{phoneList}
+      </div>
+    </dialog>
+    <div className="flex min-w-0 flex-1 flex-col">
+      <header className="relative z-20 flex min-h-16 shrink-0 items-center justify-between gap-3 border-b bg-surface px-4 sm:px-6 lg:px-8">
+        <div className="flex min-w-0 items-center gap-3">
+          <button type="button" aria-label="Abrir Menu" aria-haspopup="dialog" aria-expanded={mobileMenuOpen} onClick={() => setMobileMenuOpen(true)} className="btn btn-secondary shrink-0 px-3 lg:hidden"><Menu size={20} aria-hidden="true" /></button>
+          <div className="min-w-0"><p className="text-sm font-medium">Central de Operações</p><p className="hidden text-sm text-muted-foreground sm:block">Prefeitura de Santo Antônio da Patrulha</p></div>
         </div>
-        
-        <nav className="flex-1 px-4 py-6 flex flex-col gap-2">
-          {getEnabledModules().map((m) => {
-            const active = isModuleActive(m.href, pathname);
-            return (
-              <Link
-                key={m.slug}
-                href={m.href}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 ${active ? 'bg-primary/10 text-primary border border-primary/20 font-semibold shadow-[0_0_15px_rgba(59,130,246,0.15)]' : 'text-slate-400 hover:text-white hover:bg-white/5 font-medium'}`}
-              >
-                {MODULE_ICONS[m.slug]} {m.label}
-              </Link>
-            );
-          })}
-          {canAdminister && (
-            <Link
-              href="/painel/admin/shelters"
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 ${pathname.startsWith('/painel/admin/shelters') ? 'bg-primary/10 text-primary border border-primary/20 font-semibold shadow-[0_0_15px_rgba(59,130,246,0.15)]' : 'text-slate-400 hover:text-white hover:bg-white/5 font-medium'}`}
-            >
-              <Building2 size={18} /> Abrigos
-            </Link>
-          )}
-          <Link href="/painel/perfil" className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all ${pathname.startsWith('/painel/perfil') ? 'bg-primary/10 text-primary border border-primary/20 font-semibold' : 'text-slate-400 hover:text-white hover:bg-white/5 font-medium'}`}>
-            <UserRound size={18} /> Meu perfil
-          </Link>
-        </nav>
-
-      </aside>
-
-      {/* 2. Gaveta / Drawer Mobile Lateral */}
-      {mobileMenuOpen && (
-        <div className="fixed inset-0 z-50 md:hidden flex">
-          {/* Backdrop Escuro */}
-          <div 
-            onClick={() => setMobileMenuOpen(false)} 
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity"
-          />
-          
-          {/* Conteúdo da Gaveta */}
-          <div className="relative w-[85%] max-w-[320px] bg-slate-900 border-r border-white/10 h-full flex flex-col shadow-2xl z-10 p-5 overflow-y-auto">
-            <div className="flex items-center justify-between pb-4 border-b border-white/10">
-              <div className="flex items-center gap-2">
-                <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-red-500/10 border border-red-500/20">
-                  <AlertTriangle size={16} className="text-red-500" />
-                </div>
-                <div>
-                  <h3 className="font-extrabold text-white text-base leading-tight">GeoAlerta</h3>
-                  <span className="text-[10px] text-slate-400">Gabinete de Crise SAP</span>
-                </div>
-              </div>
-              <button 
-                onClick={() => setMobileMenuOpen(false)}
-                className="p-2 rounded-lg text-slate-400 hover:text-white bg-white/5 border border-white/10"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <nav className="my-5 flex flex-col gap-2">
-              {getEnabledModules().map((m) => {
-                const active = isModuleActive(m.href, pathname);
-                return (
-                  <Link
-                    key={m.slug}
-                    href={m.href}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${active ? 'bg-primary/20 text-primary border border-primary/30' : 'text-slate-300 hover:bg-white/5'}`}
-                  >
-                    {MODULE_ICONS[m.slug]} {m.label}
-                  </Link>
-                );
-              })}
-              {canAdminister && (
-                <Link
-                  href="/painel/admin/shelters"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${pathname.startsWith('/painel/admin/shelters') ? 'bg-primary/20 text-primary border border-primary/30' : 'text-slate-300 hover:bg-white/5'}`}
-                >
-                  <Building2 size={18} /> Abrigos
-                </Link>
-              )}
-              <Link href="/painel/perfil" onClick={() => setMobileMenuOpen(false)} className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${pathname.startsWith('/painel/perfil') ? 'bg-primary/20 text-primary border border-primary/30' : 'text-slate-300 hover:bg-white/5'}`}>
-                <UserRound size={18} /> Meu perfil
-              </Link>
-            </nav>
-
-            {/* Contatos Rápidos no Mobile */}
-            <div className="border-t border-white/10 pt-4 flex flex-col gap-2.5 text-xs mt-auto">
-              <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 mb-1">
-                Plantão de Emergência
-              </span>
-              <a href="tel:199" className="flex items-center justify-between p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300">
-                <span className="flex items-center gap-2 font-semibold"><ShieldAlert size={14} /> Defesa Civil</span>
-                <strong className="font-mono">199</strong>
-              </a>
-              <a href="tel:193" className="flex items-center justify-between p-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-300">
-                <span className="flex items-center gap-2 font-semibold"><Flame size={14} /> Bombeiros</span>
-                <strong className="font-mono">193</strong>
-              </a>
-              <a href="tel:5136628400" className="flex items-center justify-between p-2.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-300">
-                <span className="flex items-center gap-2 font-semibold"><HardHat size={14} /> Obras</span>
-                <strong className="font-mono">3662-8400</strong>
-              </a>
-              <a href="tel:5136628480" className="flex items-center justify-between p-2.5 rounded-lg bg-fuchsia-500/10 border border-fuchsia-500/20 text-fuchsia-300">
-                <span className="flex items-center gap-2 font-semibold"><HeartHandshake size={14} /> Assist. Social</span>
-                <strong className="font-mono">3662-8480</strong>
-              </a>
-            </div>
-
-          </div>
-        </div>
-      )}
-
-      {/* 3. Área de Conteúdo Principal */}
-      <main className="flex-1 flex flex-col relative overflow-hidden bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-slate-900/40 via-background to-background">
-        
-        {/* Header - Totalmente Responsivo para Celular */}
-        <header className="h-[56px] md:h-[70px] border-b border-white/5 flex items-center justify-between px-3 sm:px-6 md:px-8 bg-background/80 backdrop-blur-md relative z-30 shrink-0">
-          
-          {/* Lado Esquerdo (Botão Menu Mobile + Identificação) */}
-          <div className="flex items-center gap-2.5">
-            <button 
-              onClick={() => setMobileMenuOpen(true)}
-              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 md:hidden transition-colors flex items-center justify-center"
-              aria-label="Abrir Menu"
-            >
-              <Menu size={20} />
-            </button>
-
-            <div className="flex items-center gap-2 text-xs text-slate-400">
-              <Building2 size={16} className="text-primary drop-shadow-[0_0_5px_rgba(59,130,246,0.5)] shrink-0" />
-              <span className="font-medium tracking-wide hidden sm:inline">Prefeitura de Santo Antônio da Patrulha</span>
-              <span className="font-medium tracking-wide sm:hidden text-white font-bold">Gabinete de Crise</span>
-              <span className="text-white/20 mx-1 hidden sm:inline">•</span>
-              <span className="font-semibold text-white hidden sm:inline">Central de Operações</span>
-            </div>
-          </div>
-
-          {/* Lado Direito (Sininho de Notificações) */}
-          <CoreNotifications />
-        </header>
-
-        {/* 4. Container de Conteúdo (Filhos) com espaçamento responsivo */}
-        <div className="flex-1 p-2 sm:p-4 md:p-6 pb-20 md:pb-6 overflow-y-auto overflow-x-hidden relative z-0 flex flex-col">
-          {children}
-        </div>
-
-        {/* 5. Barra Inferior de Navegação Rápida (Mobile Bottom Bar) */}
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-slate-950/90 backdrop-blur-xl border-t border-white/10 z-40 flex items-center justify-around px-2 shadow-2xl">
-          <Link 
-            href="/painel" 
-            aria-current={pathname === '/painel' ? 'page' : undefined}
-            className={`flex flex-col items-center justify-center gap-1 py-1.5 px-3 rounded-xl text-[11px] font-semibold transition-all ${pathname === '/painel' ? 'text-primary bg-primary/10' : 'text-slate-400'}`}
-          >
-            <LayoutDashboard size={18} />
-            <span>Dashboard</span>
-          </Link>
-          <Link 
-            href="/painel/mapa" 
-            aria-current={isModuleActive('/painel/mapa', pathname) ? 'page' : undefined}
-            className={`flex flex-col items-center justify-center gap-1 py-1.5 px-3 rounded-xl text-[11px] font-semibold transition-all ${isModuleActive('/painel/mapa', pathname) ? 'text-primary bg-primary/10' : 'text-slate-400'}`}
-          >
-            <MapIcon size={18} />
-            <span>Mapa</span>
-          </Link>
-          <Link 
-            href="/painel/tabela" 
-            aria-current={pathname === '/painel/tabela' ? 'page' : undefined}
-            className={`flex flex-col items-center justify-center gap-1 py-1.5 px-3 rounded-xl text-[11px] font-semibold transition-all ${pathname === '/painel/tabela' ? 'text-primary bg-primary/10' : 'text-slate-400'}`}
-          >
-            <List size={18} />
-            <span>Tabela</span>
-          </Link>
-          <button 
-            onClick={() => setMobileMenuOpen(true)}
-            className="flex flex-col items-center justify-center gap-1 py-1.5 px-4 rounded-xl text-[11px] font-semibold text-slate-400 hover:text-white"
-          >
-            <PhoneCall size={18} />
-            <span>Plantão</span>
-          </button>
-        </nav>
-
-      </main>
+        <div className="flex shrink-0 items-center gap-4"><div className="hidden md:block"><ThemeSelect /></div><CoreNotifications /></div>
+      </header>
+      <div id="panel-content" tabIndex={-1} className="min-w-0 flex-1 overflow-y-auto p-4 pb-24 sm:p-6 sm:pb-24 lg:p-8">{children}</div>
+      <nav aria-label="Navegação rápida" className="fixed inset-x-0 bottom-0 z-20 flex min-h-16 justify-around border-t bg-surface px-2 pb-[env(safe-area-inset-bottom)] lg:hidden">
+        {getEnabledModules().map(module => <Link key={module.slug} href={module.href} aria-current={isModuleActive(module.href, pathname) ? 'page' : undefined} className={`flex min-h-16 min-w-0 flex-1 flex-col items-center justify-center gap-1 px-2 text-xs font-medium ${isModuleActive(module.href, pathname) ? 'text-primary' : 'text-muted-foreground'}`}>{icons[module.slug]}<span>{module.label}</span></Link>)}
+      </nav>
     </div>
-  );
+  </div>;
 }

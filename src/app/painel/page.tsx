@@ -1,5 +1,6 @@
 import { CoreDashboardIndicators } from '@/features/occurrences/ui/CoreDashboardIndicators';
+import { PageHeader } from '@/components/ui/page-header';
 
 export default function DashboardPage() {
-  return <main className="space-y-5 p-4 md:p-6"><h1 className="text-2xl font-bold text-white">Dashboard</h1><CoreDashboardIndicators /></main>;
+  return <main className="space-y-6"><PageHeader title="Quadro de situação" description="Panorama das ocorrências para acompanhamento e passagem de situação."/><CoreDashboardIndicators /></main>;
 }

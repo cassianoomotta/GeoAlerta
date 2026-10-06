@@ -9,8 +9,9 @@ test.beforeEach(async({page,context,request})=>{
 });
 test('RF-009 lista filtra status e categoria pela barra preservando URL e paginação',async({page})=>{
   await page.goto(`/painel/ocorrencias?type=${listType()}&pageSize=50&sort=createdAt&direction=desc`);
-  await expect(page.locator('aside').getByRole('link',{name:'Ocorrências',exact:true})).toHaveCount(1);
-  await expect(page.locator('aside').getByRole('link',{name:'Nova',exact:true})).toHaveCount(0);
+  await expect(page.locator('aside').getByRole('link',{name:'Lista de ocorrências',exact:true})).toHaveCount(1);
+  await expect(page.locator('aside').getByRole('link',{name:'Nova ocorrência',exact:true})).toHaveAttribute('href','/painel/ocorrencias/nova');
+  await expect(page.getByRole('button',{name:'Obter localização GPS'})).toHaveCount(0);
   await expect(page.getByRole('link',{name:'Todos os status'})).toHaveCount(0);
   await expect(page.getByText('125 ocorrências · Página 1 de 3',{exact:true})).toBeVisible();await expect(page.locator('tbody tr')).toHaveCount(50);
   const filters=page.locator('details[aria-label="Filtros de ocorrências"]');
