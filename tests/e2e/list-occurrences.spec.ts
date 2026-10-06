@@ -13,30 +13,43 @@ test('RF-009 lista filtra status e categoria pela barra preservando URL e pagina
   await expect(page.locator('aside').getByRole('link',{name:'Nova',exact:true})).toHaveCount(0);
   await expect(page.getByRole('link',{name:'Todos os status'})).toHaveCount(0);
   await expect(page.getByText('125 ocorrências · Página 1 de 3',{exact:true})).toBeVisible();await expect(page.locator('tbody tr')).toHaveCount(50);
-  const form=page.getByRole('form',{name:'Filtros de ocorrências'});
-  await expect(form.getByLabel('Tipo',{exact:true})).toHaveJSProperty('tagName','SELECT');
-  await expect(form.getByLabel('Situação da categoria',{exact:true})).toHaveJSProperty('tagName','SELECT');
+  const filters=page.locator('details[aria-label="Filtros de ocorrências"]');
+  const showFilters=async()=>{
+    if(!(await filters.evaluate(element=>(element as HTMLDetailsElement).open)))await filters.locator('summary').click();
+    await expect(filters).toHaveJSProperty('open',true);
+  };
+  await showFilters();
+  const form=filters.locator('form[aria-label="Filtros de ocorrências"]');
+  await expect(form.getByRole('combobox',{name:'Tipo'})).toHaveJSProperty('tagName','SELECT');
+  await expect(form.getByRole('combobox',{name:'Situação da categoria'})).toHaveJSProperty('tagName','SELECT');
   await page.getByRole('link',{name:'Próxima página'}).click();await expect(page).toHaveURL(/page=2/);await expect(page.locator('tbody tr')).toHaveCount(50);expect(new URL(page.url()).searchParams.get('type')).toBe(listType());
+  await showFilters();
   await page.getByRole('columnheader',{name:'Status',exact:true}).getByRole('link').click();await expect(page).toHaveURL(/sort=status/);expect(new URL(page.url()).searchParams.get('page')).toBe('1');
-  await form.getByLabel('Status',{exact:true}).selectOption('NOVA');await page.getByRole('button',{name:'Aplicar filtros'}).click();await expect(page).toHaveURL(/status=NOVA/);expect(new URL(page.url()).searchParams.get('type')).toBe(listType());await expect(page.locator('tbody tr')).toHaveCount(25);
-  await form.getByLabel('Situação da categoria',{exact:true}).selectOption('active');await page.getByRole('button',{name:'Aplicar filtros'}).click();await expect(page).toHaveURL(/categoryStatus=active/);await expect(page.locator('tbody tr')).toHaveCount(25);
+  await showFilters();
+  await form.getByRole('combobox',{name:'Status'}).selectOption('NOVA');await page.getByRole('button',{name:'Aplicar filtros'}).click();await expect(page).toHaveURL(/status=NOVA/);expect(new URL(page.url()).searchParams.get('type')).toBe(listType());await expect(page.locator('tbody tr')).toHaveCount(25);
+  await showFilters();
+  await form.getByRole('combobox',{name:'Situação da categoria'}).selectOption('active');await page.getByRole('button',{name:'Aplicar filtros'}).click();await expect(page).toHaveURL(/categoryStatus=active/);await expect(page.locator('tbody tr')).toHaveCount(25);
+  await showFilters();
   await form.getByRole('combobox',{name:/^Prioridade/}).selectOption('ALTA');await form.getByLabel('De (UTC)',{exact:true}).fill('2025-01-02');await form.getByLabel('Até (UTC)',{exact:true}).fill('2025-01-03');await page.getByRole('button',{name:'Aplicar filtros'}).click();
-  await expect(page).toHaveURL(/priority=ALTA/);await expect(form.getByLabel('Tipo',{exact:true})).toHaveValue(listType());await page.reload();await expect(form.getByRole('combobox',{name:/^Prioridade/})).toHaveValue('ALTA');
+  await expect(page).toHaveURL(/priority=ALTA/);await showFilters();await expect(form.getByRole('combobox',{name:'Tipo'})).toHaveValue(listType());await page.reload();await showFilters();await expect(form.getByRole('combobox',{name:/^Prioridade/})).toHaveValue('ALTA');
 });
 test('RF-009 filtros começam recolhidos e o seletor de grupo só aparece quando há mais de um grupo autorizado',async({page,context})=>{
   await page.goto(`/painel/ocorrencias?type=${listType()}`);
-  const filters=page.getByRole('group',{name:'Filtros de ocorrências'});
+  const filters=page.locator('details[aria-label="Filtros de ocorrências"]');
   await expect(filters).toHaveJSProperty('open',false);
   await filters.locator('summary').click();
-  await expect(filters.getByLabel('Tipo',{exact:true})).toBeVisible();
-  await expect(filters.getByLabel('Grupo',{exact:true})).toHaveCount(0);
+  await expect(filters).toHaveJSProperty('open',true);
+  const form=filters.locator('form[aria-label="Filtros de ocorrências"]');
+  await expect(form.getByRole('combobox',{name:'Tipo'})).toBeVisible();
+  await expect(form.getByRole('combobox',{name:'Grupo'})).toHaveCount(0);
 
   await context.clearCookies();
   await context.addCookies((await fixtureCookies('gestor')).map(c=>({...c,url:'http://127.0.0.1:3102'})));
   await page.goto(`/painel/ocorrencias?type=${listType()}`);
-  const managerFilters=page.getByRole('group',{name:'Filtros de ocorrências'});
+  const managerFilters=page.locator('details[aria-label="Filtros de ocorrências"]');
   await managerFilters.locator('summary').click();
-  await expect(managerFilters.getByLabel('Grupo',{exact:true})).toBeVisible();
+  await expect(managerFilters).toHaveJSProperty('open',true);
+  await expect(managerFilters.locator('form').getByRole('combobox',{name:'Grupo'})).toBeVisible();
 });
 test('RF-010 protocolo abre o detalhe autorizado da ocorrência',async({page})=>{
   await page.goto(`/painel/ocorrencias?type=${listType()}&pageSize=50&sort=createdAt&direction=desc`);

@@ -115,7 +115,8 @@ test('RNF-007 Prisma baseline e expansão preservam registros IDs referências e
     const afterOccurrences = (await client.query(`SELECT id,type,description,ST_AsEWKT(location::geometry) AS location,photo_url,reporter_name,assigned_to,created_at,
       registering_institution_code,neighborhood_code,locality_code,occurrence_situation,damage_location_code,damage_location_detail,has_victims,has_displaced
       FROM public.occurrences ORDER BY id`)).rows;
-    expect(afterOccurrences.map(({registering_institution_code,neighborhood_code,locality_code,occurrence_situation,damage_location_code,damage_location_detail,has_victims,has_displaced,...preserved})=>preserved)).toEqual(beforeOccurrences);
+    const triageFields=new Set(['registering_institution_code','neighborhood_code','locality_code','occurrence_situation','damage_location_code','damage_location_detail','has_victims','has_displaced']);
+    expect(afterOccurrences.map(row=>Object.fromEntries(Object.entries(row).filter(([field])=>!triageFields.has(field))))).toEqual(beforeOccurrences);
     expect(afterOccurrences.every((row)=>[row.registering_institution_code,row.neighborhood_code,row.locality_code,row.occurrence_situation,row.damage_location_code,row.damage_location_detail,row.has_victims,row.has_displaced].every(value=>value===null))).toBe(true);
     expect(hash()).toBe(beforeHash);
     for (const [index,status] of ['NOVA','EM_ATENDIMENTO','RESOLVIDA','CANCELADA'].entries()) {

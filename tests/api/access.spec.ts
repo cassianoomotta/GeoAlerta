@@ -26,14 +26,18 @@ test('RF-005 matriz atual de estados grupos e município; metadata forjada não 
     else expect(JSON.stringify(await r.json())).not.toContain('Private fixture');
   }
 });
-test('RF-005 ID fora do escopo é 404 igual a inexistente; nenhuma informação privada',async({request})=>{
+test('RF-005 ID fora do escopo é 404 igual a inexistente; Consulta recebe campos operacionais sem dados do cidadão',async({request})=>{
   const headers={Cookie:cookieHeader(await fixtureCookies('operador'))};
   expect((await request.get(`/api/core/occurrences/${occurrenceA}`,{headers})).status()).toBe(200);
   for(const id of [occurrenceB,occurrenceOther,'40000000-0000-4000-8000-000000000001']){
     const r=await request.get(`/api/core/occurrences/${id}`,{headers});expect(r.status()).toBe(404);expect(await r.json()).toEqual({error:{code:'NOT_FOUND',message:'Registro não encontrado.'}});
   }
   const consulta=await request.get(`/api/core/occurrences/${occurrenceA}`,{headers:{Cookie:cookieHeader(await fixtureCookies('consulta'))}});
-  expect(consulta.status()).toBe(200);expect(Object.keys(await consulta.json()).sort()).toEqual(['actions','availableGroups','classification','description','events','group','id','openedAt','position','priority','protocol','status','type','updatedAt','version']);
+  expect(consulta.status()).toBe(200);
+  const detail=await consulta.json();
+  expect(Object.keys(detail).sort()).toEqual(['actions','address','availableGroups','classification','description','events','group','id','occurrenceContext','openedAt','position','priority','protocol','serviceAgencyOptions','serviceRecords','status','triage','type','updatedAt','version']);
+  expect(detail).not.toHaveProperty('privateData');
+  expect(JSON.stringify(detail)).not.toMatch(/reporterName|reporterContact|photo_object_key|photo_url/i);
 });
 test('RF-005 sessão emitida perde acesso após suspensão e alteração de papel/grupos',async({request})=>{
   assertTestTarget(process.env.TEST_DATABASE_URL);const db=new pg.Client({connectionString:process.env.TEST_DATABASE_URL});await db.connect();
