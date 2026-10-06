@@ -28,7 +28,7 @@ test('US-05 classificador comum deriva prioridade e versões das zonas retornada
     zones: [{ zoneId: '00000000-0000-4000-8000-000000000002', version: 2 }],
   });
   expect(values).toEqual([-50.5, -29.5]);
-  expect(query).toContain('max(current_zone.version)');
+  expect(query).toContain('geoalerta_private.effective_risk_zone_version');
   expect(query).toContain('z.active');
   expect(query).toContain('z.valid_from<=transaction_timestamp()');
   expect(query).toContain('z.valid_to>transaction_timestamp()');

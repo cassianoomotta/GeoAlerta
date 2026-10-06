@@ -23,6 +23,11 @@ test.beforeAll(async () => {
       VALUES ($1,2,'Manual creation fixture','INUNDACAO',true,now()-interval '1 day',NULL,
         ST_Multi(ST_GeomFromText('POLYGON((-51 -30,-50 -30,-50 -29,-51 -29,-51 -30))',4326)))
       ON CONFLICT(zone_id,version) DO UPDATE SET active=true,valid_from=now()-interval '1 day',valid_to=NULL
+    `, [zoneId]);    await db.query(`
+      INSERT INTO public.risk_zones(zone_id,version,name,type,active,valid_from,valid_to,geometry)
+      VALUES ($1,3,'Manual future fixture','INUNDACAO',true,now()+interval '1 day',NULL,
+        ST_Multi(ST_GeomFromText('POLYGON((-51 -30,-50 -30,-50 -29,-51 -29,-51 -30))',4326)))
+      ON CONFLICT(zone_id,version) DO UPDATE SET active=true,valid_from=now()+interval '1 day',valid_to=NULL
     `, [zoneId]);
   } finally {
     await db.end();
@@ -78,11 +83,12 @@ test('US-05 criação manual valida grupo, classifica a zona e grava ator e audi
     const expectedZones = (await db.query(`
       SELECT z.zone_id::text AS zone_id,z.version AS zone_version FROM public.risk_zones z
       WHERE z.active AND (z.valid_from IS NULL OR z.valid_from <= now()) AND (z.valid_to IS NULL OR z.valid_to > now())
-        AND z.version=(SELECT max(latest.version) FROM public.risk_zones latest WHERE latest.zone_id=z.zone_id)
+        AND z.version=geoalerta_private.effective_risk_zone_version(z.zone_id,now())
         AND ST_Intersects(z.geometry,ST_SetSRID(ST_MakePoint($1,$2),4326))
       ORDER BY z.zone_id
     `, [input.position.longitude, input.position.latitude])).rows;
     expect(expectedZones).toContainEqual({ zone_id: zoneId, zone_version: 2 });
+    expect(expectedZones).not.toContainEqual({ zone_id: zoneId, zone_version: 3 });
     expect((await db.query('SELECT zone_id::text AS zone_id,zone_version FROM public.occurrence_classification_zones WHERE occurrence_id=$1 ORDER BY zone_id', [result.id])).rows).toEqual(expectedZones);
     expect((await db.query("SELECT actor_id::text AS actor_id,kind FROM public.occurrence_events WHERE occurrence_id=$1", [result.id])).rows).toEqual([{ actor_id: operatorId, kind: 'OPENED' }]);
     expect((await db.query("SELECT actor_id::text AS actor_id,kind FROM public.audit_events WHERE entity_id=$1", [result.id])).rows).toEqual([{ actor_id: operatorId, kind: 'OPENED' }]);

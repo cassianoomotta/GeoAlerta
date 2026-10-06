@@ -37,7 +37,7 @@ test('RF-003 PostGIS inclui borda sobreposição e versão; exclui buraco inativ
   try{
     // Isolated synthetic coordinates avoid legacy or other test zones.
     const geometry='MULTIPOLYGON(((20 30,24 30,24 34,20 34,20 30),(21 31,21 33,23 33,23 31,21 31)))';
-    for(const [active,from,to] of [[true,null,null],[true,null,null],[false,null,null],[true,'2099-01-01',null],[true,null,'2000-01-01']] as const){
+    for(const [active,from,to] of [[true,'2000-01-01',null],[true,'2000-01-01',null],[false,null,null],[true,'2099-01-01',null],[true,null,'2000-01-01']] as const){
       const id=randomUUID();zoneIds.push(id);await db.query('INSERT INTO public.risk_zones(zone_id,version,name,type,active,valid_from,valid_to,geometry) VALUES($1,2,$2,$3,$4,$5,$6,ST_GeomFromText($7,4326))',[id,'Synthetic zone','FLOOD',active,from,to,geometry]);
     }
     for(const [longitude,latitude,priority,matches] of [[20.5,30.5,'ALTA',2],[20,32,'ALTA',2],[22,32,'NORMAL',0],[25,35,'NORMAL',0]] as const){

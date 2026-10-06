@@ -46,12 +46,12 @@
 - Após escolher a versão, os chamadores verificam `active` e o intervalo explícito; não há fallback para uma versão anterior se a escolhida estiver inativa ou expirada.
 - Atualiza `geoalerta_private.is_current_risk_zone`, `geoalerta_private.zone_is_classifiable` e as políticas de leitura/classificação/ingestão para usarem a mesma seleção temporal em `transaction_timestamp()`.
 
-- [ ] **Step 1: Escrever testes de banco para seleção temporal.** Cobrir versão inicial sem início, versão futura, fronteiras inclusiva/exclusiva, versão inativa e ausência de fallback.
-- [ ] **Step 2: Executar o teste de banco e confirmar falha.** Run: `npm run test:db -- tests/database/risk-zone-temporal-selection.spec.ts`. Expected: FAIL nos casos de versões futuras/fronteiras, pois a política atual escolhe `max(version)` global.
-- [ ] **Step 3: Implementar a função e substituir as políticas na migration aditiva.** Não alterar migrations aplicadas; conceder execução somente às roles runtime/ingest necessárias e preservar `SECURITY DEFINER` com `search_path` fechado.
-- [ ] **Step 4: Atualizar a classificação e a asserção unitária.** Trocar a condição de versão máxima global em `src/server/occurrences/persist.ts` pela função temporal, preservando a interseção de borda e todos os IDs/versões correspondentes.
-- [ ] **Step 5: Atualizar as fixtures de abertura manual.** Criar cenários com versão futura e instante atual; verificar que prioridade e vínculos usam a versão efetiva.
-- [ ] **Step 6: Executar testes da unidade e do banco.** Run: `npm run test:unit -- tests/unit/occurrence-persistence.spec.ts` e `npm run test:db -- tests/database/risk-zone-temporal-selection.spec.ts tests/database/risk-zone-read-guards.spec.ts`. Expected: PASS com RLS real no banco de teste isolado.
+- [x] **Step 1: Escrever testes de banco para seleção temporal.** Cobrir versão inicial sem início, versão futura, fronteiras inclusiva/exclusiva, versão inativa e ausência de fallback.
+- [x] **Step 2: Executar o teste de banco e confirmar falha.** Run: `npm run test:db -- tests/database/risk-zone-temporal-selection.spec.ts`. Expected: FAIL nos casos de versões futuras/fronteiras, pois a política atual escolhe `max(version)` global.
+- [x] **Step 3: Implementar a função e substituir as políticas na migration aditiva.** Não alterar migrations aplicadas; conceder execução somente às roles runtime/ingest necessárias e preservar `SECURITY DEFINER` com `search_path` fechado.
+- [x] **Step 4: Atualizar a classificação e a asserção unitária.** Trocar a condição de versão máxima global em `src/server/occurrences/persist.ts` pela função temporal, preservando a interseção de borda e todos os IDs/versões correspondentes.
+- [x] **Step 5: Atualizar as fixtures de abertura manual.** Criar cenários com versão futura e instante atual; verificar que prioridade e vínculos usam a versão efetiva.
+- [x] **Step 6: Executar testes da unidade e do banco.** Run: `npm run test:unit -- tests/unit/occurrence-persistence.spec.ts` e `npm run test:db -- tests/database/risk-zone-temporal-selection.spec.ts tests/database/risk-zone-read-guards.spec.ts`. Expected: PASS com RLS real no banco de teste isolado.
 
 ### Task 2: Transições administrativas, auditoria e duplicidade
 
@@ -69,12 +69,12 @@
 - Antes de gravar, comparar com outras zonas usando `ST_Equals`, tipo igual e intervalo de vigência coincidente. Sem justificativa, devolver conflito identificável; com justificativa, gravar e auditar a exceção. Sobreposição parcial continua permitida.
 - Não criar rota de exclusão física nem conceder `UPDATE`/`DELETE` na tabela de versões.
 
-- [ ] **Step 1: Escrever testes unitários de validação.** Cobrir criação inativa, início efetivo ausente em atualização, motivo vazio, referência de substituição inválida e datas invertidas.
-- [ ] **Step 2: Executar os testes unitários e confirmar falha.** Run: `npm run test:unit -- tests/unit/risk-zones.spec.ts`. Expected: FAIL nos novos contratos de entrada.
-- [ ] **Step 3: Escrever testes API do Administrador.** Cobrir transições, auditoria com ator/motivo, versão obsoleta (409), duplicidade sem justificativa recusada, exceção justificada registrada e acesso negado para outros papéis.
-- [ ] **Step 4: Implementar validação de domínio e transação administrativa.** Fazer checagem de duplicidade em PostGIS dentro da mesma transação da criação/versão e da auditoria; distinguir a mesma `zone_id` de uma duplicidade entre IDs diferentes.
-- [ ] **Step 5: Atualizar o painel administrativo.** Iniciar formulários inativos, solicitar motivo de alteração e justificar duplicidade antes do envio; manter o fluxo de criação de versão e mensagens acessíveis de conflito/sucesso.
-- [ ] **Step 6: Executar testes unitários e de API.** Run: `npm run test:unit -- tests/unit/risk-zones.spec.ts` e `npm run test:api -- tests/api/risk-zones.spec.ts`. Expected: PASS; auditoria só muda junto com a versão gravada.
+- [x] **Step 1: Escrever testes unitários de validação.** Cobrir criação inativa, início efetivo ausente em atualização, motivo vazio, referência de substituição inválida e datas invertidas.
+- [x] **Step 2: Executar os testes unitários e confirmar falha.** Run: `npm run test:unit -- tests/unit/risk-zones.spec.ts`. Expected: FAIL nos novos contratos de entrada.
+- [x] **Step 3: Escrever testes API do Administrador.** Cobrir transições, auditoria com ator/motivo, versão obsoleta (409), duplicidade sem justificativa recusada, exceção justificada registrada e acesso negado para outros papéis.
+- [x] **Step 4: Implementar validação de domínio e transação administrativa.** Fazer checagem de duplicidade em PostGIS dentro da mesma transação da criação/versão e da auditoria; distinguir a mesma `zone_id` de uma duplicidade entre IDs diferentes.
+- [x] **Step 5: Atualizar o painel administrativo.** Iniciar formulários inativos, solicitar motivo de alteração e justificar duplicidade antes do envio; manter o fluxo de criação de versão e mensagens acessíveis de conflito/sucesso.
+- [x] **Step 6: Executar testes unitários e de API.** Run: `npm run test:unit -- tests/unit/risk-zones.spec.ts` e `npm run test:api -- tests/api/risk-zones.spec.ts`. Expected: PASS; auditoria só muda junto com a versão gravada.
 
 ### Task 3: Consulta de uma data e comparação visual
 
@@ -91,12 +91,12 @@
 - Instantes inválidos retornam 400; requisições sem a capacidade `administer` retornam o erro de autorização existente.
 - A tela administrativa oferece dois seletores de data/hora e um mapa de comparação responsivo com legenda que distingue as duas datas, tipo e estado; não adiciona ferramenta de desenho nem lê dados privados de ocorrências.
 
-- [ ] **Step 1: Escrever testes API para snapshots e comparação.** Usar versões antes/agendadas/depois de inativação e validar seleção efetiva, campos retornados, limite de permissões e entrada temporal inválida.
-- [ ] **Step 2: Executar os testes API e confirmar falha.** Run: `npm run test:api -- tests/api/risk-zones.spec.ts`. Expected: FAIL porque o endpoint atual retorna somente a versão mais recente.
-- [ ] **Step 3: Implementar a consulta parametrizada de snapshot.** Usar a mesma função/ordenação temporal da Task 1; validar parâmetros antes do SQL e exigir sessão/capacidade administrativa em toda chamada.
-- [ ] **Step 4: Construir o mapa histórico separado do mapa operacional de ocorrências.** Usar React Leaflet já instalado, desenhar as duas coleções GeoJSON em cores distintas e ajustar limites ao conjunto combinado sem alterar clustering, filtros ou consulta de ocorrências.
-- [ ] **Step 5: Integrar os seletores à tela administrativa.** Exibir estado vazio, carregamento, erro recuperável e a identificação de versão/vigência; manter a visualização histórica somente leitura.
-- [ ] **Step 6: Executar testes API e de navegador.** Run: `npm run test:api -- tests/api/risk-zones.spec.ts` e `npm run test:e2e -- tests/e2e/risk-zone-history.spec.ts`. Expected: Administrador compara dois instantes e usuário sem permissão não acessa a tela nem o endpoint.
+- [x] **Step 1: Escrever testes API para snapshots e comparação.** Usar versões antes/agendadas/depois de inativação e validar seleção efetiva, campos retornados, limite de permissões e entrada temporal inválida.
+- [x] **Step 2: Executar os testes API e confirmar falha.** Run: `npm run test:api -- tests/api/risk-zones.spec.ts`. Expected: FAIL porque o endpoint atual retorna somente a versão mais recente.
+- [x] **Step 3: Implementar a consulta parametrizada de snapshot.** Usar a mesma função/ordenação temporal da Task 1; validar parâmetros antes do SQL e exigir sessão/capacidade administrativa em toda chamada.
+- [x] **Step 4: Construir o mapa histórico separado do mapa operacional de ocorrências.** Usar React Leaflet já instalado, desenhar as duas coleções GeoJSON em cores distintas e ajustar limites ao conjunto combinado sem alterar clustering, filtros ou consulta de ocorrências.
+- [x] **Step 5: Integrar os seletores à tela administrativa.** Exibir estado vazio, carregamento, erro recuperável e a identificação de versão/vigência; manter a visualização histórica somente leitura.
+- [x] **Step 6: Executar testes API e de navegador.** Run: `npm run test:api -- tests/api/risk-zones.spec.ts` e `npm run test:e2e -- tests/e2e/risk-zone-history.spec.ts`. Expected: Administrador compara dois instantes e usuário sem permissão não acessa a tela nem o endpoint.
 
 ### Task 4: Verificação de regressão e aceite local
 
@@ -109,8 +109,8 @@
 **Interfaces:**
 - Nenhuma interface nova; este fechamento comprova conjuntamente o contrato das Tasks 1–3.
 
-- [ ] **Step 1: Executar TypeScript e lint dos arquivos alterados.** Run: `npm exec -- tsc --noEmit` e `npm run lint -- <lista de arquivos alterados>`. Expected: exit code 0.
-- [ ] **Step 2: Executar suítes unitárias, API, database e navegador afetadas.** Run: `npm run test:unit`, `npm run test:api -- tests/api/risk-zones.spec.ts tests/api/public-occurrences.spec.ts tests/api/manual-occurrence.spec.ts`, `npm run test:db -- tests/database/risk-zone-temporal-selection.spec.ts tests/database/risk-zone-read-guards.spec.ts` e `npm run test:e2e -- tests/e2e/risk-zone-history.spec.ts`. Expected: PASS no alvo isolado autorizado.
-- [ ] **Step 3: Executar build de produção local.** Run: `npm run build`. Expected: compilação concluída sem erros.
-- [ ] **Step 4: Conferir o fluxo no navegador local.** Em sessão administrativa, criar inativa, ativar, agendar versão futura, comparar duas datas, encerrar e confirmar ausência de fallback; em sessão sem acesso, confirmar 403/redirect. Registrar limitações sem alegar homologação compartilhada.
+- [x] **Step 1: Executar TypeScript e lint dos arquivos alterados.** Run: `npm exec -- tsc --noEmit` e `npm run lint -- <lista de arquivos alterados>`. Expected: exit code 0.
+- [x] **Step 2: Executar suítes unitárias, API, database e navegador afetadas.** Run: `npm run test:unit`, `npm run test:api -- tests/api/risk-zones.spec.ts tests/api/public-occurrences.spec.ts tests/api/manual-occurrence.spec.ts`, `npm run test:db -- tests/database/risk-zone-temporal-selection.spec.ts tests/database/risk-zone-read-guards.spec.ts` e `npm run test:e2e -- tests/e2e/risk-zone-history.spec.ts`. Expected: PASS no alvo isolado autorizado.
+- [x] **Step 3: Executar build de produção local.** Run: `npm run build`. Expected: compilação concluída sem erros.
+- [x] **Step 4: Conferir o fluxo no navegador local.** Em sessão administrativa, criar inativa, ativar, agendar versão futura, comparar duas datas, encerrar e confirmar ausência de fallback; em sessão sem acesso, confirmar 403/redirect. Registrar limitações sem alegar homologação compartilhada.
 
