@@ -109,6 +109,16 @@ export function RiskZonePanel() {
     <section className="space-y-3" aria-labelledby="zones-list-title"><div className="flex items-center justify-between"><h2 id="zones-list-title" className="text-lg font-semibold text-foreground">Zonas e versões atuais</h2><button onClick={startCreate} className="rounded border border-primary/30 px-3 py-2 text-sm text-primary">Nova zona</button></div>
       {zones.length ? zones.map((zone) => <article key={zone.zoneId} className="glass-card flex flex-wrap items-start justify-between gap-3 p-4"><div><h3 className="font-semibold text-foreground">{zone.name}</h3><p className="text-sm text-muted-foreground">{zone.type === 'INUNDACAO' ? 'Inundação' : 'Risco'} · versão {zone.version} · {zone.active ? 'ativa' : 'inativa'}</p><p className="text-xs text-muted-foreground">Vigência: {formatDate(zone.validFrom)} a {formatDate(zone.validTo)}</p></div><button onClick={() => startEdit(zone)} className="rounded border border-control-border px-3 py-2 text-sm text-foreground">Criar próxima versão</button></article>) : <p className="rounded border border-border p-4 text-sm text-muted-foreground">Nenhuma zona registrada.</p>}
     </section>
+    <section className="glass-card space-y-4 p-5" aria-labelledby="zone-history-title">
+      <div><h2 id="zone-history-title" className="text-lg font-semibold text-foreground">Comparar zonas por vigência</h2><p className="mt-1 text-sm text-muted-foreground">Consulte as versões efetivas em duas datas. A comparação é somente leitura e não altera classificações de ocorrências.</p></div>
+      <form className="grid gap-4 sm:grid-cols-2" onSubmit={(event) => void compareHistory(event)}>
+        <label className="space-y-1 text-sm text-foreground"><span>Data base <span aria-hidden="true" className="text-danger">*</span></span><input aria-label="Data base" required type="datetime-local" value={historyAt} onChange={(event) => setHistoryAt(event.target.value)} className="w-full rounded border border-control-border bg-background p-2" /></label>
+        <label className="space-y-1 text-sm text-foreground"><span>Data comparada <span aria-hidden="true" className="text-danger">*</span></span><input aria-label="Data comparada" required type="datetime-local" value={historyCompareAt} onChange={(event) => setHistoryCompareAt(event.target.value)} className="w-full rounded border border-control-border bg-background p-2" /></label>
+        <button disabled={historyBusy} className="w-fit rounded bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50">{historyBusy ? 'Consultando…' : 'Comparar datas'}</button>
+      </form>
+      {historyError && <p role="alert" className="rounded border border-danger/30 bg-danger-soft p-3 text-sm text-danger">{historyError}</p>}
+      {historySnapshots && <RiskZoneHistoryMap snapshots={historySnapshots} />}
+    </section>
   </main>;
 }
 
