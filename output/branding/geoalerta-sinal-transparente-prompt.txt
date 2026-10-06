@@ -1,0 +1,7 @@
+Generation method: built-in image_gen; transparent_background=true.
+
+Use case: background-extraction.
+Input image is the edit target: the approved GeoAlerta logo.
+Remove ONLY the white background and export the same complete logo as a PNG with a genuinely transparent alpha background. All white background areas must become transparent, including the spaces between the abstract symbol's segments, the area around its central red dot, and the internal counters of every letter.
+Preserve the logo exactly: its FOUR soft rounded abstract segments (three navy, one red), red central circle, precise shapes, proportions, positions, edge curves, existing navy and red colors, and exact wordmark "GeoAlerta" with unchanged bold sans-serif typography, navy "Geo" and red "Alerta". Keep original composition, symbol above wordmark, and margins.
+No redesign, no new text, no color changes, no shadows, no extra elements, no white matte, no checkerboard baked into the pixels, no opaque background. Clean antialiased edges without white halos. Keep all foreground logo shapes and lettering fully opaque. Deliver the entire approved logo on true transparency.
