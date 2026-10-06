@@ -67,7 +67,13 @@ export function CoreMapOverview({showMap=true}:CoreMapOverviewProps){
       </div>
       {showMap&&view.limited&&<p role="status" className="rounded border border-amber-400/40 bg-amber-950/40 p-3 text-sm text-amber-100">Mais de 1.000 ocorrências neste recorte. O mapa limita os marcadores; as contagens incluem todas as ocorrências do período e da área.</p>}
       {view.markers.length===0&&<p role="status" className="rounded border border-slate-700 bg-slate-800/60 p-3 text-sm text-slate-300">Nenhuma ocorrência encontrada no recorte consultado.</p>}
-      {showMap&&<CoreMapCanvas view={view} onViewportChange={onViewportChange}/>}
+      {showMap&&<>
+      <CoreMapCanvas view={view} onViewportChange={onViewportChange} statusLabels={Object.fromEntries(presentations.map(({code,label})=>[code,label]))}/>
+      <aside role="group" aria-label="Legenda do mapa" className="grid gap-2 rounded-lg border border-slate-700 bg-slate-800/60 p-3 text-sm sm:grid-cols-2">
+        <p><span aria-hidden="true" className="mr-2 inline-block text-cyan-300">◉</span><strong>Aberta:</strong> anel pulsante; inclui nova, em triagem e em atendimento.</p>
+        <p><span aria-hidden="true" className="mr-2 inline-block text-emerald-300">✓</span><strong>Fechada:</strong> marcador esmaecido com sinal de conclusão; inclui resolvida e cancelada.</p>
+        <p className="text-xs text-slate-300 sm:col-span-2">O ícone e a cor identificam o tipo. Focalize ou selecione um marcador para ler tipo, status e prioridade e abrir o detalhe autorizado.</p>
+      </aside></>}
       {showMap&&<p className="text-xs text-slate-400">{view.markers.length} marcadores visíveis · {view.window.from&&view.window.to?`período ${new Date(view.window.from).toLocaleDateString('pt-BR')}–${new Date(view.window.to).toLocaleDateString('pt-BR')}`:'todo o histórico'}</p>}
     </>}
   </section>;

@@ -1,8 +1,11 @@
 'use client';
 
-import {MapContainer,TileLayer,CircleMarker,Popup,useMap,useMapEvents} from 'react-leaflet';
+import Link from 'next/link';
+import MarkerClusterGroup from 'react-leaflet-cluster';
+import {MapContainer,TileLayer,Marker,Popup,useMap,useMapEvents} from 'react-leaflet';
 import {useEffect} from 'react';
-import type {DashboardView} from '../contracts';
+import {occurrenceIcon} from '@/lib/mapIcons';
+import type {DashboardView,Status} from '../contracts';
 import {dashboardMapBounds,type DashboardBounds} from '../domain/dashboard-map';
 import {resizeDashboardMapViewport} from './map-viewport';
 
@@ -23,14 +26,31 @@ function ViewportListener({onChange}:{onChange:(bounds:DashboardBounds)=>void}){
   return null;
 }
 
-export default function CoreMapCanvas({view,onViewportChange}:{view:DashboardView;onViewportChange:(bounds:DashboardBounds)=>void}){
+export default function CoreMapCanvas({view,onViewportChange,statusLabels}:{
+  view:DashboardView;
+  onViewportChange:(bounds:DashboardBounds)=>void;
+  statusLabels:Partial<Record<Status,string>>;
+}){
   return <div className="h-[min(65vh,620px)] min-h-80 overflow-hidden rounded-xl border border-slate-700">
     <MapContainer bounds={dashboardMapBounds(view.markers)} boundsOptions={{padding:[24,24]}} scrollWheelZoom className="h-full w-full">
       <TileLayer attribution="&copy; OpenStreetMap" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
       <ViewportListener onChange={onViewportChange}/>
-      {view.markers.map(marker=><CircleMarker key={marker.id} center={[marker.latitude,marker.longitude]} radius={7} pathOptions={{color:marker.priority==='ALTA'?'#ef4444':'#2563eb',fillOpacity:0.8}}>
-        <Popup>Ocorrência {marker.id.slice(0,8)} · {marker.status} · Prioridade {marker.priority}</Popup>
-      </CircleMarker>)}
+      <MarkerClusterGroup chunkedLoading maxClusterRadius={25} spiderfyOnMaxZoom disableClusteringAtZoom={12} spiderfyDistanceMultiplier={2.5}>
+        {view.markers.map(marker=>{
+          const statusLabel=statusLabels[marker.status]??marker.status;
+          const markerLabel=`${marker.type||'Tipo não informado'} · ${statusLabel} · ${marker.state==='open'?'Aberta':'Fechada'} · Prioridade ${marker.priority==='ALTA'?'alta':'normal'}`;
+          return <Marker key={marker.id} position={[marker.latitude,marker.longitude]} icon={occurrenceIcon(marker.type,marker.state==='open'?'Aberto':'Resolvido')} title={markerLabel} alt={markerLabel}>
+            <Popup>
+              <div className="min-w-44 space-y-1 text-slate-900">
+                <h3 className="font-semibold">{marker.type||'Tipo não informado'}</h3>
+                <p>Status: {statusLabel} · {marker.state==='open'?'Aberta':'Fechada'}</p>
+                <p>Prioridade: {marker.priority==='ALTA'?'Alta':'Normal'}</p>
+                <Link className="mt-2 inline-block font-semibold text-blue-700 underline" href={`/painel/ocorrencias/${encodeURIComponent(marker.id)}`}>Ver detalhes da ocorrência</Link>
+              </div>
+            </Popup>
+          </Marker>;
+        })}
+      </MarkerClusterGroup>
     </MapContainer>
   </div>;
 }
