@@ -1,12 +1,11 @@
 import type {Actor} from '@/features/access/contracts';
 import {can} from '@/features/access/domain/permissions';
-import {DASHBOARD_TIME_ZONE,type DashboardIndicatorsData,type DashboardIndicatorsQuery,type DashboardIndicatorsView} from '../domain/dashboard-indicators';
+import {shapeIndicatorView,type IndicatorData,type IndicatorQuery,type IndicatorView} from '../domain/dashboard-indicators';
 
-export type DashboardIndicatorsPort={read(query:DashboardIndicatorsQuery):Promise<DashboardIndicatorsData>};
+export type DashboardIndicatorsPort={read(query:IndicatorQuery):Promise<IndicatorData>};
 export class DashboardIndicatorsAccessError extends Error{}
 
-export async function getDashboardIndicators(actor:Actor,query:DashboardIndicatorsQuery,port:DashboardIndicatorsPort):Promise<DashboardIndicatorsView>{
+export async function getDashboardIndicators(actor:Actor,query:IndicatorQuery,port:DashboardIndicatorsPort):Promise<IndicatorView>{
   if(!can(actor,'read',{municipalityId:actor.municipalityId,groupId:actor.groupIds[0]}))throw new DashboardIndicatorsAccessError('ACCESS_DENIED');
-  const data=await port.read(query);
-  return {...data,window:{...query,timeZone:DASHBOARD_TIME_ZONE}};
+  return shapeIndicatorView(await port.read(query),query);
 }

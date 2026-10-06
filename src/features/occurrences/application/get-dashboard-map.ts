@@ -4,7 +4,7 @@ import type {DashboardView,Priority,Status} from '../contracts';
 import type {DashboardMarkerInput} from '../domain/dashboard-map';
 import {shapeDashboardView,type DashboardMapQuery} from '../domain/dashboard-map';
 
-export type DashboardMapData={markers:DashboardMarker[];byStatus:Partial<Record<Status,number>>;byPriority:Partial<Record<Priority,number>>;availableTypes?:string[];matchingCount?:number};
+export type DashboardMapData={markers:DashboardMarkerInput[];byStatus:Partial<Record<Status,number>>;byPriority:Partial<Record<Priority,number>>;availableTypes?:string[];matchingCount?:number};
 export type DashboardMapPort={read(query:DashboardMapQuery,markerLimit:number):Promise<DashboardMapData>};
 
 export class DashboardMapAccessError extends Error{}
