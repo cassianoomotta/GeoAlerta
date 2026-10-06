@@ -13,7 +13,7 @@ export async function GET(request:Request){
     });
     return Response.json({...result,window:query},{headers:{'Cache-Control':'no-store'}});
   }catch(error){
-    if(error instanceof DashboardQueryError)return Response.json({error:{code:error.message,message:'Verifique o recorte espacial e o período (máximo de 31 dias).'}},{status:422,headers:{'Cache-Control':'no-store'}});
+    if(error instanceof DashboardQueryError)return Response.json({error:{code:error.message,message:'Verifique os filtros, o recorte espacial e o período (máximo de 31 dias).'}},{status:422,headers:{'Cache-Control':'no-store'}});
     if(error instanceof DashboardMapAccessError)return Response.json({error:{code:'ACCESS_DENIED',message:'Acesso não autorizado.'}},{status:403,headers:{'Cache-Control':'no-store'}});
     return accessResponse(error);
   }

@@ -102,3 +102,26 @@
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
 }
+
+/* Occurrence marker: type glyph, status color, separate high-priority warning. */
+.occurrence-map-icon { background: transparent; border: 0; }
+.occurrence-marker {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 2px solid white;
+  border-radius: 50%;
+  box-shadow: 0 2px 5px rgb(0 0 0 / 0.24);
+}
+.occurrence-marker > svg { width: 23px; height: 23px; }
+.occurrence-marker > .occurrence-marker-warning {
+  position: absolute;
+  top: -9px;
+  right: -8px;
+  width: 20px;
+  height: 20px;
+}
+.occurrence-map-icon:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; border-radius: 50%; }
