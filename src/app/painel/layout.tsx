@@ -15,6 +15,7 @@ import {
   X,
   PhoneCall,
   UserRound,
+  LayoutDashboard,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -22,6 +23,7 @@ import { getEnabledModules } from "@/modules/registry";
 import { MapPin, Boxes, Truck } from "lucide-react";
 
 const MODULE_ICONS: Record<string, React.ReactNode> = {
+  dashboard: <LayoutDashboard size={18} />,
   monitoramento: <MapPin size={18} />,
   tabela: <List size={18} />,
   recursos: <Boxes size={18} />,
@@ -29,6 +31,10 @@ const MODULE_ICONS: Record<string, React.ReactNode> = {
   equipes: <Truck size={18} />,
   voluntarios: <HeartHandshake size={18} />,
 };
+
+function isModuleActive(href: string, pathname: string) {
+  return href === "/painel" ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
+}
 
 export default function PainelLayout({ children }: { children: React.ReactNode }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -101,7 +107,7 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
         
         <nav className="flex-1 px-4 py-6 flex flex-col gap-2">
           {getEnabledModules().map((m) => {
-            const active = m.href === "/painel" ? pathname === "/painel" : pathname.startsWith(m.href);
+            const active = isModuleActive(m.href, pathname);
             return (
               <Link
                 key={m.slug}
@@ -158,7 +164,7 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
 
             <nav className="my-5 flex flex-col gap-2">
               {getEnabledModules().map((m) => {
-                const active = m.href === "/painel" ? pathname === "/painel" : pathname.startsWith(m.href);
+                const active = isModuleActive(m.href, pathname);
                 return (
                   <Link
                     key={m.slug}
@@ -249,14 +255,24 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
         <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-slate-950/90 backdrop-blur-xl border-t border-white/10 z-40 flex items-center justify-around px-2 shadow-2xl">
           <Link 
             href="/painel" 
-            className={`flex flex-col items-center justify-center gap-1 py-1.5 px-4 rounded-xl text-[11px] font-semibold transition-all ${pathname === '/painel' ? 'text-primary bg-primary/10' : 'text-slate-400'}`}
+            aria-current={pathname === '/painel' ? 'page' : undefined}
+            className={`flex flex-col items-center justify-center gap-1 py-1.5 px-3 rounded-xl text-[11px] font-semibold transition-all ${pathname === '/painel' ? 'text-primary bg-primary/10' : 'text-slate-400'}`}
+          >
+            <LayoutDashboard size={18} />
+            <span>Dashboard</span>
+          </Link>
+          <Link 
+            href="/painel/mapa" 
+            aria-current={isModuleActive('/painel/mapa', pathname) ? 'page' : undefined}
+            className={`flex flex-col items-center justify-center gap-1 py-1.5 px-3 rounded-xl text-[11px] font-semibold transition-all ${isModuleActive('/painel/mapa', pathname) ? 'text-primary bg-primary/10' : 'text-slate-400'}`}
           >
             <MapIcon size={18} />
             <span>Mapa</span>
           </Link>
           <Link 
             href="/painel/tabela" 
-            className={`flex flex-col items-center justify-center gap-1 py-1.5 px-4 rounded-xl text-[11px] font-semibold transition-all ${pathname === '/painel/tabela' ? 'text-primary bg-primary/10' : 'text-slate-400'}`}
+            aria-current={pathname === '/painel/tabela' ? 'page' : undefined}
+            className={`flex flex-col items-center justify-center gap-1 py-1.5 px-3 rounded-xl text-[11px] font-semibold transition-all ${pathname === '/painel/tabela' ? 'text-primary bg-primary/10' : 'text-slate-400'}`}
           >
             <List size={18} />
             <span>Tabela</span>

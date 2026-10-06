@@ -116,7 +116,7 @@ function OccurrenceDetailView({id}: {id: string}) {
   if (!detail) {
     return (
       <main className="mx-auto w-full max-w-5xl space-y-5 p-4 sm:p-6" aria-labelledby="occurrence-unavailable-title">
-        <Link className="text-sm font-medium text-blue-300 hover:text-blue-200" href="/painel">← Voltar para ocorrências</Link>
+        <Link className="text-sm font-medium text-blue-300 hover:text-blue-200" href="/painel/ocorrencias">← Voltar para ocorrências</Link>
         <section className="glass-card p-6 sm:p-8">
           <h1 id="occurrence-unavailable-title" className="text-xl font-bold text-white">Ocorrência indisponível</h1>
           <p className="mt-2 text-sm text-slate-300">Não foi possível localizar esta ocorrência ou você não tem acesso a ela.</p>
@@ -127,7 +127,7 @@ function OccurrenceDetailView({id}: {id: string}) {
 
   return (
     <main className="mx-auto w-full max-w-5xl space-y-5 p-4 sm:p-6" aria-labelledby="occurrence-detail-title">
-      <Link className="text-sm font-medium text-blue-300 hover:text-blue-200" href="/painel">← Voltar para ocorrências</Link>
+      <Link className="text-sm font-medium text-blue-300 hover:text-blue-200" href="/painel/ocorrencias">← Voltar para ocorrências</Link>
       <header className="glass-card p-5 sm:p-7">
         <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Protocolo {detail.protocol}</p>
         <h1 id="occurrence-detail-title" className="mt-2 text-2xl font-bold text-white">Detalhe da ocorrência</h1>

@@ -5,8 +5,11 @@ import { getEnabledModules, MODULES } from '../../src/modules/registry';
 
 const source = (path: string) => readFileSync(join(process.cwd(), path), 'utf8');
 
-test('RF-017 navegação mantém mapa e ocorrências e oculta módulos legados', () => {
-  expect(getEnabledModules().map(({ slug }) => slug)).toEqual(['monitoramento', 'tabela']);
+test('RF-017 navegação separa dashboard e mapa, mantém ocorrências e oculta módulos legados', () => {
+  expect(getEnabledModules().map(({ slug }) => slug)).toEqual(['dashboard', 'monitoramento', 'tabela']);
+  expect(MODULES.filter(({ enabled }) => enabled).map(({ label, href }) => [label, href])).toEqual([
+    ['Dashboard', '/painel'], ['Mapa', '/painel/mapa'], ['Ocorrências', '/painel/ocorrencias'],
+  ]);
   expect(MODULES.filter(({ enabled }) => !enabled).map(({ slug }) => slug)).toEqual([
     'recursos', 'abrigos', 'equipes', 'voluntarios',
   ]);
@@ -28,8 +31,17 @@ test('RF-017 rotas legadas não montam componentes, GPS nem assinaturas operacio
   }
 
   const dashboard = source('src/app/painel/page.tsx');
-  expect(dashboard).toContain('CoreMapOverview');
+  const map = source('src/app/painel/mapa/page.tsx');
+  expect(dashboard).toContain('CoreDashboardIndicators');
+  expect(dashboard).not.toContain('CoreMapOverview');
+  expect(map).toContain('CoreMapOverview');
   expect(dashboard).not.toMatch(/team_locations|watchPosition|\.subscribe\(/i);
+});
+
+test('RF-017 detalhes de ocorrência retornam à lista que os abriu', () => {
+  const detail = source('src/app/painel/ocorrencias/[id]/page.tsx');
+  expect(detail.match(/href="\/painel\/ocorrencias"/g)).toHaveLength(2);
+  expect(detail).not.toMatch(/href="\/painel">← Voltar para ocorrências/);
 });
 
 test('RF-017 mantém as implementações completas de mapa legado e rastreio fora das rotas ativas', () => {

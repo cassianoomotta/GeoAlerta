@@ -14,9 +14,16 @@ export interface ModuleDef {
 
 export const MODULES: ModuleDef[] = [
   {
-    slug: "monitoramento",
-    label: "Mapa de ocorrências",
+    slug: "dashboard",
+    label: "Dashboard",
     href: "/painel",
+    description: "Indicadores e alertas de ocorrências",
+    enabled: true,
+  },
+  {
+    slug: "monitoramento",
+    label: "Mapa",
+    href: "/painel/mapa",
     description: "Mapa Core de ocorrências e triagem",
     enabled: true,
   },
