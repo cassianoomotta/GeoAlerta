@@ -1,11 +1,12 @@
-# GeoAlerta — release Core
+# GeoAlerta Core 0.1.0
 
-**Estado:** proposta de produto para revisão. Estes documentos descrevem a próxima release; não afirmam que ela já foi implementada.
+**Estado documental:** escopo de referência para a linha estável `geo-alerta-0-1-0`; aceite integrado final e publicação da release não declarados. A Task 20 permanece pausada e a Task 30, de auditoria, está em andamento.
 
-Esta release concentra o GeoAlerta em dois recursos: abertura pública de ocorrências e gestão de ocorrências no painel. O cidadão envia sem criar conta. O backoffice exige login e autorização por papel e grupo.
+O Core 0.1.0 reúne o registro público de ocorrências e o painel municipal autenticado para indicadores, mapa, alertas in-app, lista/detalhe e operações autorizadas, com exportação local em CSV. A administração municipal inclui acessos, status, zonas de risco e abrigos. O cidadão registra sem conta; o backoffice exige login e autorização por papel e grupo. Módulos legados desativados e fluxos pendentes estão identificados no [guia operacional](guia-operacional.md).
 
 ## Documentos
 
+- [Guia operacional](guia-operacional.md): descreve recursos atualmente implementados, passos por perfil, resultados esperados, recuperação de falhas e limitações. Não representa aceite de produção.
 - [PRD](PRD.md): escopo, histórias de usuário, cenários BDD e critérios de aceite.
 - [Histórias e requisitos](requirements.md): sete histórias com critérios de aceite e IDs estáveis de requisitos funcionais e não funcionais.
 - [Arquitetura](architecture/README.md): monólito modular, limites hexagonais, contratos e integração Prisma/Supabase.
@@ -13,14 +14,12 @@ Esta release concentra o GeoAlerta em dois recursos: abertura pública de ocorr�
 - [Testes automatizados](testing/README.md): validação básica por história e aceite integrado no Supabase de homologação.
 - [Plano de implementação por agentes](../../superpowers/plans/2026-09-29-geoalerta-core.md): arquivos, interfaces, dependências, tarefas e evidências de validação.
 
-Os arquivos em `Core/` e o README da raiz descrevem a versão anterior, mais ampla. Em caso de conflito sobre o **escopo da próxima release**, este diretório prevalece. `AGENTS.md` continua prevalecendo para regras de negócio, ambiente e governança.
+O PRD, os requisitos, a arquitetura e os planos abaixo são especificações e evidências de trabalho; não são, isoladamente, prova de que um fluxo está disponível ou validado em todos os serviços. Use o guia operacional para as funções verificadas no código e os documentos de estabilidade para ver a evidência e os limites. Os módulos antigos de `Core/` são referências históricas. `AGENTS.md` continua prevalecendo para regras de negócio, ambiente e governança.
 
-## Fluxo de trabalho
+## Manutenção e validação
 
-1. Revisar e aprovar o PRD e as premissas de capacidade.
-2. Revisar arquitetura, migrations Prisma e planejamento de testes; os documentos desta pasta são as specs da release.
-3. Durante cada história, conferir tipos, lint dos arquivos alterados e testes unitários relevantes, usando doubles quando aplicável; não exigir Docker, banco/serviços locais ou novas dependências.
-4. Fazer builds em marcos de integração e no fechamento. No fechamento, executar o aceite integrado no projeto Supabase exclusivo de homologação e registrar evidência por história/requisito.
-5. Distinguir implementação com validação básica aprovada de aceite integrado concluído. Revisar cada entrega e registrar pendências; só o usuário revisa para integração, faz commit, push, merge e deploy.
-
-As fatias são: fundação de dados e RBAC; abertura pública; lista/CSV; detalhe/ciclo de vida; dashboard; administração/perfil; desativação do legado. Cada uma deve terminar verificável. Esta atualização altera documentação; não instala Prisma/Playwright nem aplica migrations.
+- Use o guia operacional para instruções de uso; mantenha-o alinhado à interface e aos critérios efetivamente aceitos.
+- Use o PRD, os requisitos e a arquitetura como especificações. Ao mudar um fluxo, atualize também os testes relevantes e registre evidência sanitizada nos documentos de estabilidade.
+- Separe validação local/isolada de validação integrada com serviços reais. Fixture, build ou inspeção de código não prova estado de produção.
+- Não coloque credenciais ou dados reais na documentação. Alterações em ambientes compartilhados, commit, push, merge e deploy cabem exclusivamente ao usuário.
+- A Task 20 está pausada e a Task 30 permanece em andamento; o guia assinala essas pendências e esta documentação não declara o aceite final da versão.

@@ -1,5 +1,5 @@
 # Releases
 
-- [core/](core/README.md): proposta da próxima release, dedicada à abertura pública e à gestão de ocorrências; inclui PRD, histórias, arquitetura, banco e planejamento de testes.
+- [core/](core/README.md): escopo Core 0.1.0 da linha estável, com guia operacional, PRD, requisitos, arquitetura, banco e evidências de validação. O aceite integrado final ainda não foi declarado.
 
-Cada release deve indicar seu estado e manter um índice dos documentos. Uma proposta não equivale a uma versão entregue.
+Cada release deve indicar seu estado e manter um índice dos documentos. Especificação ou guia não equivale a publicação nem a aceite integrado.

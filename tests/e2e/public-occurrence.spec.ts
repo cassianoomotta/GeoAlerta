@@ -20,7 +20,8 @@ test('formulário público usa seletor claro e exibe as marcas institucionais',a
   const institutions=page.getByRole('region',{name:'Instituições de atendimento'});
   for(const name of ['Prefeitura de Santo Antônio da Patrulha','Defesa Civil do Rio Grande do Sul','Corpo de Bombeiros Militar do Rio Grande do Sul']){
     const logo=institutions.getByRole('img',{name});await expect(logo).toBeVisible();
-    expect(await logo.evaluate(element=>(element as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+    await logo.scrollIntoViewIfNeeded();
+    await expect.poll(()=>logo.evaluate(element=>{const image=element as HTMLImageElement;return image.complete&&image.naturalWidth>0;})).toBe(true);
   }
   await expect(institutions.getByText('SEMOT', {exact:false})).toBeVisible();
   await expect(institutions.getByText('SMTDS', {exact:false})).toBeVisible();
@@ -90,6 +91,6 @@ test('RF-001 perda de resposta após commit permite retry com mesma chave sem du
   });
   await page.goto('/');await expect(page.getByRole('button',{name:'Obter localização'})).toBeEnabled();await fill(page);await page.getByRole('button',{name:'Obter localização'}).click();await expect(page.getByRole('button',{name:'Enviar ocorrência'})).toBeEnabled();
   await page.getByRole('button',{name:'Enviar ocorrência'}).click();await expect(page.getByRole('alert',{name:'Problema no envio'})).toContainText('Resposta não confirmada');await expect(page.getByText('Ocorrência registrada',{exact:true})).not.toBeVisible();
-  await page.getByRole('button',{name:'Enviar ocorrência'}).click();await expect(page.getByRole('status')).toContainText(result!.protocol);expect(keys).toHaveLength(2);expect(keys[0]).toBe(keys[1]);
+  await page.getByRole('button',{name:'Enviar ocorrência'}).click();await expect(page.locator('section[role="status"]')).toContainText(result!.protocol);expect(keys).toHaveLength(2);expect(keys[0]).toBe(keys[1]);
   assertTestTarget(process.env.TEST_DATABASE_URL);const db=new pg.Client({connectionString:process.env.TEST_DATABASE_URL});await db.connect();try{for(const table of ['occurrence_events','occurrence_alerts'])expect((await db.query(`SELECT count(*)::int AS n FROM public.${table} WHERE occurrence_id=$1`,[result!.id])).rows[0].n).toBe(1);}finally{await db.end();}
 });
