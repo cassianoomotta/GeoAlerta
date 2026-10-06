@@ -2,7 +2,9 @@
 
 Resumos sanitizados de verificações realmente executadas. Falhas, impedimentos e testes não executados permanecem explícitos. Relatórios detalhados ficam em `test-results/` e `playwright-report/`, ignorados pelo Git.
 
-## Verificações atuais — 01/10/2026
+## Verificações atuais — 06/10/2026
+
+- [Task 34 — apoio médico nas ocorrências](ticket-34-medical-support-2026-10-06.md): formulário, persistência anulável, detalhe/listagem/CSV e regressões locais aprovados; suíte completa de banco 31/31.
 
 - [Adequação preservadora do Supabase](database-adoption-2026-10-01.md), com [verificação remota](remote-core-verification-2026-10-01.json) e [integridade das onze fotos](legacy-private-photos-2026-10-01.json).
 - [Ticket 19 — restauração Docker final aprovada](ticket-19-docker-current-2026-10-01.json): 30 migrations, 27 tabelas, hashes/esquema equivalentes, origem intacta; Auth/Storage/infraestrutura exigem recuperação própria.

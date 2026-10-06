@@ -73,7 +73,7 @@ test('RNF-001 manipulação de grupo tamanho sort colunas e identidade não ampl
   for(const params of [{groupId:groupB},{groupId:groupOther}])expect((await query(request,'operador',params)).status()).toBe(403);
   for(const params of [{pageSize:'101'},{sort:'reporter_name'},{columns:'protocol,reporterName'},{columns:'photo_url'},{groupId:'all'}] as Record<string,string>[])expect((await query(request,'consulta',params)).status()).toBe(422);
   for(const name of ['gestor','admin'])expect((await(await query(request,name,{pageSize:'100'})).json()).total).toBe(133);
-  const consulta=await(await query(request,'consulta')).json();expect(consulta.availableColumns).not.toContain('reporterName');expect(JSON.stringify(consulta)).not.toContain('Synthetic private');expect(consulta.items.every((i:Record<string,unknown>)=>!('reporterName'in i)&&!('reporterContact'in i))).toBe(true);
+  const consulta=await(await query(request,'consulta')).json();expect(consulta.availableColumns).toContain('needsMedicalSupport');expect(consulta.availableColumns).not.toContain('reporterName');expect(consulta.items.every((i:Record<string,unknown>)=>'needsMedicalSupport'in i)).toBe(true);expect(JSON.stringify(consulta)).not.toContain('Synthetic private');expect(consulta.items.every((i:Record<string,unknown>)=>!('reporterName'in i)&&!('reporterContact'in i))).toBe(true);
   const operator=await(await query(request,'operador',{columns:'protocol,reporterName,reporterContact'})).json();expect(operator.items[0].reporterName).toBe('Synthetic private name');expect(operator.items[0].reporterContact).toBe('Synthetic private contact');
 });
 test('RF-009 preferências persistem por conta e rebaixamento remove colunas privadas',async({request})=>{

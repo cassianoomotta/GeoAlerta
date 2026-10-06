@@ -40,10 +40,10 @@ export async function persistOccurrence(
   const id = command.occurrenceId ?? randomUUID();
   const eventId = randomUUID();
   const inserted = await tx.$queryRaw<{ protocol: string }[]>`
-    INSERT INTO public.occurrences(id,type,description,address,location,accuracy,status,priority,group_id)
+    INSERT INTO public.occurrences(id,type,description,address,location,accuracy,status,priority,group_id,needs_medical_support)
     VALUES(${id}::uuid,${command.input.type},${command.input.description},${command.input.address},
       ST_SetSRID(ST_MakePoint(${command.input.position.longitude},${command.input.position.latitude}),4326)::geography,
-      ${command.input.position.accuracy},'NOVA',${command.classification.priority},${command.groupId}::uuid)
+      ${command.input.position.accuracy},'NOVA',${command.classification.priority},${command.groupId}::uuid,${command.input.needsMedicalSupport ?? null})
     RETURNING protocol
   `;
   if (!inserted[0]) throw new Error('Occurrence protocol was not generated.');

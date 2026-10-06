@@ -26,10 +26,21 @@ test('RF-001 confirmação ocorre após ocorrência privada evento auditoria ale
   const response=await request.post(path,{headers:{'Idempotency-Key':randomUUID()},data:input});expect(response.status()).toBe(201);const result=await response.json();
   expect(result).toMatchObject({status:'NOVA',priority:'NORMAL',version:1});expect(result.protocol).toMatch(/^\d+$/);
   const db=await database();try{
-    const row=(await db.query('SELECT o.status,o.priority,o.accuracy,o.description,g.is_default,ST_X(o.location::geometry) AS longitude,ST_Y(o.location::geometry) AS latitude,ST_SRID(o.location::geometry) AS srid FROM public.occurrences o JOIN public.groups g ON g.id=o.group_id WHERE o.id=$1',[result.id])).rows[0];
-    expect(row).toEqual({status:'NOVA',priority:'NORMAL',accuracy:7,description:input.description,is_default:true,longitude:11,latitude:11,srid:4326});
+    const row=(await db.query('SELECT o.status,o.priority,o.accuracy,o.description,o.needs_medical_support,g.is_default,ST_X(o.location::geometry) AS longitude,ST_Y(o.location::geometry) AS latitude,ST_SRID(o.location::geometry) AS srid FROM public.occurrences o JOIN public.groups g ON g.id=o.group_id WHERE o.id=$1',[result.id])).rows[0];
+    expect(row).toEqual({status:'NOVA',priority:'NORMAL',accuracy:7,description:input.description,needs_medical_support:null,is_default:true,longitude:11,latitude:11,srid:4326});
     expect((await db.query('SELECT reporter_name,reporter_contact FROM public.occurrence_private_data WHERE occurrence_id=$1',[result.id])).rows[0]).toEqual({reporter_name:input.reporterName,reporter_contact:input.reporterContact});
     for(const [table,field] of [['occurrence_events','occurrence_id'],['audit_events','entity_id'],['occurrence_alerts','occurrence_id']])expect((await db.query(`SELECT count(*)::int AS n FROM public.${table} WHERE ${field}=$1`,[result.id])).rows[0].n).toBe(1);
+  }finally{await db.end();}
+});
+test('apoio médico persiste true e false e rejeita valores fora do contrato',async({request})=>{
+  const db=await database();
+  try{
+    for(const [value,expected] of [[true,true],[false,false]] as const){
+      const response=await request.post(path,{headers:{'Idempotency-Key':randomUUID()},data:{...input,needsMedicalSupport:value}});
+      expect(response.status()).toBe(201);const result=await response.json();
+      expect((await db.query('SELECT needs_medical_support FROM public.occurrences WHERE id=$1',[result.id])).rows[0].needs_medical_support).toBe(expected);
+    }
+    expect((await request.post(path,{headers:{'Idempotency-Key':randomUUID()},data:{...input,needsMedicalSupport:'false'}})).status()).toBe(422);
   }finally{await db.end();}
 });
 test('RF-003 PostGIS inclui borda sobreposição e versão; exclui buraco inativa futura vencida',async({request})=>{
@@ -41,7 +52,7 @@ test('RF-003 PostGIS inclui borda sobreposição e versão; exclui buraco inativ
       const id=randomUUID();zoneIds.push(id);await db.query('INSERT INTO public.risk_zones(zone_id,version,name,type,active,valid_from,valid_to,geometry) VALUES($1,2,$2,$3,$4,$5,$6,ST_GeomFromText($7,4326))',[id,'Synthetic zone','FLOOD',active,from,to,geometry]);
     }
     for(const [longitude,latitude,priority,matches] of [[20.5,30.5,'ALTA',2],[20,32,'ALTA',2],[22,32,'NORMAL',0],[25,35,'NORMAL',0]] as const){
-      const r=await request.post(path,{headers:{'Idempotency-Key':randomUUID()},data:{...input,position:{latitude,longitude,accuracy:4}}});expect(r.status()).toBe(201);const result=await r.json();expect(result.priority).toBe(priority);
+      const r=await request.post(path,{headers:{'Idempotency-Key':randomUUID()},data:{...input,needsMedicalSupport:true,position:{latitude,longitude,accuracy:4}}});expect(r.status()).toBe(201);const result=await r.json();expect(result.priority).toBe(priority);
       const classified=(await db.query('SELECT zone_id,zone_version FROM public.occurrence_classification_zones WHERE occurrence_id=$1',[result.id])).rows;expect(classified).toHaveLength(matches);if(matches)expect(classified.map(r=>r.zone_id).sort()).toEqual(zoneIds.slice(0,2).sort());expect(classified.every(r=>r.zone_version===2)).toBe(true);
     }
     // An inactive-only polygon must not elevate priority.
@@ -58,7 +69,7 @@ test('RF-001 reenvio concorrente produz um registro evento alerta e conflito sem
   const key=randomUUID();const responses=await Promise.all(Array.from({length:6},()=>request.post(path,{headers:{'Idempotency-Key':key},data:input})));
   expect(responses.map(r=>r.status()).sort()).toEqual([200,200,200,200,200,201]);
   const results=await Promise.all(responses.map(r=>r.json()));expect(new Set(results.map(r=>r.protocol)).size).toBe(1);
-  expect((await request.post(path,{headers:{'Idempotency-Key':key},data:{...input,description:'changed'}})).status()).toBe(409);
+  expect((await request.post(path,{headers:{'Idempotency-Key':key},data:{...input,needsMedicalSupport:true}})).status()).toBe(409);
   const db=await database();try{for(const table of ['occurrence_events','occurrence_alerts'])expect((await db.query(`SELECT count(*)::int AS n FROM public.${table} WHERE occurrence_id=$1`,[results[0].id])).rows[0].n).toBe(1);expect((await db.query('SELECT count(*)::int AS n FROM public.occurrences WHERE id=$1',[results[0].id])).rows[0].n).toBe(1);}finally{await db.end();}
 });
 test('RF-001 falha no último passo reverte ocorrência privado evento auditoria alerta e contador',async({request})=>{

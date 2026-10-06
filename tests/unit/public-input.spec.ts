@@ -3,7 +3,7 @@ import {validatePublicInput,validateIdempotencyKey,PublicInputError} from '../..
 const input={type:'Alagamentos/Inundação',description:'Rua com água',reporterName:'Pessoa sintética',reporterContact:'Contato sintético',position:{latitude:-29.5,longitude:-50.5,accuracy:10}};
 const validate=(value:unknown,options:Parameters<typeof validatePublicInput>[1]={})=>validatePublicInput(value,{allowedTypes:['Alagamentos/Inundação'],...options});
 test('RF-001 limites textuais aceitos após trim e limites geográficos inclusivos',()=>{
-  expect(validate({...input,reporterName:'  Pessoa sintética  '})).toEqual({...input,reporterName:'Pessoa sintética',address:null});
+  expect(validate({...input,reporterName:'  Pessoa sintética  '})).toEqual({...input,reporterName:'Pessoa sintética',address:null,needsMedicalSupport:null});
   expect(validate({...input,description:'x'.repeat(2000)}).description).toHaveLength(2000);
   for(const value of [' ','x'.repeat(2001),null,1]) expect(()=>validate({...input,description:value})).toThrow(PublicInputError);
   for(const [field,maximum] of [['reporterName',120],['reporterContact',40]] as const){
@@ -41,6 +41,13 @@ test('RNF-001 cidadão não determina grupo status prioridade foto ou município
 test('RF-001 texto malicioso permanece texto; validação não cria HTML executável',()=>{
   const payload='<script>alert("fixture")</script>';
   expect(validate({...input,description:payload}).description).toBe(payload);
+});
+test('apoio médico preserva Sim, Não e Não informado sem converter false em null',()=>{
+  expect(validate({...input,needsMedicalSupport:true}).needsMedicalSupport).toBe(true);
+  expect(validate({...input,needsMedicalSupport:false}).needsMedicalSupport).toBe(false);
+  expect(validate({...input,needsMedicalSupport:null}).needsMedicalSupport).toBeNull();
+  expect(validate(input).needsMedicalSupport).toBeNull();
+  for(const value of ['false',0,[],{}]) expect(()=>validate({...input,needsMedicalSupport:value})).toThrow(PublicInputError);
 });
 test('RF-001 chave de idempotência possui limite e rejeita caracteres de controle',()=>{
   expect(validateIdempotencyKey('fixture:key-1')).toBe('fixture:key-1');
