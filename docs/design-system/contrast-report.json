@@ -1,0 +1,487 @@
+{
+  "scope": "Declared opaque sRGB token pairs only; not a WCAG audit of the application.",
+  "method": "WCAG relative luminance contrast ratio",
+  "pairs": [
+    {
+      "theme": "light",
+      "foreground": "text",
+      "background": "background",
+      "foregroundHex": "#243746",
+      "backgroundHex": "#F5F7F6",
+      "contrast": 11.414,
+      "minimum": 4.5,
+      "passes": true
+    },
+    {
+      "theme": "light",
+      "foreground": "textMuted",
+      "background": "background",
+      "foregroundHex": "#536671",
+      "backgroundHex": "#F5F7F6",
+      "contrast": 5.566,
+      "minimum": 4.5,
+      "passes": true
+    },
+    {
+      "theme": "light",
+      "foreground": "primary",
+      "background": "background",
+      "foregroundHex": "#087580",
+      "backgroundHex": "#F5F7F6",
+      "contrast": 5.048,
+      "minimum": 4.5,
+      "passes": true
+    },
+    {
+      "theme": "light",
+      "foreground": "controlBorder",
+      "background": "background",
+      "foregroundHex": "#7B8B86",
+      "backgroundHex": "#F5F7F6",
+      "contrast": 3.32,
+      "minimum": 3,
+      "passes": true
+    },
+    {
+      "theme": "light",
+      "foreground": "focus",
+      "background": "background",
+      "foregroundHex": "#087580",
+      "backgroundHex": "#F5F7F6",
+      "contrast": 5.048,
+      "minimum": 3,
+      "passes": true
+    },
+    {
+      "theme": "light",
+      "foreground": "text",
+      "background": "surface",
+      "foregroundHex": "#243746",
+      "backgroundHex": "#FFFFFF",
+      "contrast": 12.281,
+      "minimum": 4.5,
+      "passes": true
+    },
+    {
+      "theme": "light",
+      "foreground": "textMuted",
+      "background": "surface",
+      "foregroundHex": "#536671",
+      "backgroundHex": "#FFFFFF",
+      "contrast": 5.988,
+      "minimum": 4.5,
+      "passes": true
+    },
+    {
+      "theme": "light",
+      "foreground": "primary",
+      "background": "surface",
+      "foregroundHex": "#087580",
+      "backgroundHex": "#FFFFFF",
+      "contrast": 5.431,
+      "minimum": 4.5,
+      "passes": true
+    },
+    {
+      "theme": "light",
+      "foreground": "controlBorder",
+      "background": "surface",
+      "foregroundHex": "#7B8B86",
+      "backgroundHex": "#FFFFFF",
+      "contrast": 3.572,
+      "minimum": 3,
+      "passes": true
+    },
+    {
+      "theme": "light",
+      "foreground": "focus",
+      "background": "surface",
+      "foregroundHex": "#087580",
+      "backgroundHex": "#FFFFFF",
+      "contrast": 5.431,
+      "minimum": 3,
+      "passes": true
+    },
+    {
+      "theme": "light",
+      "foreground": "text",
+      "background": "surfaceSubtle",
+      "foregroundHex": "#243746",
+      "backgroundHex": "#EDF2F0",
+      "contrast": 10.854,
+      "minimum": 4.5,
+      "passes": true
+    },
+    {
+      "theme": "light",
+      "foreground": "textMuted",
+      "background": "surfaceSubtle",
+      "foregroundHex": "#536671",
+      "backgroundHex": "#EDF2F0",
+      "contrast": 5.293,
+      "minimum": 4.5,
+      "passes": true
+    },
+    {
+      "theme": "light",
+      "foreground": "primary",
+      "background": "surfaceSubtle",
+      "foregroundHex": "#087580",
+      "backgroundHex": "#EDF2F0",
+      "contrast": 4.8,
+      "minimum": 4.5,
+      "passes": true
+    },
+    {
+      "theme": "light",
+      "foreground": "controlBorder",
+      "background": "surfaceSubtle",
+      "foregroundHex": "#7B8B86",
+      "backgroundHex": "#EDF2F0",
+      "contrast": 3.157,
+      "minimum": 3,
+      "passes": true
+    },
+    {
+      "theme": "light",
+      "foreground": "focus",
+      "background": "surfaceSubtle",
+      "foregroundHex": "#087580",
+      "backgroundHex": "#EDF2F0",
+      "contrast": 4.8,
+      "minimum": 3,
+      "passes": true
+    },
+    {
+      "theme": "light",
+      "foreground": "primaryForeground",
+      "background": "primary",
+      "foregroundHex": "#FFFFFF",
+      "backgroundHex": "#087580",
+      "contrast": 5.431,
+      "minimum": 4.5,
+      "passes": true
+    },
+    {
+      "theme": "light",
+      "foreground": "primaryForeground",
+      "background": "primaryHover",
+      "foregroundHex": "#FFFFFF",
+      "backgroundHex": "#06616A",
+      "contrast": 7.178,
+      "minimum": 4.5,
+      "passes": true
+    },
+    {
+      "theme": "light",
+      "foreground": "primaryForeground",
+      "background": "primaryActive",
+      "foregroundHex": "#FFFFFF",
+      "backgroundHex": "#054F57",
+      "contrast": 9.282,
+      "minimum": 4.5,
+      "passes": true
+    },
+    {
+      "theme": "light",
+      "foreground": "danger",
+      "background": "dangerSoft",
+      "foregroundHex": "#A83F3F",
+      "backgroundHex": "#FBECEC",
+      "contrast": 5.311,
+      "minimum": 4.5,
+      "passes": true
+    },
+    {
+      "theme": "light",
+      "foreground": "warning",
+      "background": "warningSoft",
+      "foregroundHex": "#875B17",
+      "backgroundHex": "#FAF1DD",
+      "contrast": 5.281,
+      "minimum": 4.5,
+      "passes": true
+    },
+    {
+      "theme": "light",
+      "foreground": "success",
+      "background": "successSoft",
+      "foregroundHex": "#28664C",
+      "backgroundHex": "#E8F3EC",
+      "contrast": 5.965,
+      "minimum": 4.5,
+      "passes": true
+    },
+    {
+      "theme": "light",
+      "foreground": "info",
+      "background": "infoSoft",
+      "foregroundHex": "#315E89",
+      "backgroundHex": "#EAF1F8",
+      "contrast": 5.961,
+      "minimum": 4.5,
+      "passes": true
+    },
+    {
+      "theme": "light",
+      "foreground": "primary",
+      "background": "primarySoft",
+      "foregroundHex": "#087580",
+      "backgroundHex": "#E6F2F2",
+      "contrast": 4.745,
+      "minimum": 4.5,
+      "passes": true
+    },
+    {
+      "theme": "light",
+      "foreground": "disabledText",
+      "background": "disabled",
+      "foregroundHex": "#536671",
+      "backgroundHex": "#EDF2F0",
+      "contrast": 5.293,
+      "minimum": 4.5,
+      "passes": true
+    },
+    {
+      "theme": "dark",
+      "foreground": "text",
+      "background": "background",
+      "foregroundHex": "#E6EEEB",
+      "backgroundHex": "#172321",
+      "contrast": 13.7,
+      "minimum": 4.5,
+      "passes": true
+    },
+    {
+      "theme": "dark",
+      "foreground": "textMuted",
+      "background": "background",
+      "foregroundHex": "#A6B9B2",
+      "backgroundHex": "#172321",
+      "contrast": 7.856,
+      "minimum": 4.5,
+      "passes": true
+    },
+    {
+      "theme": "dark",
+      "foreground": "primary",
+      "background": "background",
+      "foregroundHex": "#69B8BD",
+      "backgroundHex": "#172321",
+      "contrast": 7.077,
+      "minimum": 4.5,
+      "passes": true
+    },
+    {
+      "theme": "dark",
+      "foreground": "controlBorder",
+      "background": "background",
+      "foregroundHex": "#7B9186",
+      "backgroundHex": "#172321",
+      "contrast": 4.802,
+      "minimum": 3,
+      "passes": true
+    },
+    {
+      "theme": "dark",
+      "foreground": "focus",
+      "background": "background",
+      "foregroundHex": "#69B8BD",
+      "backgroundHex": "#172321",
+      "contrast": 7.077,
+      "minimum": 3,
+      "passes": true
+    },
+    {
+      "theme": "dark",
+      "foreground": "text",
+      "background": "surface",
+      "foregroundHex": "#E6EEEB",
+      "backgroundHex": "#1E2D29",
+      "contrast": 12.166,
+      "minimum": 4.5,
+      "passes": true
+    },
+    {
+      "theme": "dark",
+      "foreground": "textMuted",
+      "background": "surface",
+      "foregroundHex": "#A6B9B2",
+      "backgroundHex": "#1E2D29",
+      "contrast": 6.977,
+      "minimum": 4.5,
+      "passes": true
+    },
+    {
+      "theme": "dark",
+      "foreground": "primary",
+      "background": "surface",
+      "foregroundHex": "#69B8BD",
+      "backgroundHex": "#1E2D29",
+      "contrast": 6.285,
+      "minimum": 4.5,
+      "passes": true
+    },
+    {
+      "theme": "dark",
+      "foreground": "controlBorder",
+      "background": "surface",
+      "foregroundHex": "#7B9186",
+      "backgroundHex": "#1E2D29",
+      "contrast": 4.264,
+      "minimum": 3,
+      "passes": true
+    },
+    {
+      "theme": "dark",
+      "foreground": "focus",
+      "background": "surface",
+      "foregroundHex": "#69B8BD",
+      "backgroundHex": "#1E2D29",
+      "contrast": 6.285,
+      "minimum": 3,
+      "passes": true
+    },
+    {
+      "theme": "dark",
+      "foreground": "text",
+      "background": "surfaceSubtle",
+      "foregroundHex": "#E6EEEB",
+      "backgroundHex": "#253832",
+      "contrast": 10.527,
+      "minimum": 4.5,
+      "passes": true
+    },
+    {
+      "theme": "dark",
+      "foreground": "textMuted",
+      "background": "surfaceSubtle",
+      "foregroundHex": "#A6B9B2",
+      "backgroundHex": "#253832",
+      "contrast": 6.036,
+      "minimum": 4.5,
+      "passes": true
+    },
+    {
+      "theme": "dark",
+      "foreground": "primary",
+      "background": "surfaceSubtle",
+      "foregroundHex": "#69B8BD",
+      "backgroundHex": "#253832",
+      "contrast": 5.438,
+      "minimum": 4.5,
+      "passes": true
+    },
+    {
+      "theme": "dark",
+      "foreground": "controlBorder",
+      "background": "surfaceSubtle",
+      "foregroundHex": "#7B9186",
+      "backgroundHex": "#253832",
+      "contrast": 3.689,
+      "minimum": 3,
+      "passes": true
+    },
+    {
+      "theme": "dark",
+      "foreground": "focus",
+      "background": "surfaceSubtle",
+      "foregroundHex": "#69B8BD",
+      "backgroundHex": "#253832",
+      "contrast": 5.438,
+      "minimum": 3,
+      "passes": true
+    },
+    {
+      "theme": "dark",
+      "foreground": "primaryForeground",
+      "background": "primary",
+      "foregroundHex": "#142523",
+      "backgroundHex": "#69B8BD",
+      "contrast": 6.971,
+      "minimum": 4.5,
+      "passes": true
+    },
+    {
+      "theme": "dark",
+      "foreground": "primaryForeground",
+      "background": "primaryHover",
+      "foregroundHex": "#142523",
+      "backgroundHex": "#7FC6CB",
+      "contrast": 8.222,
+      "minimum": 4.5,
+      "passes": true
+    },
+    {
+      "theme": "dark",
+      "foreground": "primaryForeground",
+      "background": "primaryActive",
+      "foregroundHex": "#142523",
+      "backgroundHex": "#5AA8AE",
+      "contrast": 5.799,
+      "minimum": 4.5,
+      "passes": true
+    },
+    {
+      "theme": "dark",
+      "foreground": "danger",
+      "background": "dangerSoft",
+      "foregroundHex": "#EFADAD",
+      "backgroundHex": "#392526",
+      "contrast": 7.672,
+      "minimum": 4.5,
+      "passes": true
+    },
+    {
+      "theme": "dark",
+      "foreground": "warning",
+      "background": "warningSoft",
+      "foregroundHex": "#E1C183",
+      "backgroundHex": "#352E21",
+      "contrast": 7.772,
+      "minimum": 4.5,
+      "passes": true
+    },
+    {
+      "theme": "dark",
+      "foreground": "success",
+      "background": "successSoft",
+      "foregroundHex": "#94C4A6",
+      "backgroundHex": "#20352B",
+      "contrast": 6.668,
+      "minimum": 4.5,
+      "passes": true
+    },
+    {
+      "theme": "dark",
+      "foreground": "info",
+      "background": "infoSoft",
+      "foregroundHex": "#AAC8EA",
+      "backgroundHex": "#223140",
+      "contrast": 7.689,
+      "minimum": 4.5,
+      "passes": true
+    },
+    {
+      "theme": "dark",
+      "foreground": "primary",
+      "background": "primarySoft",
+      "foregroundHex": "#69B8BD",
+      "backgroundHex": "#213F3E",
+      "contrast": 4.981,
+      "minimum": 4.5,
+      "passes": true
+    },
+    {
+      "theme": "dark",
+      "foreground": "disabledText",
+      "background": "disabled",
+      "foregroundHex": "#A6B9B2",
+      "backgroundHex": "#253832",
+      "contrast": 6.036,
+      "minimum": 4.5,
+      "passes": true
+    }
+  ],
+  "allPass": true
+}
