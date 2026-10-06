@@ -51,6 +51,8 @@ interface OccurrenceDetail {
   actions: { canOperate: boolean; canReclassify: boolean; canAdminister: boolean; availableTransitions: {target: Status; reasonRequired: boolean}[] };
   availableGroups: { id: string; name: string }[];
   serviceAgencyOptions: { code: string; label: string }[];
+  climateEvent: { id: string; name: string; state: 'PLANEJADO' | 'EM_ANDAMENTO' | 'ENCERRADO' } | null;
+  climateEvents: { id: string; name: string; state: 'PLANEJADO' | 'EM_ANDAMENTO' | 'ENCERRADO' }[];
 }
 
 function formatDate(value: string) {
@@ -157,10 +159,12 @@ function OccurrenceDetailView({id}: {id: string}) {
           <div><dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Status</dt><dd className="mt-1 text-sm text-foreground">{detail.status.label}</dd></div>
           <div><dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Prioridade</dt><dd className="mt-1 text-sm text-foreground">{detail.priority}</dd></div>
           <div><dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Grupo responsável</dt><dd className="mt-1 text-sm text-foreground">{detail.group.name}</dd></div>
+          <div><dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Evento climático</dt><dd className="mt-1 text-sm text-foreground">{detail.climateEvent ? `${detail.climateEvent.name} · ${detail.climateEvent.state.replaceAll('_', ' ')}` : 'Sem evento'}</dd></div>
           <div><dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Abertura</dt><dd className="mt-1 text-sm text-foreground">{formatDate(detail.openedAt)}</dd></div>
           <div><dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Última atualização</dt><dd className="mt-1 text-sm text-foreground">{formatDate(detail.updatedAt)}</dd></div>
           <div className="sm:col-span-2"><dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Descrição do cidadão</dt><dd className="mt-1 whitespace-pre-wrap text-sm text-foreground">{detail.description || 'Sem descrição informada.'}</dd></div>
         </dl>
+        {detail.actions.canReclassify && <ClimateEventLinkForm key={`${detail.id}:${detail.version}`} detail={detail} onReload={reloadDetail} />}
         <h3 className="mt-6 text-sm font-semibold text-foreground">Localização informada</h3>
         {detail.address && <p className="mt-3 text-sm text-foreground"><strong>Endereço:</strong> {detail.address}</p>}
         {detail.position ? (
@@ -244,6 +248,34 @@ const statusLabels: Record<Status, string> = {
   RESOLVIDA: 'Resolvida',
   CANCELADA: 'Cancelada',
 };
+
+function ClimateEventLinkForm({ detail, onReload }: { detail: OccurrenceDetail; onReload: () => Promise<boolean> }) {
+  const [eventId, setEventId] = useState(detail.climateEvent?.id ?? '');
+  const [reason, setReason] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState('');
+  async function save(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault(); setBusy(true); setMessage('');
+    try {
+      const response = await fetch(`/api/core/occurrences/${encodeURIComponent(detail.id)}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ expectedVersion: detail.version, command: { kind: 'climateEvent', climateEventId: eventId || null, reason } }),
+      });
+      const result = await response.json() as { error?: { message?: string } };
+      if (!response.ok) throw new Error(result.error?.message ?? 'Não foi possível corrigir o vínculo.');
+      await onReload(); setReason(''); setMessage('Vínculo do evento atualizado e auditado.');
+    } catch (error) { setMessage(error instanceof Error ? error.message : 'Não foi possível corrigir o vínculo.'); }
+    finally { setBusy(false); }
+  }
+  const options = detail.climateEvents.filter(item => item.state !== 'PLANEJADO');
+  return <form onSubmit={save} className="mt-5 grid gap-3 rounded border border-control-border p-4 sm:grid-cols-2" aria-label="Corrigir evento climático da ocorrência">
+    <h3 className="text-sm font-semibold sm:col-span-2">Corrigir vínculo do evento</h3>
+    <label className="sm:col-span-2">Evento<select value={eventId} onChange={event => setEventId(event.target.value)} className="mt-1 block w-full rounded border border-control-border bg-background px-3 py-2"><option value="">Sem evento</option>{options.map(item => <option key={item.id} value={item.id}>{item.name} · {item.state.replaceAll('_', ' ')}</option>)}</select></label>
+    <label className="sm:col-span-2">Justificativa<input required minLength={10} maxLength={500} value={reason} onChange={event => setReason(event.target.value)} className="mt-1 block w-full rounded border border-control-border bg-background px-3 py-2" /></label>
+    <button disabled={busy || reason.trim().length < 10 || eventId === (detail.climateEvent?.id ?? '')} className="btn btn-secondary sm:col-span-2">Salvar correção</button>
+    {message && <p role="status" className="text-sm sm:col-span-2">{message}</p>}
+  </form>;
+}
 
 function ServiceRecordForm({ detail, onReload }: { detail: OccurrenceDetail; onReload: () => Promise<boolean> }) {
   const [agencyCode, setAgencyCode] = useState(detail.serviceAgencyOptions[0]?.code ?? '');

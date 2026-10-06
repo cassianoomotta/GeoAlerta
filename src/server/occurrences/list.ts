@@ -5,6 +5,7 @@ import {availableColumns,validateColumns,ListInputError,type Column,type ListFil
 import {getColumns} from '@/features/access/infrastructure/preferences';
 async function queryContext(tx:Prisma.TransactionClient,actor:Actor,filters:ListFilters){
   const groups=await tx.$queryRaw<{id:string;name:string}[]>`SELECT id,name FROM public.groups ORDER BY name,id`;
+  const climateEvents=await tx.$queryRaw<{id:string;name:string;state:string}[]>`SELECT id::text,name,state FROM public.climate_events WHERE municipality_id=${actor.municipalityId} ORDER BY name,id`;
   const statusRows=await tx.$queryRaw<{code:ListItem['status'];label:string;display_order:number}[]>`SELECT code,label,display_order FROM public.status_presentations ORDER BY display_order,code`;
   const occurrenceTypes=await tx.$queryRaw<{name:string;active:boolean}[]>`SELECT name,active FROM public.occurrence_types ORDER BY display_order,name`;
   const [registeringInstitutions,neighborhoods,localities,damageLocations,serviceAgencies]=await Promise.all([
@@ -17,6 +18,7 @@ async function queryContext(tx:Prisma.TransactionClient,actor:Actor,filters:List
   const catalogs:ListCatalogs={registeringInstitutions,neighborhoods,localities,damageLocations,serviceAgencies};
   const statusPresentations=statusRows.map(row=>({code:row.code,label:row.label,displayOrder:row.display_order}));
   if(filters.groupId&&!groups.some(g=>g.id===filters.groupId))throw new ListInputError(403);
+  if(filters.climateEventId&&filters.climateEventId!=='__NULL__'&&!climateEvents.some(event=>event.id===filters.climateEventId))throw new ListInputError(403);
   for(const [value,options] of [
     [filters.registeringInstitutionCode,catalogs.registeringInstitutions],
     [filters.neighborhoodCode,catalogs.neighborhoods],
@@ -35,6 +37,7 @@ async function queryContext(tx:Prisma.TransactionClient,actor:Actor,filters:List
   if(filters.categoryStatus==='active')clauses.push(Prisma.sql`EXISTS(SELECT 1 FROM public.occurrence_types t WHERE t.name=o.type AND t.active)`);
   if(filters.categoryStatus==='inactive')clauses.push(Prisma.sql`EXISTS(SELECT 1 FROM public.occurrence_types t WHERE t.name=o.type AND NOT t.active)`);
   if(filters.groupId)clauses.push(Prisma.sql`o.group_id=${filters.groupId}::uuid`);
+  if(filters.climateEventId)clauses.push(filters.climateEventId==='__NULL__'?Prisma.sql`o.climate_event_id IS NULL`:Prisma.sql`o.climate_event_id=${filters.climateEventId}::uuid`);
   if(filters.registeringInstitutionCode)clauses.push(filters.registeringInstitutionCode==='__NULL__'?Prisma.sql`o.registering_institution_code IS NULL`:Prisma.sql`o.registering_institution_code=${filters.registeringInstitutionCode}`);
   if(filters.neighborhoodCode)clauses.push(filters.neighborhoodCode==='__NULL__'?Prisma.sql`o.neighborhood_code IS NULL`:Prisma.sql`o.neighborhood_code=${filters.neighborhoodCode}`);
   if(filters.localityCode)clauses.push(filters.localityCode==='__NULL__'?Prisma.sql`o.locality_code IS NULL`:Prisma.sql`o.locality_code=${filters.localityCode}`);
@@ -52,19 +55,19 @@ async function queryContext(tx:Prisma.TransactionClient,actor:Actor,filters:List
   if(columns.includes('reporterContact'))privateFields.push(Prisma.sql`d.reporter_contact AS "reporterContact"`);
   const extra=privateFields.length?Prisma.sql`,${Prisma.join(privateFields)}`:Prisma.empty;
   const join=privateFields.length?Prisma.sql`LEFT JOIN public.occurrence_private_data d ON d.occurrence_id=o.id`:Prisma.empty;
-  return {groups,statusPresentations,occurrenceTypes,catalogs,allowed,columns,where,sort,pageSort,direction,extra,join};
+  return {groups,climateEvents,statusPresentations,occurrenceTypes,catalogs,allowed,columns,where,sort,pageSort,direction,extra,join};
 }
 
 export async function listOccurrences(tx:Prisma.TransactionClient,actor:Actor,filters:ListFilters):Promise<ListResult>{
-  const {groups,statusPresentations,occurrenceTypes,catalogs,allowed,columns,where,sort,pageSort,direction,extra,join}=await queryContext(tx,actor,filters);
+  const {groups,climateEvents,statusPresentations,occurrenceTypes,catalogs,allowed,columns,where,sort,pageSort,direction,extra,join}=await queryContext(tx,actor,filters);
   // Total and page share one SQL statement/snapshot; only the limited page leaves the DB.
   const rows=await tx.$queryRaw<{total:number;items:ListItem[]}[]>(Prisma.sql`
     WITH counted AS(SELECT count(*)::int AS total FROM public.occurrences o WHERE ${where}),
-    page AS(SELECT o.id,o.protocol,o.type,o.status,o.priority,o.version,o.created_at AS "createdAt",o.updated_at AS "updatedAt",o.group_id AS "groupId",g.name AS "groupName" ${extra}
-      FROM public.occurrences o JOIN public.groups g ON g.id=o.group_id ${join} WHERE ${where}
+    page AS(SELECT o.id,o.protocol,o.type,o.status,o.priority,o.version,o.created_at AS "createdAt",o.updated_at AS "updatedAt",o.group_id AS "groupId",g.name AS "groupName",o.climate_event_id::text AS "climateEventId",ce.name AS "climateEventName" ${extra}
+      FROM public.occurrences o JOIN public.groups g ON g.id=o.group_id LEFT JOIN public.climate_events ce ON ce.id=o.climate_event_id ${join} WHERE ${where}
       ORDER BY ${sort} ${direction},o.id ASC LIMIT ${filters.pageSize} OFFSET ${(filters.page-1)*filters.pageSize})
     SELECT total,coalesce((SELECT jsonb_agg(to_jsonb(p) ORDER BY ${pageSort} ${direction},p.id ASC) FROM page p),'[]'::jsonb) AS items FROM counted`);
-  return {items:rows[0].items,total:rows[0].total,page:filters.page,pageSize:filters.pageSize,filters,columns,availableColumns:allowed,groups,statusPresentations,occurrenceTypes,catalogs};
+  return {items:rows[0].items,total:rows[0].total,page:filters.page,pageSize:filters.pageSize,filters,columns,availableColumns:allowed,groups,climateEvents,statusPresentations,occurrenceTypes,catalogs};
 }
 
 export async function exportOccurrences(tx:Prisma.TransactionClient,actor:Actor,filters:ListFilters):Promise<{items:ListItem[];total:number;columns:Column[]}>{
@@ -73,8 +76,8 @@ export async function exportOccurrences(tx:Prisma.TransactionClient,actor:Actor,
   const rows=await tx.$queryRaw<{item:ListItem;total:number}[]>(Prisma.sql`
     WITH filtered AS (
       SELECT o.id,o.protocol,o.type,o.status,o.priority,o.version,
-        o.created_at AS "createdAt",o.updated_at AS "updatedAt",o.group_id AS "groupId",g.name AS "groupName" ${extra}
-      FROM public.occurrences o JOIN public.groups g ON g.id=o.group_id ${join}
+        o.created_at AS "createdAt",o.updated_at AS "updatedAt",o.group_id AS "groupId",g.name AS "groupName",o.climate_event_id::text AS "climateEventId",ce.name AS "climateEventName" ${extra}
+      FROM public.occurrences o JOIN public.groups g ON g.id=o.group_id LEFT JOIN public.climate_events ce ON ce.id=o.climate_event_id ${join}
       WHERE ${where}
     )
     SELECT to_jsonb(filtered) AS item,count(*) OVER()::int AS total

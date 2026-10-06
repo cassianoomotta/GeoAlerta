@@ -31,3 +31,8 @@ test('RF-009 links de paginação e atalhos preservam filtros e reiniciam págin
   const url=new URL(listHref(f,{page:2}),'http://localhost');expect(url.searchParams.get('type')).toBe('FLOOD');expect(url.searchParams.get('status')).toBe('NOVA');expect(url.searchParams.get('page')).toBe('2');expect(url.searchParams.get('sort')).toBe('status');
   expect(new URL(listHref(f,{status:'RESOLVIDA',page:1}),'http://localhost').searchParams.get('priority')).toBe('ALTA');
 });
+test('filtro de eventos climáticos aceita ID ou ausência explícita de evento',()=>{
+  expect(parseListFilters(new URLSearchParams('climateEventId=90000000-0000-4000-8000-000000000035')).climateEventId).toBe('90000000-0000-4000-8000-000000000035');
+  expect(parseListFilters(new URLSearchParams('climateEventId=__NULL__')).climateEventId).toBe('__NULL__');
+  expect(()=>parseListFilters(new URLSearchParams('climateEventId=unknown'))).toThrow();
+});

@@ -96,7 +96,7 @@ test('RF-010 detalhe autorizado retorna os campos operacionais, posição, class
   expect(detail.events[0].actorId).toBeNull();
   expect(detail.events[0].at).toBeTruthy();
   expect(detail.events.every((event: object) => Object.keys(event).sort().join(',') === 'actorId,at,id,kind')).toBe(true);
-  expect(Object.keys(detail).sort()).toEqual(['actions', 'address', 'availableGroups', 'classification', 'description', 'events', 'group', 'id', 'occurrenceContext', 'openedAt', 'position', 'priority', 'privateData', 'protocol', 'serviceAgencyOptions', 'serviceRecords', 'status', 'triage', 'type', 'updatedAt', 'version']);
+  expect(Object.keys(detail).sort()).toEqual(['actions', 'address', 'availableGroups', 'classification', 'climateEvent', 'climateEvents', 'description', 'events', 'group', 'id', 'occurrenceContext', 'openedAt', 'position', 'priority', 'privateData', 'protocol', 'serviceAgencyOptions', 'serviceRecords', 'status', 'triage', 'type', 'updatedAt', 'version']);
 });
 
 test('RF-010 detalhe inexistente e fora do escopo têm resposta indistinguível', async ({ request }) => {

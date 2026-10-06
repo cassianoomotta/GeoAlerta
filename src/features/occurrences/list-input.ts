@@ -27,7 +27,7 @@ export type ListCatalogs = {
   damageLocations:{code:string;label:string}[];
   serviceAgencies:{code:string;label:string}[];
 };
-export type ListResult = {items:ListItem[];total:number;page:number;pageSize:number;filters:ListFilters;columns:Column[];availableColumns:Column[];groups:{id:string;name:string}[];statusPresentations:{code:Status;label:string;displayOrder:number}[];occurrenceTypes:{name:string;active:boolean}[];catalogs:ListCatalogs};
+export type ListResult = {items:ListItem[];total:number;page:number;pageSize:number;filters:ListFilters;columns:Column[];availableColumns:Column[];groups:{id:string;name:string}[];climateEvents:{id:string;name:string;state:string}[];statusPresentations:{code:Status;label:string;displayOrder:number}[];occurrenceTypes:{name:string;active:boolean}[];catalogs:ListCatalogs};
 export class ListInputError extends Error {constructor(public status:422|403=422){super('INVALID_LIST_INPUT');}}
 export function availableColumns(privateData:boolean):Column[]{return privateData?[...publicColumns,...privateColumns]:[...publicColumns];}
 export function validateColumns(value:unknown,allowed:readonly string[]):Column[]{
@@ -42,12 +42,12 @@ function date(value:string,end:boolean){
   return d.toISOString();
 }
 export function parseListFilters(params:URLSearchParams):ListFilters{
-  const keys=['from','to','status','priority','type','categoryStatus','groupId','page','pageSize','sort','direction','columns','registeringInstitutionCode','neighborhoodCode','localityCode','situation','damageLocationCode','hasVictims','hasDisplaced','agencyCode'];
+  const keys=['from','to','status','priority','type','categoryStatus','groupId','climateEventId','page','pageSize','sort','direction','columns','registeringInstitutionCode','neighborhoodCode','localityCode','situation','damageLocationCode','hasVictims','hasDisplaced','agencyCode'];
   for(const key of params.keys())if(!keys.includes(key)||params.getAll(key).length!==1)throw new ListInputError();
   const get=(key:string)=>params.get(key)?.trim()||undefined;
   const integer=(key:string,fallback:number,max:number)=>{const v=get(key);if(!v)return fallback;if(!/^[1-9]\d*$/.test(v)||!Number.isSafeInteger(Number(v))||Number(v)>max)throw new ListInputError();return Number(v);};
   const sort=get('sort')??'createdAt',direction=get('direction')??'desc';
-  const status=get('status'),priority=get('priority'),type=get('type'),categoryStatus=get('categoryStatus'),groupId=get('groupId');
+  const status=get('status'),priority=get('priority'),type=get('type'),categoryStatus=get('categoryStatus'),groupId=get('groupId'),climateEventId=get('climateEventId');
   const code=(key:string):NullableFilter|undefined=>{
     const value=get(key);
     if(!value)return undefined;
@@ -63,10 +63,10 @@ export function parseListFilters(params:URLSearchParams):ListFilters{
   };
   const registeringInstitutionCode=code('registeringInstitutionCode'),neighborhoodCode=code('neighborhoodCode'),localityCode=code('localityCode'),damageLocationCode=code('damageLocationCode'),agencyCode=code('agencyCode');
   const situation=get('situation');
-  if(!['createdAt','priority','status'].includes(sort)||!['asc','desc'].includes(direction)||status&&!statuses.includes(status as typeof statuses[number])||priority&&!['ALTA','NORMAL'].includes(priority)||type&&type.length>80||categoryStatus&&!['active','inactive'].includes(categoryStatus)||groupId&&!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(groupId)||situation&&!['EM_RISCO','JA_OCORREU','__NULL__'].includes(situation)||agencyCode==='__NULL__')throw new ListInputError();
+  if(!['createdAt','priority','status'].includes(sort)||!['asc','desc'].includes(direction)||status&&!statuses.includes(status as typeof statuses[number])||priority&&!['ALTA','NORMAL'].includes(priority)||type&&type.length>80||categoryStatus&&!['active','inactive'].includes(categoryStatus)||groupId&&!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(groupId)||(climateEventId!=='__NULL__'&&climateEventId!==undefined&&!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(climateEventId))||situation&&!['EM_RISCO','JA_OCORREU','__NULL__'].includes(situation)||agencyCode==='__NULL__')throw new ListInputError();
   const from=get('from')?date(get('from')!,false):undefined,to=get('to')?date(get('to')!,true):undefined;
   if(from&&to&&from>=to)throw new ListInputError();
-  return {from,to,status:status as Status|undefined,priority:priority as Priority|undefined,type,categoryStatus:categoryStatus as CategoryStatus|undefined,groupId,registeringInstitutionCode,neighborhoodCode,localityCode,situation:situation as ListFilters['situation'],damageLocationCode,hasVictims:bool('hasVictims'),hasDisplaced:bool('hasDisplaced'),agencyCode,page:integer('page',1,1000000),pageSize:integer('pageSize',50,100),sort:sort as ListFilters['sort'],direction:direction as ListFilters['direction'],...(get('columns')?{columns:get('columns')!.split(',')}:{})};
+  return {from,to,status:status as Status|undefined,priority:priority as Priority|undefined,type,categoryStatus:categoryStatus as CategoryStatus|undefined,groupId,climateEventId:climateEventId as ListFilters['climateEventId'],registeringInstitutionCode,neighborhoodCode,localityCode,situation:situation as ListFilters['situation'],damageLocationCode,hasVictims:bool('hasVictims'),hasDisplaced:bool('hasDisplaced'),agencyCode,page:integer('page',1,1000000),pageSize:integer('pageSize',50,100),sort:sort as ListFilters['sort'],direction:direction as ListFilters['direction'],...(get('columns')?{columns:get('columns')!.split(',')}:{})};
 }
 export function listHref(filters:ListFilters,patch:Partial<ListFilters>={}){
   const params=new URLSearchParams();for(const [k,v]of Object.entries({...filters,...patch}))if(v!==undefined&&v!=='')params.set(k,Array.isArray(v)?v.join(','):String(v));

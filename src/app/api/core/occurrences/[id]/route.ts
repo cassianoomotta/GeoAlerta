@@ -6,6 +6,15 @@ import { parseOccurrenceMutation, OccurrenceMutationError } from '@/features/occ
 import { mutateOccurrenceInTransaction } from '@/server/occurrences/mutate';
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function postgresCode(error: unknown, depth = 0): string | undefined {
+  if (depth > 6 || typeof error !== 'object' || error === null) return undefined;
+  const value=error as Record<string,unknown>;
+  if(typeof value.code==='string'&&/^[0-9A-Z]{5}$/.test(value.code)&&!value.code.startsWith('P'))return value.code;
+  if(typeof value.message==='string'){const match=value.message.match(/\b(23514|40001|42501)\b/);if(match)return match[1];}
+  if(typeof value.meta==='object'&&value.meta!==null){const code=(value.meta as Record<string,unknown>).code;if(typeof code==='string'&&/^[0-9A-Z]{5}$/.test(code))return code;}
+  for(const nested of Object.values(value)){const code=postgresCode(nested,depth+1);if(code)return code;}
+  return undefined;
+}
 
 interface OccurrenceRow {
   id: string;
@@ -18,6 +27,9 @@ interface OccurrenceRow {
   priority: string;
   group_id: string;
   group_name: string;
+  climate_event_id: string | null;
+  climate_event_name: string | null;
+  climate_event_state: 'PLANEJADO' | 'EM_ANDAMENTO' | 'ENCERRADO' | null;
   latitude: number | null;
   longitude: number | null;
   accuracy: number | null;
@@ -70,6 +82,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       })[]>`
         SELECT o.id::text AS id,o.protocol,o.type,o.description,o.address,o.status,s.label AS status_label,
           o.priority,o.group_id::text AS group_id,g.name AS group_name,
+          ce.id::text AS climate_event_id,ce.name AS climate_event_name,ce.state AS climate_event_state,
           ST_Y(o.location::geometry)::float8 AS latitude,
           ST_X(o.location::geometry)::float8 AS longitude,
           o.accuracy::float8 AS accuracy,o.created_at AS opened_at,o.updated_at,o.version,
@@ -80,6 +93,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
         FROM public.occurrences o
         JOIN public.groups g ON g.id=o.group_id
         JOIN public.status_presentations s ON s.code=o.status
+        LEFT JOIN public.climate_events ce ON ce.id=o.climate_event_id
         LEFT JOIN public.occurrence_registering_institutions ri ON ri.code=o.registering_institution_code
         LEFT JOIN public.occurrence_neighborhoods n ON n.code=o.neighborhood_code
         LEFT JOIN public.occurrence_localities l ON l.code=o.locality_code
@@ -179,6 +193,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
         actions: { canOperate, canReclassify, canAdminister, availableTransitions },
         availableGroups,
         serviceAgencyOptions,
+        climateEvent: occurrence.climate_event_id ? { id: occurrence.climate_event_id, name: occurrence.climate_event_name, state: occurrence.climate_event_state } : null,
+        climateEvents: canReclassify ? await tx.$queryRaw<{id:string;name:string;state:'PLANEJADO'|'EM_ANDAMENTO'|'ENCERRADO'}[]>`
+          SELECT id::text,name,state FROM public.climate_events WHERE municipality_id=${actor.municipalityId} ORDER BY name,id
+        ` : [],
         ...(privateCapability ? { privateData: {
           reporterName: privateRow?.reporter_name ?? null,
           reporterContact: privateRow?.reporter_contact ?? null,
@@ -245,6 +263,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       };
       return Response.json({ error: { code: error.code, message: messages[error.code] ?? 'Não foi possível alterar a ocorrência.' } }, { status: error.status, headers: { 'Cache-Control': 'no-store' } });
     }
+    const code=postgresCode(error);
+    if(code==='23514')return Response.json({error:{code:'INVALID_CLIMATE_EVENT_LINK',message:'O evento escolhido não pode ser vinculado a esta ocorrência.'}},{status:422,headers:{'Cache-Control':'no-store'}});
+    if(code==='40001')return Response.json({error:{code:'VERSION_CONFLICT',message:'A ocorrência mudou desde a última leitura. Atualize os dados antes de tentar novamente.'}},{status:409,headers:{'Cache-Control':'no-store'}});
+    if(code==='42501')return Response.json({error:{code:'ACCESS_DENIED',message:'Você não tem permissão para esta alteração.'}},{status:403,headers:{'Cache-Control':'no-store'}});
     return accessResponse(error);
   }
 }

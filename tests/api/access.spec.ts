@@ -35,7 +35,7 @@ test('RF-005 ID fora do escopo é 404 igual a inexistente; Consulta recebe campo
   const consulta=await request.get(`/api/core/occurrences/${occurrenceA}`,{headers:{Cookie:cookieHeader(await fixtureCookies('consulta'))}});
   expect(consulta.status()).toBe(200);
   const detail=await consulta.json();
-  expect(Object.keys(detail).sort()).toEqual(['actions','address','availableGroups','classification','description','events','group','id','occurrenceContext','openedAt','position','priority','protocol','serviceAgencyOptions','serviceRecords','status','triage','type','updatedAt','version']);
+  expect(Object.keys(detail).sort()).toEqual(['actions','address','availableGroups','classification','climateEvent','climateEvents','description','events','group','id','occurrenceContext','openedAt','position','priority','protocol','serviceAgencyOptions','serviceRecords','status','triage','type','updatedAt','version']);
   expect(detail).not.toHaveProperty('privateData');
   expect(JSON.stringify(detail)).not.toMatch(/reporterName|reporterContact|photo_object_key|photo_url/i);
 });

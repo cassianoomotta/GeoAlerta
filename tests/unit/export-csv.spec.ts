@@ -24,5 +24,12 @@ test('RF-016 neutraliza fórmulas e escapa aspas e quebras de linha',()=>{
 });
 
 test('RF-016 conjunto vazio ainda gera cabeçalho verificável',()=>{
-  expect(buildOccurrencesCsv([],['protocol'])).toBe('\uFEFF"Protocolo"');
+  expect(buildOccurrencesCsv([],['protocol'])).toBe('\uFEFF"Protocolo";"ID do evento climático";"Evento climático"');
+});
+
+test('CSV sempre exporta identificador e nome do evento climático',()=>{
+  const linked={...item,climateEventId:'90000000-0000-4000-8000-000000000035',climateEventName:'Cheia do Arroio'};
+  const csv=buildOccurrencesCsv([linked],['protocol']);
+  expect(csv).toContain('"ID do evento climático";"Evento climático"');
+  expect(csv).toContain('"90000000-0000-4000-8000-000000000035";"Cheia do Arroio"');
 });

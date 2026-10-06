@@ -1,4 +1,6 @@
 import {columnLabels,type Column,type ListItem} from './list-input';
+type CsvColumn=Column|'climateEventId'|'climateEventName';
+const csvLabels:Record<CsvColumn,string>={...columnLabels,climateEventId:'ID do evento climático',climateEventName:'Evento climático'};
 
 function safeCell(value:unknown):string{
   let text=value===null||value===undefined?'':value instanceof Date?value.toISOString():String(value);
@@ -7,9 +9,10 @@ function safeCell(value:unknown):string{
 }
 
 export function buildOccurrencesCsv(items:readonly ListItem[],columns:readonly Column[]):string{
-  const header=columns.map(column=>safeCell(columnLabels[column])).join(';');
-  const rows=items.map(item=>columns.map(column=>{
-    const value=column==='groupId'?item.groupName:item[column];
+  const exportColumns=[...columns,'climateEventId','climateEventName'] as CsvColumn[];
+  const header=exportColumns.map(column=>safeCell(csvLabels[column])).join(';');
+  const rows=items.map(item=>exportColumns.map(column=>{
+    const value=column==='groupId'?item.groupName:column==='climateEventName'?(item.climateEventName??'Sem evento'):item[column];
     return safeCell(value);
   }).join(';'));
   return `\uFEFF${[header,...rows].join('\r\n')}${rows.length?'\r\n':''}`;

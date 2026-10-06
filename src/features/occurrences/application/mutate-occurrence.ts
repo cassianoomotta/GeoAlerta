@@ -24,6 +24,7 @@ export type MutateOccurrencePorts = {
     deletedAt?: boolean;
     type?: string;
     description?: string;
+    climateEventId?: string | null;
     eventKind: string;
     reason: string | null;
     changes: Record<string, { from: unknown; to: unknown }>;
@@ -43,7 +44,7 @@ export async function mutateOccurrence(
   const scope = { municipalityId: actor.municipalityId, groupId: occurrence.groupId };
   const requiredCapability = command.kind === 'delete' || command.kind === 'restore'
     ? 'administer'
-    : command.kind === 'reclassify' || (command.kind === 'transition' &&
+    : command.kind === 'reclassify' || command.kind === 'climateEvent' || (command.kind === 'transition' &&
       (occurrence.status === 'RESOLVIDA' || occurrence.status === 'CANCELADA') && command.target === 'EM_TRIAGEM')
       ? 'reclassify'
       : 'operate';
@@ -69,6 +70,7 @@ export async function mutateOccurrence(
     ...(command.kind === 'restore' ? { deletedAt: false } : {}),
     ...(command.kind === 'edit' && command.type !== undefined ? { type: command.type } : {}),
     ...(command.kind === 'edit' && command.description !== undefined ? { description: command.description } : {}),
+    ...(command.kind === 'climateEvent' ? { climateEventId: command.climateEventId } : {}),
     eventKind: decision.eventKind,
     reason: decision.reason,
     changes: decision.changes,
