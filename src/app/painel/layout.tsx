@@ -2,12 +2,12 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { Building2, LayoutDashboard, List, MapPin, Menu, Plus, UserRound, X } from 'lucide-react';
 import { CoreNotifications } from '@/features/occurrences/ui/CoreNotifications';
 import { getEnabledModules } from '@/modules/registry';
 import { ThemeSelect } from '@/components/theme/theme-select';
+import { GeoAlertaLogo } from '@/components/brand/geoalerta-logo';
 
 const icons: Record<string, React.ReactNode> = {
   dashboard: <LayoutDashboard size={18} aria-hidden="true" />,
@@ -58,7 +58,7 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
   </nav>;
   const identity = <div className="min-w-0">
     <Link href="/painel" aria-label="Ir para o dashboard do GeoAlerta" className="inline-block max-w-full rounded-md">
-      <Image src="/brand/Logo-transparent.png" alt="GeoAlerta" width={1254} height={1254} sizes="160px" className="h-auto w-40 max-w-full" />
+      <GeoAlertaLogo className="block h-auto w-40 max-w-full" />
     </Link>
     <p className="mt-1 text-sm text-muted-foreground">Gabinete de Crise Integrado</p>
     <p className="mt-2 text-sm text-muted-foreground">Santo Antônio da Patrulha · RS</p>

@@ -1,5 +1,6 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { syncLogoColors } from '../docs/logo/sync-colors.mjs';
 
 const source = fileURLToPath(new URL('../docs/design-system/tokens.json', import.meta.url));
 const target = fileURLToPath(new URL('../src/styles/tokens.css', import.meta.url));
@@ -46,3 +47,4 @@ if (process.argv.includes('--check')) {
   writeFileSync(target, css);
   console.log('Tokens CSS gerados.');
 }
+syncLogoColors(tokens, { check: process.argv.includes('--check') });
