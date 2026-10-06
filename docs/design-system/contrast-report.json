@@ -481,6 +481,86 @@
       "contrast": 6.036,
       "minimum": 4.5,
       "passes": true
+    },
+    {
+      "theme": "light",
+      "foreground": "dangerForeground",
+      "background": "danger",
+      "foregroundHex": "#FFFFFF",
+      "backgroundHex": "#A83F3F",
+      "contrast": 6.091,
+      "minimum": 4.5,
+      "passes": true
+    },
+    {
+      "theme": "light",
+      "foreground": "successForeground",
+      "background": "success",
+      "foregroundHex": "#FFFFFF",
+      "backgroundHex": "#28664C",
+      "contrast": 6.785,
+      "minimum": 4.5,
+      "passes": true
+    },
+    {
+      "theme": "light",
+      "foreground": "warningForeground",
+      "background": "warning",
+      "foregroundHex": "#FFFFFF",
+      "backgroundHex": "#875B17",
+      "contrast": 5.934,
+      "minimum": 4.5,
+      "passes": true
+    },
+    {
+      "theme": "light",
+      "foreground": "infoForeground",
+      "background": "info",
+      "foregroundHex": "#FFFFFF",
+      "backgroundHex": "#315E89",
+      "contrast": 6.79,
+      "minimum": 4.5,
+      "passes": true
+    },
+    {
+      "theme": "dark",
+      "foreground": "dangerForeground",
+      "background": "danger",
+      "foregroundHex": "#392526",
+      "backgroundHex": "#EFADAD",
+      "contrast": 7.672,
+      "minimum": 4.5,
+      "passes": true
+    },
+    {
+      "theme": "dark",
+      "foreground": "successForeground",
+      "background": "success",
+      "foregroundHex": "#20352B",
+      "backgroundHex": "#94C4A6",
+      "contrast": 6.668,
+      "minimum": 4.5,
+      "passes": true
+    },
+    {
+      "theme": "dark",
+      "foreground": "warningForeground",
+      "background": "warning",
+      "foregroundHex": "#352E21",
+      "backgroundHex": "#E1C183",
+      "contrast": 7.772,
+      "minimum": 4.5,
+      "passes": true
+    },
+    {
+      "theme": "dark",
+      "foreground": "infoForeground",
+      "background": "info",
+      "foregroundHex": "#223140",
+      "backgroundHex": "#AAC8EA",
+      "contrast": 7.689,
+      "minimum": 4.5,
+      "passes": true
     }
   ],
   "allPass": true

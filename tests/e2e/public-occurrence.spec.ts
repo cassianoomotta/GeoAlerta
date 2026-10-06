@@ -16,7 +16,7 @@ test('formulário público usa seletor claro e exibe as marcas institucionais',a
   await expect(page.getByRole('combobox',{name:'Tipo de ocorrência'})).toHaveAttribute('required','');
   expect(await page.getByLabel('Tipo de ocorrência').evaluate(element=>getComputedStyle(element).colorScheme)).toBe('light');
   const optionStyle=await page.getByLabel('Tipo de ocorrência').locator('option').nth(1).evaluate(element=>({background:getComputedStyle(element).backgroundColor,color:getComputedStyle(element).color}));
-  expect(optionStyle).toEqual({background:'rgb(255, 255, 255)',color:'rgb(15, 23, 42)'});
+  expect(optionStyle).toEqual({background:'rgb(255, 255, 255)',color:'rgb(36, 55, 70)'});
   const institutions=page.getByRole('region',{name:'Instituições de atendimento'});
   for(const name of ['Prefeitura de Santo Antônio da Patrulha','Defesa Civil do Rio Grande do Sul','Corpo de Bombeiros Militar do Rio Grande do Sul']){
     const logo=institutions.getByRole('img',{name});await expect(logo).toBeVisible();

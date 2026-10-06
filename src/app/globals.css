@@ -1,155 +1,104 @@
+@import "../styles/tokens.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  :root {
-    --background: #020617; /* slate-950 */
-    --foreground: #f8fafc; /* slate-50 */
-    
-    --card: #0f172a; /* slate-900 */
-    --card-foreground: #f8fafc;
-    
-    --popover: #0f172a;
-    --popover-foreground: #f8fafc;
-    
-    --primary: #3b82f6; /* blue-500 */
-    --primary-foreground: #ffffff;
-    
-    --secondary: #1e293b; /* slate-800 */
-    --secondary-foreground: #f8fafc;
-    
-    --muted: #1e293b;
-    --muted-foreground: #94a3b8; /* slate-400 */
-    
-    --accent: #1e293b;
-    --accent-foreground: #f8fafc;
-    
-    --destructive: #ef4444; /* red-500 */
-    --destructive-foreground: #ffffff;
-
-    --border: #1e293b; /* slate-800 */
-    --input: #1e293b;
-    --ring: #3b82f6;
-    
-    --radius: 0.75rem;
-  }
-}
-
-@layer base {
-  * {
-    border-color: var(--border);
-  }
+  * { border-color: var(--border); }
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-body);
     font-feature-settings: "rlig" 1, "calt" 1;
+    line-height: 1.5;
   }
+  ::selection { background: var(--primary-soft); color: var(--text); }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  :where(input, select, textarea) { accent-color: var(--primary); caret-color: var(--primary); }
+  :where(input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]), select, textarea) {
+    min-height: 40px;
+    border: 1px solid var(--control-border);
+    border-radius: var(--radius-control);
+    background-color: var(--surface);
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 400;
+  }
+  ::placeholder { color: var(--text-muted); opacity: 1; }
+  :where(button) { min-height: 40px; }
+  :where(button, input, select, textarea):disabled {
+    cursor: not-allowed;
+    opacity: 1;
+    background-color: var(--disabled);
+    color: var(--disabled-text);
+  }
+  select option { background: var(--surface); color: var(--text); }
+  :where(h1) { font-size: 24px; line-height: 32px; font-weight: 600; }
+  :where(h2) { font-size: 18px; line-height: 26px; font-weight: 600; }
+  :where(time, td) { font-variant-numeric: tabular-nums; }
+  :where(th, td) { overflow-wrap: anywhere; }
+  :where(tbody tr) { height: 52px; }
+  :where(tbody tr:hover) { background-color: var(--surface-subtle); }
+  :where(th) { background-color: var(--surface-subtle); font-weight: 500; }
+  :where(a) { text-underline-offset: 3px; }
+  :where(summary) { cursor: pointer; }
+  :where(details[open] > summary) { margin-bottom: 12px; }
+  :where(*) { scrollbar-color: var(--control-border) var(--surface-subtle); scrollbar-width: thin; }
 }
 
 @layer components {
-  /* SaaS Premium Card with High Contrast */
-  .glass-card {
-    @apply bg-slate-900/95 border border-slate-800 shadow-2xl rounded-2xl;
-  }
-  
-  /* Modern Button */
+  /* Compatibility name for existing panels during the incremental migration. */
+  .glass-card, .surface-panel { @apply rounded-xl border border-border bg-surface; }
   .btn {
-    @apply inline-flex items-center justify-center rounded-xl text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background;
+    @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors;
+    transition-duration: 140ms;
   }
-  
-  .btn-primary {
-    @apply bg-primary text-primary-foreground hover:opacity-90 shadow-[0_0_15px_rgba(59,130,246,0.3)];
-  }
-
-  .btn-secondary {
-    @apply bg-secondary text-secondary-foreground hover:opacity-80 border border-white/5;
-  }
-  
-  .btn-danger {
-    @apply bg-destructive text-destructive-foreground hover:opacity-90 shadow-[0_0_15px_rgba(239,68,68,0.3)];
-  }
-
-  /* Form Elements */
-  .form-group {
-    @apply flex flex-col gap-2 mb-5;
-  }
-
-  .form-label {
-    @apply text-sm font-semibold text-slate-200 tracking-wide;
-  }
-
+  .btn-primary { @apply bg-primary text-primary-foreground hover:bg-primary-hover active:bg-primary-active; }
+  .btn-secondary { @apply border border-control-border bg-surface text-foreground hover:bg-surface-subtle; }
+  .btn-text { @apply text-primary hover:bg-primary-soft; }
+  .btn-danger { @apply bg-danger text-danger-foreground; }
+  .btn:disabled { @apply bg-disabled text-disabled-text; box-shadow: none; }
+  .form-group { @apply mb-5 flex flex-col gap-2; }
+  .form-label { @apply text-sm font-medium text-foreground; }
   .form-input, .form-textarea, .form-select {
-    @apply flex w-full rounded-xl border border-slate-700 bg-slate-950 px-3.5 py-2.5 text-sm text-slate-100 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:border-transparent transition-all;
+    @apply w-full rounded-md border border-control-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground;
   }
-
-  /* Garantir que controles nativos (date picker, selects, etc) usem dark mode legível */
-  input, select, textarea {
-    color-scheme: dark;
+  .form-input[aria-invalid="true"], .form-textarea[aria-invalid="true"] { border-color: var(--danger); }
+  .skip-link {
+    @apply fixed left-4 top-4 z-[70] -translate-y-24 rounded-md bg-primary px-4 py-3 text-primary-foreground focus:translate-y-0;
   }
-
-  select option {
-    background-color: #0f172a; /* slate-900 */
-    color: #f8fafc; /* slate-50 */
+  .mobile-navigation::backdrop { background: rgb(23 35 33 / 0.55); }
+  .leaflet-container { background: var(--surface-subtle); z-index: 0 !important; isolation: isolate; font-family: var(--font-body); }
+  .leaflet-popup-content-wrapper, .leaflet-popup-tip,
+  .dark-popup .leaflet-popup-content-wrapper, .dark-popup .leaflet-popup-tip {
+    background: var(--surface); color: var(--text); box-shadow: var(--shadow-overlay); border-radius: var(--radius);
   }
-
-  /* O formulário público usa um tema claro, sem alterar os selects do painel. */
-  select.public-intake-select {
-    color-scheme: light;
-  }
-
-  select.public-intake-select option {
-    background-color: #fff;
-    color: #0f172a;
-  }
-
-  /* Override Leaflet Popup with Solid High-Contrast Dark Card */
-  .dark-popup .leaflet-popup-content-wrapper,
-  .dark-popup .leaflet-popup-tip {
-    @apply bg-slate-900 border border-slate-700 text-white shadow-2xl;
-  }
-  .dark-popup .leaflet-popup-content {
-    @apply m-0 p-3.5 text-slate-100;
-  }
-
-  /* Limitar z-index interno do Leaflet para não sobrepor modais, gavetas e menus */
-  .leaflet-container {
-    z-index: 0 !important;
-    isolation: isolate;
-  }
-  .leaflet-pane {
-    z-index: 10 !important;
-  }
-  .leaflet-tile-pane {
-    z-index: 2 !important;
-  }
-  .leaflet-overlay-pane {
-    z-index: 4 !important;
-  }
-  .leaflet-shadow-pane {
-    z-index: 5 !important;
-  }
-  .leaflet-marker-pane {
-    z-index: 6 !important;
-  }
-  .leaflet-tooltip-pane {
-    z-index: 7 !important;
-  }
-  .leaflet-popup-pane {
-    z-index: 8 !important;
-  }
-  .leaflet-top,
-  .leaflet-bottom {
-    z-index: 15 !important;
-  }
+  .leaflet-popup-content { margin: 16px; color: var(--text); }
+  .leaflet-bar a { background: var(--surface); color: var(--text); }
+  .leaflet-bar a:hover { background: var(--surface-subtle); }
+  .leaflet-control-attribution { background: var(--surface); color: var(--text-muted); }
+  .leaflet-control-attribution a { color: var(--primary); }
+  .leaflet-pane { z-index: 10 !important; }
+  .leaflet-tile-pane { z-index: 2 !important; }
+  .leaflet-overlay-pane { z-index: 4 !important; }
+  .leaflet-shadow-pane { z-index: 5 !important; }
+  .leaflet-marker-pane { z-index: 6 !important; }
+  .leaflet-tooltip-pane { z-index: 7 !important; }
+  .leaflet-popup-pane { z-index: 8 !important; }
+  .leaflet-top, .leaflet-bottom { z-index: 15 !important; }
 }
 
 @layer utilities {
-  /* Ocultar barra de rolagem mantendo scroll touch ativo */
-  .no-scrollbar::-webkit-scrollbar {
-    display: none;
-  }
-  .no-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+}
+
+@media (max-width: 639px), (pointer: coarse) {
+  :root :is(button, input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]), select, .btn) { min-height: 48px; }
+  :root :is(input, textarea, select) { font-size: 16px; }
+  .form-input, .form-textarea, .form-select { font-size: 16px; }
+}
+:root :is(button, input, select, textarea):disabled { opacity: 1; background-color: var(--disabled); color: var(--disabled-text); }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
 }

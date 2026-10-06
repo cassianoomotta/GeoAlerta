@@ -107,111 +107,108 @@ export default function Home(){
     }catch(error){if(error instanceof PhotoUploadFailure)setPhotoFailed(true);setError(error instanceof Error?error.message:'Resposta não confirmada. Tente novamente com os mesmos dados; seu envio não será duplicado.');}
     finally{setSending(false);}
   }
-  const inputClass='mt-2 block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-base text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-teal-600 focus:ring-4 focus:ring-teal-100 disabled:bg-slate-100';
-  return <main className="min-h-screen bg-gradient-to-br from-sky-50 via-white to-emerald-50 px-4 py-8 text-slate-800 sm:px-6 sm:py-12">
-    <div className="mx-auto max-w-3xl">
+  const inputClass='mt-2 block w-full rounded-xl border border-control-border bg-surface px-4 py-3 text-base text-foreground  outline-none transition placeholder:text-muted-foreground focus:border-primary/30 focus:ring-2 focus:ring-ring disabled:bg-surface-subtle';
+  return <main className="min-h-screen bg-background px-4 py-8 text-foreground sm:px-6 sm:py-12">
+    <div className="mx-auto max-w-[560px]">
       <header className="mb-8">
-        <p className="inline-flex items-center gap-2 rounded-full border border-teal-200 bg-white/80 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-teal-800 shadow-sm">
-          <span aria-hidden="true" className="h-2 w-2 rounded-full bg-teal-500" /> Registro de ocorrência
-        </p>
-        <h1 className="mt-4 text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">GeoAlerta</h1>
-        <p className="mt-3 max-w-2xl text-lg leading-relaxed text-slate-600">Conte pra gente o que aconteceu. Preencha as informações que souber; você também pode registrar uma ocorrência para outra pessoa.</p>
+        <h1 className="mt-4 text-2xl font-semibold text-primary">GeoAlerta</h1>
+        <p className="mt-3 max-w-2xl text-base leading-6 text-muted-foreground">Conte pra gente o que aconteceu. Preencha as informações que souber; você também pode registrar uma ocorrência para outra pessoa.</p>
       </header>
 
-      {result ? <section role="status" className="rounded-3xl border border-emerald-200 bg-white p-6 shadow-xl shadow-emerald-900/5 sm:p-9">
+      {result ? <section role="status" className="rounded-2xl border border-success/30 bg-surface p-6  sm:p-9">
         <div className="flex items-start gap-4">
-          <CheckCircle2 aria-hidden="true" className="mt-1 h-8 w-8 shrink-0 text-emerald-600" />
+          <CheckCircle2 aria-hidden="true" className="mt-1 h-8 w-8 shrink-0 text-success" />
           <div>
-            <h2 className="text-2xl font-semibold text-slate-900">Ocorrência registrada</h2>
-            <p className="mt-2 text-slate-600">Guarde o protocolo para consultar este registro.</p>
-            <p className="mt-5 rounded-xl bg-emerald-50 px-4 py-3 text-slate-800">Protocolo: <strong className="break-all">{result.protocol}</strong></p>
-            <p className="mt-3 text-sm text-slate-600">Status: {result.status}</p>
+            <h2 className="text-2xl font-semibold text-foreground">Ocorrência registrada</h2>
+            <p className="mt-2 text-muted-foreground">Guarde o protocolo para consultar este registro.</p>
+            <p className="mt-5 rounded-xl bg-success-soft px-4 py-3 text-foreground">Protocolo: <strong className="break-all">{result.protocol}</strong></p>
+            <p className="mt-3 text-sm text-muted-foreground">Status: {result.status}</p>
           </div>
         </div>
-        <section className="mt-7 border-t border-slate-100 pt-6" aria-labelledby="available-shelters-title">
-          <h3 id="available-shelters-title" className="text-lg font-semibold text-slate-900">Abrigos disponíveis</h3>
-          <p className="mt-1 text-sm leading-relaxed text-slate-600">Estes abrigos estão marcados como ativos e abertos. Escolha um para abrir a rota no aplicativo desejado.</p>
-          {sheltersLoading&&<p role="status" className="mt-4 text-sm text-slate-600">Consultando abrigos disponíveis…</p>}
-          {sheltersError&&<div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"><p>A ocorrência foi registrada, mas não foi possível carregar a lista de abrigos.</p><button type="button" onClick={loadPublicShelters} className="mt-2 rounded-lg border border-amber-700 px-3 py-2 font-semibold text-amber-900">Tentar carregar abrigos novamente</button></div>}
-          {!sheltersLoading&&!sheltersError&&shelters.length===0&&<p className="mt-4 rounded-xl bg-slate-50 p-4 text-sm text-slate-600">No momento, não há abrigos ativos com situação Aberto cadastrados.</p>}
+        <section className="mt-7 border-t border-border pt-6" aria-labelledby="available-shelters-title">
+          <h3 id="available-shelters-title" className="text-lg font-semibold text-foreground">Abrigos disponíveis</h3>
+          <p className="mt-1 text-sm leading-relaxed text-muted-foreground">Estes abrigos estão marcados como ativos e abertos. Escolha um para abrir a rota no aplicativo desejado.</p>
+          {sheltersLoading&&<p role="status" className="mt-4 text-sm text-muted-foreground">Consultando abrigos disponíveis…</p>}
+          {sheltersError&&<div className="mt-4 rounded-xl border border-warning/30 bg-warning-soft p-3 text-sm text-warning"><p>A ocorrência foi registrada, mas não foi possível carregar a lista de abrigos.</p><button type="button" onClick={loadPublicShelters} className="mt-2 rounded-lg border border-warning/30 px-3 py-2 font-semibold text-warning">Tentar carregar abrigos novamente</button></div>}
+          {!sheltersLoading&&!sheltersError&&shelters.length===0&&<p className="mt-4 rounded-xl bg-background p-4 text-sm text-muted-foreground">No momento, não há abrigos ativos com situação Aberto cadastrados.</p>}
           {shelters.length>0&&<ul className="mt-4 grid gap-3 sm:grid-cols-2">{shelters.map(shelter=>{
             const routes=buildShelterDirections(shelter.lat,shelter.lng);
-            return <li key={shelter.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <h4 className="font-semibold text-slate-900">{shelter.name}</h4><p className="mt-1 text-sm text-slate-600">{shelter.address}</p>
-              <p className="mt-2 inline-flex rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800">Situação: {shelter.status}</p>
-              <div className="mt-3 flex flex-wrap gap-2"><a href={routes.googleMaps} target="_blank" rel="noreferrer" className="inline-flex min-h-10 items-center rounded-lg bg-blue-700 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800">Rota no Google Maps</a><a href={routes.waze} target="_blank" rel="noreferrer" className="inline-flex min-h-10 items-center rounded-lg border border-sky-700 px-3 py-2 text-sm font-semibold text-sky-800 hover:bg-sky-50">Rota no Waze</a></div>
+            return <li key={shelter.id} className="rounded-2xl border border-border bg-background p-4">
+              <h4 className="font-semibold text-foreground">{shelter.name}</h4><p className="mt-1 text-sm text-muted-foreground">{shelter.address}</p>
+              <p className="mt-2 inline-flex rounded-full bg-success-soft px-2.5 py-1 text-xs font-semibold text-success">Situação: {shelter.status}</p>
+              <div className="mt-3 flex flex-wrap gap-2"><a href={routes.googleMaps} target="_blank" rel="noreferrer" className="inline-flex min-h-10 items-center rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary">Rota no Google Maps</a><a href={routes.waze} target="_blank" rel="noreferrer" className="inline-flex min-h-10 items-center rounded-lg border border-info/30 px-3 py-2 text-sm font-semibold text-info hover:bg-info-soft">Rota no Waze</a></div>
             </li>;
           })}</ul>}
         </section>
-      </section> : <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl shadow-slate-900/5">
-        <div className="border-b border-slate-100 px-5 py-5 sm:px-8">
-          <h2 className="text-xl font-semibold text-slate-900">Informações da ocorrência</h2>
-          <p className="mt-1 text-sm text-slate-500">Os campos marcados como opcionais podem ficar em branco.</p>
+      </section> : <section className="overflow-hidden rounded-2xl border border-border bg-surface ">
+        <div className="border-b border-border px-5 py-5 sm:px-8">
+          <h2 className="text-xl font-semibold text-foreground">Informações da ocorrência</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Os campos marcados como opcionais podem ficar em branco.</p>
         </div>
         <form onSubmit={submit}>
           <fieldset disabled={sending||locked} className="min-w-0 space-y-5 border-0 px-5 py-6 sm:px-8">
-            <label className="block text-sm font-semibold text-slate-800"><span>Nome <span aria-hidden="true" className="text-red-600">*</span></span><input name="reporterName" required maxLength={120} autoComplete="name" className={inputClass} /></label>
-            <label className="block text-sm font-semibold text-slate-800"><span>Contato <span aria-hidden="true" className="text-red-600">*</span></span><input name="reporterContact" required maxLength={40} autoComplete="tel" className={inputClass} /></label>
-            <label className="block text-sm font-semibold text-slate-800"><span>Tipo de ocorrência <span aria-hidden="true" className="text-red-600">*</span></span><select name="type" required defaultValue="" disabled={typesLoading||typesError||occurrenceTypes.length===0} className={`${inputClass} public-intake-select`}><option value="" disabled>{typesLoading?'Carregando tipos de ocorrência...':typesError?'Tipos temporariamente indisponíveis':'Selecione o tipo de ocorrência'}</option>{occurrenceTypes.map(type=><option key={type} value={type}>{type}</option>)}</select>{typesError&&<span role="status" className="mt-2 block text-sm font-normal text-amber-800">Não foi possível carregar os tipos. Atualize a página para tentar novamente.</span>}{!typesLoading&&!typesError&&occurrenceTypes.length===0&&<span role="status" className="mt-2 block text-sm font-normal text-slate-600">Nenhum tipo está disponível no momento.</span>}</label>
-            <label className="block text-sm font-semibold text-slate-800"><span>Descrição <span aria-hidden="true" className="text-red-600">*</span></span><textarea name="description" required maxLength={2000} placeholder="Conte o que aconteceu e indique um ponto de referência próximo. Inclua detalhes que ajudem as equipes a localizar e atender a ocorrência." className={`${inputClass} min-h-32 resize-y`} /></label>
-            <label className="block text-sm font-semibold text-slate-800"><span>Endereço da ocorrência (opcional)</span><input name="address" maxLength={300} autoComplete="street-address" placeholder="Informe o endereço ou local onde ocorreu o problema" className={inputClass} /><span className="mt-2 block text-sm font-normal leading-relaxed text-slate-600">Informe o endereço do local, especialmente se estiver sem sinal ou registrando para outra pessoa.</span></label>
+            <label className="block text-sm font-semibold text-foreground"><span>Nome <span aria-hidden="true" className="text-danger">*</span></span><input name="reporterName" required maxLength={120} autoComplete="name" className={inputClass} /></label>
+            <label className="block text-sm font-semibold text-foreground"><span>Contato <span aria-hidden="true" className="text-danger">*</span></span><input name="reporterContact" required maxLength={40} autoComplete="tel" className={inputClass} /></label>
+            <label className="block text-sm font-semibold text-foreground"><span>Tipo de ocorrência <span aria-hidden="true" className="text-danger">*</span></span><select name="type" required defaultValue="" disabled={typesLoading||typesError||occurrenceTypes.length===0} className={`${inputClass} public-intake-select`}><option value="" disabled>{typesLoading?'Carregando tipos de ocorrência...':typesError?'Tipos temporariamente indisponíveis':'Selecione o tipo de ocorrência'}</option>{occurrenceTypes.map(type=><option key={type} value={type}>{type}</option>)}</select>{typesError&&<span role="status" className="mt-2 block text-sm font-normal text-warning">Não foi possível carregar os tipos. Atualize a página para tentar novamente.</span>}{!typesLoading&&!typesError&&occurrenceTypes.length===0&&<span role="status" className="mt-2 block text-sm font-normal text-muted-foreground">Nenhum tipo está disponível no momento.</span>}</label>
+            <label className="block text-sm font-semibold text-foreground"><span>Descrição <span aria-hidden="true" className="text-danger">*</span></span><textarea name="description" required maxLength={2000} placeholder="Conte o que aconteceu e indique um ponto de referência próximo. Inclua detalhes que ajudem as equipes a localizar e atender a ocorrência." className={`${inputClass} min-h-32 resize-y`} /></label>
+            <label className="block text-sm font-semibold text-foreground"><span>Endereço da ocorrência (opcional)</span><input name="address" maxLength={300} autoComplete="street-address" placeholder="Informe o endereço ou local onde ocorreu o problema" className={inputClass} /><span className="mt-2 block text-sm font-normal leading-relaxed text-muted-foreground">Informe o endereço do local, especialmente se estiver sem sinal ou registrando para outra pessoa.</span></label>
             <div className="space-y-3">
-              <p className="text-sm font-semibold text-slate-800">Foto opcional <span className="font-normal text-slate-500">(JPEG, PNG ou WebP, até 5 MiB)</span></p>
+              <p className="text-sm font-semibold text-foreground">Foto opcional <span className="font-normal text-muted-foreground">(JPEG, PNG ou WebP, até 5 MiB)</span></p>
               <div className="flex flex-wrap gap-3">
                 <input ref={photoPickerRef} name="photo" type="file" accept="image/jpeg,image/png,image/webp" className="hidden" tabIndex={-1} onChange={selectPhoto} />
                 <input ref={cameraPickerRef} name="photo" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" className="hidden" tabIndex={-1} onChange={selectPhoto} />
-                <button type="button" onClick={()=>photoPickerRef.current?.click()} disabled={sending||locked} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-teal-100 disabled:cursor-not-allowed disabled:opacity-60">Escolher foto</button>
-                <button type="button" onClick={()=>cameraPickerRef.current?.click()} disabled={sending||locked} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-teal-700 bg-teal-50 px-4 py-2.5 font-semibold text-teal-800 transition hover:bg-teal-100 focus:outline-none focus:ring-4 focus:ring-teal-100 disabled:cursor-not-allowed disabled:opacity-60">Tirar foto</button>
+                <button type="button" onClick={()=>photoPickerRef.current?.click()} disabled={sending||locked} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-control-border bg-surface px-4 py-2.5 font-semibold text-foreground transition hover:bg-background focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-60">Escolher foto</button>
+                <button type="button" onClick={()=>cameraPickerRef.current?.click()} disabled={sending||locked} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-primary/30 bg-primary-soft px-4 py-2.5 font-semibold text-primary transition hover:bg-primary-soft focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-60">Tirar foto</button>
               </div>
-              {selectedPhoto&&<p role="status" aria-live="polite" className="text-sm text-slate-600">Foto selecionada: <span className="font-medium text-slate-800">{selectedPhoto.name}</span></p>}
+              {selectedPhoto&&<p role="status" aria-live="polite" className="text-sm text-muted-foreground">Foto selecionada: <span className="font-medium text-foreground">{selectedPhoto.name}</span></p>}
             </div>
 
-            <div className="rounded-2xl border border-teal-200 bg-teal-50/80 p-4 sm:p-5">
+            <div className="rounded-2xl border border-primary/30 bg-primary-soft p-4 sm:p-5">
               <div className="flex items-start gap-3">
-                <MapPin aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0 text-teal-700" />
+                <MapPin aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
                 <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-slate-900">Localização do dispositivo <span aria-hidden="true" className="text-red-600">*</span></p>
-                  {position ? <p role="status" className="mt-1 text-sm text-emerald-800">Localização obtida. Precisão: {position.accuracy} metros.</p> : <p role="note" className="mt-1 text-sm leading-relaxed text-slate-600">Para enviar, é necessário permitir o acesso à localização. Toque no botão e autorize quando o navegador solicitar.</p>}
+                  <p className="font-semibold text-foreground">Localização do dispositivo <span aria-hidden="true" className="text-danger">*</span></p>
+                  {position ? <p role="status" className="mt-1 text-sm text-success">Localização obtida. Precisão: {position.accuracy} metros.</p> : <p role="note" className="mt-1 text-sm leading-relaxed text-muted-foreground">Para enviar, é necessário permitir o acesso à localização. Toque no botão e autorize quando o navegador solicitar.</p>}
                 </div>
               </div>
-              <button type="button" onClick={locate} disabled={!ready||locating||sending} className="mt-4 inline-flex min-h-11 items-center justify-center rounded-xl bg-teal-700 px-5 py-2.5 font-semibold text-white transition hover:bg-teal-800 focus:outline-none focus:ring-4 focus:ring-teal-200 disabled:cursor-not-allowed disabled:opacity-60">{locating?'Obtendo localização...':position?'Atualizar localização':'Obter localização'}</button>
+              <button type="button" onClick={locate} disabled={!ready||locating||sending} className="mt-4 inline-flex min-h-11 items-center justify-center rounded-xl bg-primary px-5 py-2.5 font-semibold text-primary-foreground transition hover:bg-primary focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-60">{locating?'Obtendo localização...':position?'Atualizar localização':'Obter localização'}</button>
             </div>
           </fieldset>
 
-          <div className="space-y-4 border-t border-slate-100 bg-slate-50/70 px-5 py-5 sm:px-8">
-            {error&&<p role="alert" aria-label="Problema no envio" className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">{error}</p>}
-            {photoFailed&&!locked&&<label className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"><input type="checkbox" className="mt-0.5 h-4 w-4 accent-teal-700" checked={withoutPhoto} onChange={event=>setWithoutPhoto(event.target.checked)} disabled={sending}/> <span>Confirmo que desejo enviar esta ocorrência sem foto.</span></label>}
-            <button type="submit" disabled={!ready||!position||locating||sending} className="block min-h-12 w-full rounded-xl bg-emerald-700 px-5 py-3 font-semibold text-white shadow-sm transition hover:bg-emerald-800 focus:outline-none focus:ring-4 focus:ring-emerald-200 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600 disabled:shadow-none">{sending?'Registrando ocorrência...':'Enviar ocorrência'}</button>
-            <p className="text-center text-xs leading-relaxed text-slate-500">Sua localização é necessária para concluir o registro.</p>
+          <div className="space-y-4 border-t border-border bg-background px-5 py-5 sm:px-8">
+            {error&&<p role="alert" aria-label="Problema no envio" className="rounded-xl border border-warning/30 bg-warning-soft px-4 py-3 text-sm text-warning">{error}</p>}
+            {photoFailed&&!locked&&<label className="flex items-start gap-3 rounded-xl border border-warning/30 bg-warning-soft p-4 text-sm text-warning"><input type="checkbox" className="mt-0.5 h-4 w-4 accent-primary" checked={withoutPhoto} onChange={event=>setWithoutPhoto(event.target.checked)} disabled={sending}/> <span>Confirmo que desejo enviar esta ocorrência sem foto.</span></label>}
+            <button type="submit" disabled={!ready||!position||locating||sending} className="block min-h-12 w-full rounded-xl bg-primary px-5 py-3 font-medium text-primary-foreground  transition hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:bg-surface-subtle disabled:text-muted-foreground disabled:shadow-none">{sending?'Registrando ocorrência...':'Enviar ocorrência'}</button>
+            <p className="text-center text-xs leading-relaxed text-muted-foreground">Sua localização é necessária para concluir o registro.</p>
           </div>
         </form>
       </section>}
-      <section aria-label="Instituições de atendimento" className="mt-6 rounded-3xl border border-slate-200 bg-white/90 p-5 shadow-sm sm:p-6">
-        <h2 className="text-center text-sm font-semibold text-slate-700">Órgãos públicos</h2>
+      <section aria-label="Instituições de atendimento" className="mt-6 rounded-2xl border border-border bg-surface p-5  sm:p-6">
+        <h2 className="text-center text-sm font-semibold text-foreground">Órgãos públicos</h2>
         <div className="mt-4 grid grid-cols-2 items-stretch gap-3 sm:grid-cols-3 lg:grid-cols-5">
-          <figure className="col-span-2 flex min-h-28 flex-col items-center justify-center rounded-2xl border border-slate-100 bg-white px-4 py-3 sm:col-span-1">
+          <figure className="col-span-2 flex min-h-28 flex-col items-center justify-center rounded-2xl border border-border bg-white px-4 py-3 sm:col-span-1">
             <Image src="/institutional/prefeitura-sap.png" alt="Prefeitura de Santo Antônio da Patrulha" width={3000} height={1256} sizes="(min-width: 1024px) 180px, (min-width: 640px) 200px, 66vw" className="h-14 w-full object-contain" />
-            <figcaption className="mt-2 text-center text-xs font-medium text-slate-600">Prefeitura municipal</figcaption>
+            <figcaption className="mt-2 text-center text-xs font-medium text-slate-700">Prefeitura municipal</figcaption>
           </figure>
-          <figure className="flex min-h-28 flex-col items-center justify-center rounded-2xl border border-slate-100 bg-white px-3 py-3">
+          <figure className="flex min-h-28 flex-col items-center justify-center rounded-2xl border border-border bg-white px-3 py-3">
             <Image src="/institutional/defesa-civil-rs.png" alt="Defesa Civil do Rio Grande do Sul" width={100} height={100} sizes="56px" className="h-14 w-14 object-contain" />
-            <figcaption className="mt-2 text-center text-xs font-medium text-slate-600">Defesa Civil RS</figcaption>
+            <figcaption className="mt-2 text-center text-xs font-medium text-slate-700">Defesa Civil RS</figcaption>
           </figure>
-          <figure className="flex min-h-28 flex-col items-center justify-center rounded-2xl border border-slate-100 bg-white px-3 py-3">
+          <figure className="flex min-h-28 flex-col items-center justify-center rounded-2xl border border-border bg-white px-3 py-3">
             <Image src="/institutional/cbmrs.png" alt="Corpo de Bombeiros Militar do Rio Grande do Sul" width={655} height={655} sizes="56px" className="h-14 w-14 object-contain" />
-            <figcaption className="mt-2 text-center text-xs font-medium text-slate-600">Bombeiros RS</figcaption>
+            <figcaption className="mt-2 text-center text-xs font-medium text-slate-700">Bombeiros RS</figcaption>
           </figure>
-          <div className="flex min-h-28 flex-col items-center justify-center rounded-2xl border border-slate-100 bg-white px-3 py-3 text-center">
-            <span className="text-sm font-bold tracking-wide text-slate-800">SEMOT</span>
-            <span className="mt-1 text-xs leading-relaxed text-slate-600">Obras, Trânsito e Segurança</span>
+          <div className="flex min-h-28 flex-col items-center justify-center rounded-2xl border border-border bg-surface px-3 py-3 text-center">
+            <span className="text-sm font-bold tracking-wide text-foreground">SEMOT</span>
+            <span className="mt-1 text-xs leading-relaxed text-muted-foreground">Obras, Trânsito e Segurança</span>
           </div>
-          <div className="flex min-h-28 flex-col items-center justify-center rounded-2xl border border-slate-100 bg-white px-3 py-3 text-center">
-            <span className="text-sm font-bold tracking-wide text-slate-800">SMTDS</span>
-            <span className="mt-1 text-xs leading-relaxed text-slate-600">Trabalho e Desenvolvimento Social</span>
+          <div className="flex min-h-28 flex-col items-center justify-center rounded-2xl border border-border bg-surface px-3 py-3 text-center">
+            <span className="text-sm font-bold tracking-wide text-foreground">SMTDS</span>
+            <span className="mt-1 text-xs leading-relaxed text-muted-foreground">Trabalho e Desenvolvimento Social</span>
           </div>
         </div>
       </section>
-      <p className="mt-6 text-center text-xs text-slate-500">GeoAlerta · Registro de ocorrências para atendimento municipal</p>
+      <p className="mt-6 text-center text-xs text-muted-foreground">GeoAlerta · Registro de ocorrências para atendimento municipal</p>
     </div>
   </main>;
 }

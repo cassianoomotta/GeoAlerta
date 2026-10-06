@@ -9,6 +9,7 @@ type GroupOption = { id: string; name: string };
 type ManualRequest = {
   type: string;
   description: string;
+  address: string;
   reporterName: string;
   reporterContact: string;
   groupId: string;
@@ -58,6 +59,7 @@ export function ManualOccurrenceForm({ groups, types }: { groups: GroupOption[];
     const request: ManualRequest = {
       type: String(values.get('type') ?? ''),
       description: String(values.get('description') ?? ''),
+      address: String(values.get('address') ?? ''),
       reporterName: String(values.get('reporterName') ?? ''),
       reporterContact: String(values.get('reporterContact') ?? ''),
       groupId: String(values.get('groupId') ?? ''),
@@ -93,51 +95,50 @@ export function ManualOccurrenceForm({ groups, types }: { groups: GroupOption[];
   }
 
   return (
-    <details className="rounded border border-slate-600 p-4">
-      <summary className="cursor-pointer font-semibold text-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-400">
-        Registrar ocorrência manualmente
-      </summary>
-      <form onSubmit={submit} onChange={() => { setCreated(null); setMessage(''); }} aria-busy={pending} className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <label className="grid gap-1 text-sm text-slate-200">
-          Tipo <span aria-hidden="true" className="text-red-400">*</span>
-          <select className="rounded border border-slate-600 bg-slate-900 p-2 text-white" name="type" required defaultValue="" disabled={pending||!types.length}>
-            <option value="" disabled>Selecione o tipo</option>{types.map(type=><option key={type} value={type}>{type}</option>)}
-          </select>
-        </label>
-        <label className="grid gap-1 text-sm text-slate-200">
-          Grupo responsável <span aria-hidden="true" className="text-red-400">*</span>
-          <select className="rounded border border-slate-600 bg-slate-900 p-2 text-white" name="groupId" required defaultValue={groups[0]?.id ?? ''} disabled={pending || !groups.length}>
-            {groups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}
-          </select>
-        </label>
-        <label className="grid gap-1 text-sm text-slate-200">
-          Nome de contato <span aria-hidden="true" className="text-red-400">*</span>
-          <input className="rounded border border-slate-600 bg-slate-900 p-2 text-white" name="reporterName" required maxLength={120} disabled={pending} />
-        </label>
-        <label className="grid gap-1 text-sm text-slate-200">
-          Contato <span aria-hidden="true" className="text-red-400">*</span>
-          <input className="rounded border border-slate-600 bg-slate-900 p-2 text-white" name="reporterContact" required maxLength={40} disabled={pending} />
-        </label>
-        <label className="grid gap-1 text-sm text-slate-200 sm:col-span-2 lg:col-span-3">
-          Descrição <span aria-hidden="true" className="text-red-400">*</span>
-          <textarea className="min-h-24 rounded border border-slate-600 bg-slate-900 p-2 text-white" name="description" required maxLength={2000} disabled={pending} />
-        </label>
-        <div className="flex flex-wrap items-center gap-3 sm:col-span-2 lg:col-span-3">
-          <span className="text-sm text-slate-200">Localização GPS <span aria-hidden="true" className="text-red-400">*</span></span>
-          <button type="button" onClick={captureLocation} disabled={pending} className="rounded border border-slate-500 px-4 py-2 text-sm font-medium text-slate-100 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60">
-            Obter localização GPS
-          </button>
-          {position && <span className="text-sm text-slate-300">Precisão ±{Math.round(position.accuracy)} m</span>}
-          <button type="submit" disabled={pending || !position || !groups.length} className="rounded bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50">
-            {pending ? 'Registrando…' : 'Registrar ocorrência'}
-          </button>
-        </div>
-        {message && <p role={messageRole} aria-live={messageRole === 'alert' ? 'assertive' : 'polite'} className="text-sm text-slate-200 sm:col-span-2 lg:col-span-3">{message}</p>}
-        {created && <p className="text-sm font-medium text-green-300 sm:col-span-2 lg:col-span-3">
-          Protocolo {created.protocol} · Prioridade {created.priority === 'ALTA' ? 'alta' : 'normal'}.{' '}
-          <Link className="underline underline-offset-4" href={`/painel/ocorrencias/${created.id}`}>Abrir ocorrência</Link>
-        </p>}
-      </form>
-    </details>
+    <form onSubmit={submit} onChange={() => { setCreated(null); setMessage(''); }} aria-busy={pending} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <label className="grid gap-1 text-sm text-foreground">
+        Tipo <span aria-hidden="true" className="text-danger">*</span>
+        <select className="rounded border border-control-border bg-surface p-2 text-foreground" name="type" required defaultValue="" disabled={pending||!types.length}>
+          <option value="" disabled>Selecione o tipo</option>{types.map(type=><option key={type} value={type}>{type}</option>)}
+        </select>
+      </label>
+      <label className="grid gap-1 text-sm text-foreground">
+        Grupo responsável <span aria-hidden="true" className="text-danger">*</span>
+        <select className="rounded border border-control-border bg-surface p-2 text-foreground" name="groupId" required defaultValue={groups[0]?.id ?? ''} disabled={pending || !groups.length}>
+          {groups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}
+        </select>
+      </label>
+      <label className="grid gap-1 text-sm text-foreground">
+        Nome de contato <span aria-hidden="true" className="text-danger">*</span>
+        <input className="rounded border border-control-border bg-surface p-2 text-foreground" name="reporterName" required maxLength={120} disabled={pending} />
+      </label>
+      <label className="grid gap-1 text-sm text-foreground">
+        Contato <span aria-hidden="true" className="text-danger">*</span>
+        <input className="rounded border border-control-border bg-surface p-2 text-foreground" name="reporterContact" required maxLength={40} disabled={pending} />
+      </label>
+      <label className="grid gap-1 text-sm text-foreground sm:col-span-2">
+        <span>Endereço <span className="text-muted-foreground">(opcional)</span></span>
+        <input className="rounded border border-control-border bg-surface p-2 text-foreground" name="address" maxLength={300} autoComplete="street-address" placeholder="Rua, número e complemento" disabled={pending} />
+      </label>
+      <label className="grid gap-1 text-sm text-foreground sm:col-span-2 lg:col-span-3">
+        Descrição <span aria-hidden="true" className="text-danger">*</span>
+        <textarea className="min-h-24 rounded border border-control-border bg-surface p-2 text-foreground" name="description" required maxLength={2000} disabled={pending} />
+      </label>
+      <div className="flex flex-wrap items-center gap-3 sm:col-span-2 lg:col-span-3">
+        <span className="text-sm text-foreground">Localização GPS <span aria-hidden="true" className="text-danger">*</span></span>
+        <button type="button" onClick={captureLocation} disabled={pending} className="rounded border border-control-border px-4 py-2 text-sm font-medium text-foreground hover:bg-surface-subtle disabled:cursor-not-allowed disabled:opacity-60">
+          Obter localização GPS
+        </button>
+        {position && <span className="text-sm text-muted-foreground">Precisão ±{Math.round(position.accuracy)} m</span>}
+        <button type="submit" disabled={pending || !position || !groups.length} className="rounded bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary disabled:cursor-not-allowed disabled:opacity-50">
+          {pending ? 'Registrando…' : 'Registrar ocorrência'}
+        </button>
+      </div>
+      {message && <p role={messageRole} aria-live={messageRole === 'alert' ? 'assertive' : 'polite'} className="text-sm text-foreground sm:col-span-2 lg:col-span-3">{message}</p>}
+      {created && <p className="text-sm font-medium text-success sm:col-span-2 lg:col-span-3">
+        Protocolo {created.protocol} · Prioridade {created.priority === 'ALTA' ? 'alta' : 'normal'}.{' '}
+        <Link className="underline underline-offset-4" href={`/painel/ocorrencias/${created.id}`}>Abrir ocorrência</Link>
+      </p>}
+    </form>
   );
 }

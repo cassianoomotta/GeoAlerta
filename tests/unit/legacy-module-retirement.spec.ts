@@ -6,9 +6,9 @@ import { getEnabledModules, MODULES } from '../../src/modules/registry';
 const source = (path: string) => readFileSync(join(process.cwd(), path), 'utf8');
 
 test('RF-017 navegação separa dashboard e mapa, mantém ocorrências e oculta módulos legados', () => {
-  expect(getEnabledModules().map(({ slug }) => slug)).toEqual(['dashboard', 'monitoramento', 'tabela']);
+  expect(getEnabledModules().map(({ slug }) => slug)).toEqual(['dashboard', 'monitoramento', 'tabela', 'nova-ocorrencia']);
   expect(MODULES.filter(({ enabled }) => enabled).map(({ label, href }) => [label, href])).toEqual([
-    ['Dashboard', '/painel'], ['Mapa', '/painel/mapa'], ['Ocorrências', '/painel/ocorrencias'],
+    ['Dashboard', '/painel'], ['Mapa', '/painel/mapa'], ['Lista de ocorrências', '/painel/ocorrencias'], ['Nova ocorrência', '/painel/ocorrencias/nova'],
   ]);
   expect(MODULES.filter(({ enabled }) => !enabled).map(({ slug }) => slug)).toEqual([
     'recursos', 'abrigos', 'equipes', 'voluntarios',

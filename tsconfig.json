@@ -37,7 +37,13 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts",
     ".cache/next-test/types/**/*.ts",
-    ".cache/next-test/dev/types/**/*.ts"
+    ".cache/next-test/dev/types/**/*.ts",
+    ".cache/design-system-test/types/**/*.ts",
+    ".cache/design-system-test/dev/types/**/*.ts",
+    ".cache/design-system-preview/types/**/*.ts",
+    ".cache/design-system-preview/dev/types/**/*.ts",
+    ".cache/design-system-build/types/**/*.ts",
+    ".cache/design-system-build/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"
