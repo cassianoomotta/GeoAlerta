@@ -25,7 +25,7 @@ test('RF-009 lista filtra status e categoria pela barra preservando URL e pagina
   await expect(form.getByRole('combobox',{name:'Situação da categoria'})).toHaveJSProperty('tagName','SELECT');
   await page.getByRole('link',{name:'Próxima página'}).click();await expect(page).toHaveURL(/page=2/);await expect(page.locator('tbody tr')).toHaveCount(50);expect(new URL(page.url()).searchParams.get('type')).toBe(listType());
   await showFilters();
-  await page.getByRole('columnheader',{name:'Status',exact:true}).getByRole('link').click();await expect(page).toHaveURL(/sort=status/);expect(new URL(page.url()).searchParams.get('page')).toBe('1');
+  await page.getByRole('link',{name:'Ordenar por Status'}).click();await expect(page).toHaveURL(/sort=status/);expect(new URL(page.url()).searchParams.get('page')).toBe('1');
   await showFilters();
   await form.getByRole('combobox',{name:'Status'}).selectOption('NOVA');await page.getByRole('button',{name:'Aplicar filtros'}).click();await expect(page).toHaveURL(/status=NOVA/);expect(new URL(page.url()).searchParams.get('type')).toBe(listType());await expect(page.locator('tbody tr')).toHaveCount(25);
   await showFilters();
@@ -33,6 +33,24 @@ test('RF-009 lista filtra status e categoria pela barra preservando URL e pagina
   await showFilters();
   await form.getByRole('combobox',{name:/^Prioridade/}).selectOption('ALTA');await form.getByLabel('De (UTC)',{exact:true}).fill('2025-01-02');await form.getByLabel('Até (UTC)',{exact:true}).fill('2025-01-03');await page.getByRole('button',{name:'Aplicar filtros'}).click();
   await expect(page).toHaveURL(/priority=ALTA/);await showFilters();await expect(form.getByRole('combobox',{name:'Tipo'})).toHaveValue(listType());await page.reload();await showFilters();await expect(form.getByRole('combobox',{name:/^Prioridade/})).toHaveValue('ALTA');
+});
+test('RF-009 cada coluna ordena, protocolo não quebra, e identidade visual não muda no tema escuro',async({page})=>{
+  await page.goto(`/painel/ocorrencias?type=${listType()}`);
+  const columns=[['Protocolo','protocol'],['Registro','createdAt'],['Status','status'],['Prioridade','priority'],['Tipo','type'],['Grupo','groupId'],['Apoio médico','needsMedicalSupport']] as const;
+  for(const [label,sort] of columns){
+    const link=page.getByRole('link',{name:`Ordenar por ${label}`});
+    await expect(link).toBeVisible();
+    const header=link.locator('xpath=..');
+    await expect(header).toHaveAttribute('aria-sort');
+    if(sort==='protocol')await expect(header).toHaveClass(/whitespace-nowrap/);
+    await link.click();
+    await expect(page).toHaveURL(new RegExp(`sort=${sort}(?:&|$)`));
+  }
+  await page.getByRole('combobox',{name:'Aparência'}).selectOption({label:'Escuro'});
+  const logo=page.locator('svg.geoalerta-logo');
+  await expect(logo.locator('.geoalerta-logo-primary').first()).toHaveAttribute('fill','#087580');
+  await expect(logo.locator('.geoalerta-logo-danger').first()).toHaveAttribute('fill','#A83F3F');
+  await expect(page.locator('aside p span.whitespace-nowrap')).toContainText('· RS');
 });
 test('RF-009 filtros começam recolhidos e o seletor de grupo só aparece quando há mais de um grupo autorizado',async({page,context})=>{
   await page.goto(`/painel/ocorrencias?type=${listType()}`);
@@ -66,9 +84,9 @@ test('RF-010 protocolo abre o detalhe autorizado da ocorrência',async({page})=>
 test('RF-009 colunas pessoais são restauradas sem afetar Consulta e erro/vazio são recuperáveis',async({page,context})=>{
   await page.goto(`/painel/ocorrencias?type=${listType()}`);await page.getByText('Minhas colunas',{exact:true}).click();
   await page.getByLabel('Tipo',{exact:true}).last().uncheck();await page.getByLabel('Nome do cidadão',{exact:true}).check();await expect(page.getByRole('button',{name:'Salvar colunas'})).toBeEnabled();
-  await page.getByRole('button',{name:'Salvar colunas'}).click();await expect(page.getByRole('columnheader',{name:'Nome do cidadão',exact:true})).toBeVisible();await expect(page.getByRole('columnheader',{name:'Tipo',exact:true})).toHaveCount(0);await page.reload();await expect(page.getByRole('columnheader',{name:'Nome do cidadão',exact:true})).toBeVisible();
+  const saveResponse=page.waitForResponse(response=>response.url().includes('/api/core/preferences/columns')&&response.request().method()==='PUT');await page.getByRole('button',{name:'Salvar colunas'}).click();const saved=await saveResponse;expect(saved.status()).toBe(200);await expect(page.getByRole('columnheader',{name:/Ordenar por Nome do cidadão/})).toBeVisible();await expect(page.getByRole('columnheader',{name:/Ordenar por Tipo/})).toHaveCount(0);await page.reload();await expect(page.getByRole('columnheader',{name:/Ordenar por Nome do cidadão/})).toBeVisible();
   await context.clearCookies();await context.addCookies((await fixtureCookies('consulta')).map(c=>({...c,url:'http://127.0.0.1:3102'})));await page.goto(`/painel/ocorrencias?type=${listType()}`);
-  await expect(page.getByRole('columnheader',{name:'Tipo',exact:true})).toBeVisible();await expect(page.getByText('Nome do cidadão',{exact:true})).toHaveCount(0);await expect(page.getByText('Synthetic private name',{exact:true})).toHaveCount(0);
+  await expect(page.getByRole('columnheader',{name:/Ordenar por Tipo/})).toBeVisible();await expect(page.getByText('Nome do cidadão',{exact:true})).toHaveCount(0);await expect(page.getByText('Synthetic private name',{exact:true})).toHaveCount(0);
   await page.goto('/painel/ocorrencias?columns=reporterName');await expect(page.getByRole('alert').filter({hasText:'Verifique os filtros'})).toBeVisible();await page.goto('/painel/ocorrencias?type=absent-fixture-type');await expect(page.getByText('Nenhuma ocorrência encontrada para estes filtros.')).toBeVisible();
 });
 test('RF-009 tabela antiga redireciona preservando filtros compatíveis',async({page})=>{

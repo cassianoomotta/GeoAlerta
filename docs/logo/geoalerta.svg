@@ -3,25 +3,11 @@
   <desc>Quatro formas arredondadas envolvem um ponto central, representando o cidadão no centro da proteção.</desc>
   <style data-geoalerta-tokens="">
   /* Generated from docs/design-system/tokens.json. Run npm run design:tokens. */
-  .geoalerta-logo {
-    --geoalerta-logo-primary: #087580;
-    --geoalerta-logo-danger: #A83F3F;
-  }
-  @media (prefers-color-scheme: dark) {
-    .geoalerta-logo:not([data-theme="light"]) {
-    --geoalerta-logo-primary: #69B8BD;
-    --geoalerta-logo-danger: #EFADAD;
-    }
-  }
-  .geoalerta-logo[data-theme="dark"] {
-    --geoalerta-logo-primary: #69B8BD;
-    --geoalerta-logo-danger: #EFADAD;
-  }
   .geoalerta-logo .geoalerta-logo-primary {
-    fill: var(--primary, var(--geoalerta-logo-primary));
+    fill: #087580;
   }
   .geoalerta-logo .geoalerta-logo-danger {
-    fill: var(--danger, var(--geoalerta-logo-danger));
+    fill: #A83F3F;
   }
   </style>
   <path class="geoalerta-logo-danger" fill="#A83F3F" d="M0 0 C1.04 0.37 2.08 0.75 3.14 1.13 C22.02 8.45 37.17 20.89 48.94 37.19 C49.55 38.03 50.17 38.87 50.8 39.74 C54.65 45.05 58.37 50.43 61.96 55.93 C65 60.5 68.19 64.97 71.37 69.44 C74.77 74.24 78.12 79.08 81.44 83.94 C85.84 90.37 90.37 96.7 94.96 103.01 C99.02 108.61 102.99 114.26 106.94 119.94 C112.18 127.47 117.56 134.89 123.02 142.27 C127.7 148.57 132.28 154.94 136.82 161.34 C138.02 163.02 139.21 164.7 140.41 166.38 C143.89 171.24 147.37 176.1 150.8 180.99 C156.09 188.52 161.45 195.99 166.94 203.38 C172.25 210.53 177.34 217.8 182.33 225.17 C185.51 229.87 188.79 234.46 192.19 239 C216.12 271.23 233.04 301.8 228.61 343.43 C225.18 364.96 214.21 384.71 200 401 C199.18 401.95 198.36 402.91 197.52 403.89 C179.32 424.63 153.28 443.17 125 445.38 C110.68 446.04 97.47 442.8 86 434 C85.3 433.5 84.59 433 83.87 432.48 C71.68 423.02 66.17 407.24 60.45 393.48 C58.87 389.69 57.28 385.91 55.68 382.13 C55.39 381.45 55.1 380.77 54.8 380.07 C53.91 377.96 53.02 375.86 52.12 373.75 C51.83 373.04 51.53 372.34 51.22 371.61 C37.11 338.36 22.34 305.58 3.6 274.65 C2.05 272.09 0.54 269.51 -0.97 266.93 C-8.79 253.6 -17.33 240.79 -26 228 C-27.3 226.07 -28.6 224.15 -29.9 222.22 C-40.79 206.11 -52.06 190.35 -64 175 C-65.2 173.43 -66.39 171.86 -67.59 170.29 C-71.73 164.86 -75.99 159.53 -80.31 154.25 C-102.19 127.44 -118.37 104.08 -116 68 C-115.43 63.77 -114.49 59.99 -113 56 C-112.65 55.02 -112.3 54.05 -111.93 53.04 C-106.86 40 -99.79 29.81 -90 20 C-89.27 19.26 -88.54 18.51 -87.79 17.75 C-65.46 -3.54 -28.8 -10.84 0 0 Z " transform="translate(791,261)" />

@@ -5,28 +5,16 @@ import { fileURLToPath } from 'node:url';
 const logoPath = fileURLToPath(new URL('./geoalerta.svg', import.meta.url));
 const componentPath = fileURLToPath(new URL('../../src/components/brand/geoalerta-logo.tsx', import.meta.url));
 
-// Keep standalone SVG colors in sync; inline SVGs inherit the app's CSS tokens.
+// Keep the logo palette stable across light and dark application themes.
 export function syncLogoColors(tokens, { check = false } = {}) {
-  const { light, dark } = tokens.themes;
-  const colors = (theme) => `    --geoalerta-logo-primary: ${theme.primary};\n    --geoalerta-logo-danger: ${theme.danger};`;
+  const { light } = tokens.themes;
   const style = `<style data-geoalerta-tokens="">
   /* Generated from docs/design-system/tokens.json. Run npm run design:tokens. */
-  .geoalerta-logo {
-${colors(light)}
-  }
-  @media (prefers-color-scheme: dark) {
-    .geoalerta-logo:not([data-theme="light"]) {
-${colors(dark)}
-    }
-  }
-  .geoalerta-logo[data-theme="dark"] {
-${colors(dark)}
-  }
   .geoalerta-logo .geoalerta-logo-primary {
-    fill: var(--primary, var(--geoalerta-logo-primary));
+    fill: ${light.primary};
   }
   .geoalerta-logo .geoalerta-logo-danger {
-    fill: var(--danger, var(--geoalerta-logo-danger));
+    fill: ${light.danger};
   }
   </style>`;
   const original = readFileSync(logoPath, 'utf8');
@@ -49,7 +37,7 @@ ${colors(dark)}
   const markup = updated.replace(stylePattern, '').replace(/\bclass=/g, 'className=')
     .replace('className="geoalerta-logo"', 'className={`geoalerta-logo ${className}`}')
     .replace(/className="geoalerta-logo-(primary|danger)" fill="#[0-9a-fA-F]{6}"/g,
-      (_, role) => `className="geoalerta-logo-${role}" fill="var(--${role}, ${light[role]})"`);
+      (_, role) => `className="geoalerta-logo-${role}" fill="${light[role]}"`);
   const component = `// Generated from docs/logo/geoalerta.svg. Run npm run design:tokens; edit the SVG source instead.
 export function GeoAlertaLogo({ className = '' }: { className?: string }) {
   return (

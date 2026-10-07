@@ -3,7 +3,8 @@ import {parseListFilters,validateColumns,availableColumns,listHref} from '../../
 test('RF-009 defaults e limites de paginação ordenação e data',()=>{
   expect(parseListFilters(new URLSearchParams())).toMatchObject({page:1,pageSize:50,sort:'createdAt',direction:'desc'});
   expect(parseListFilters(new URLSearchParams('from=2025-01-01&to=2025-01-02&pageSize=100'))).toMatchObject({from:'2025-01-01T00:00:00.000Z',to:'2025-01-03T00:00:00.000Z'});
-  for(const q of ['page=0','page=-1','page=1e2','pageSize=101','sort=reporterName','direction=desc;drop','from=2025-02-30','from=2025-01-03&to=2025-01-01','status=INVALID','priority=CRITICAL','groupId=all','page=1&page=2','userId=other'])expect(()=>parseListFilters(new URLSearchParams(q)),q).toThrow();
+  for(const q of ['page=0','page=-1','page=1e2','pageSize=101','sort=unknown','direction=desc;drop','from=2025-02-30','from=2025-01-03&to=2025-01-01','status=INVALID','priority=CRITICAL','groupId=all','page=1&page=2','userId=other'])expect(()=>parseListFilters(new URLSearchParams(q)),q).toThrow();
+  for(const sort of ['protocol','createdAt','status','priority','type','groupId','needsMedicalSupport','reporterName','reporterContact'])expect(parseListFilters(new URLSearchParams(`sort=${sort}`)).sort).toBe(sort);
 });
 test('RF-009 filtros estruturados são códigos exatos, aceitam nulo e não aceitam busca livre',()=>{
   const filters=parseListFilters(new URLSearchParams('registeringInstitutionCode=DEFESA_CIVIL&neighborhoodCode=CENTRO&localityCode=PINHEIRINHOS_4D&situation=EM_RISCO&damageLocationCode=OUTROS&hasVictims=__NULL__&hasDisplaced=false&agencyCode=BOMBEIROS_MILITAR'));
