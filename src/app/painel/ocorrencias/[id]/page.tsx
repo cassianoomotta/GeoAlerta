@@ -33,6 +33,7 @@ interface OccurrenceDetail {
     damageLocation: { code: string; label: string; detail: string | null } | null;
     hasVictims: boolean | null;
     hasDisplaced: boolean | null;
+    needsMedicalSupport: boolean | null;
   };
   privateData?: { reporterName: string | null; reporterContact: string | null; hasPhoto: boolean };
   serviceRecords: {
@@ -200,6 +201,7 @@ function OccurrenceDetailView({id}: {id: string}) {
           <div><dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Local/estrutura atingida</dt><dd className="mt-1 text-sm text-foreground">{displayValue(detail.triage.damageLocation?.label)}{detail.triage.damageLocation?.detail ? ` — ${detail.triage.damageLocation.detail}` : ''}</dd></div>
           <div><dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Vítimas</dt><dd className="mt-1 text-sm text-foreground">{displayBoolean(detail.triage.hasVictims)}</dd></div>
           <div><dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Desabrigados/desalojados</dt><dd className="mt-1 text-sm text-foreground">{displayBoolean(detail.triage.hasDisplaced)}</dd></div>
+          <div><dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Apoio médico</dt><dd className="mt-1 text-sm text-foreground">{displayBoolean(detail.triage.needsMedicalSupport)}</dd></div>
         </dl>
       </section>
 

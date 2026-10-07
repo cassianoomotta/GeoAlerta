@@ -20,7 +20,7 @@ test.beforeAll(async () => {
     await db.query(`INSERT INTO public.occurrences(id,protocol,type,description,location,accuracy,group_id,deleted_at) VALUES ($1,'TEST-DELETED-TICKET05','fixture','deleted synthetic',ST_SetSRID(ST_MakePoint(-50.5,-29.5),4326)::geography,10,$2,now()) ON CONFLICT(id) DO NOTHING`, [occurrenceDeleted, groupA]);
     await db.query(`UPDATE public.occurrences SET reporter_name=$1,photo_url='SENTINEL_PRIVATE_PHOTO_TICKET05' WHERE id=$2`, [privateName, occurrenceA]);
     await db.query(`UPDATE public.occurrence_private_data SET reporter_name=$1,reporter_contact=$2,photo_object_key='core/92000000-0000-4000-8000-000000000011.jpg' WHERE occurrence_id=$3`, [privateName, privateContact, occurrenceA]);
-    await db.query(`UPDATE public.occurrences SET registering_institution_code='CIDADAO',neighborhood_code='CENTRO',locality_code='PINHEIRINHOS_4D',occurrence_situation='EM_RISCO',damage_location_code='OUTROS',damage_location_detail='Margem do arroio',has_victims=NULL,has_displaced=false WHERE id=$1`, [occurrenceA]);
+    await db.query(`UPDATE public.occurrences SET registering_institution_code='CIDADAO',neighborhood_code='CENTRO',locality_code='PINHEIRINHOS_4D',occurrence_situation='EM_RISCO',damage_location_code='OUTROS',damage_location_detail='Margem do arroio',has_victims=NULL,has_displaced=false,needs_medical_support=false WHERE id=$1`, [occurrenceA]);
     const operator = accounts.find((account) => account.name === 'operador')!;
     await db.query('BEGIN');
     await db.query('SELECT set_config($1,$2,true),set_config($3,$4,true)', ['request.jwt.claim.sub', operator.id, 'request.jwt.claims', JSON.stringify({ sub: operator.id })]);
@@ -75,6 +75,7 @@ test('RF-010 detalhe autorizado retorna os campos operacionais, posição, class
       damageLocation: { code: 'OUTROS', label: 'Outros', detail: 'Margem do arroio' },
       hasVictims: null,
       hasDisplaced: false,
+      needsMedicalSupport: false,
     },
     privateData: { reporterName: privateName, reporterContact: privateContact, hasPhoto: true },
   });

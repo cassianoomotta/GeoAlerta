@@ -30,18 +30,17 @@ test('US-05 operador registra ocorrência com localização nativa e abre o prot
   await expect(page.getByRole('heading', { name: 'Nova ocorrência', exact: true })).toBeVisible();
   await expect(page.locator('aside').getByRole('link', { name: 'Nova ocorrência', exact: true })).toHaveAttribute('aria-current', 'page');
   await expect(page.locator('aside').getByRole('link', { name: 'Lista de ocorrências', exact: true })).not.toHaveAttribute('aria-current', 'page');
-  const form = page.locator('form');
   await page.getByRole('button', { name: 'Obter localização GPS' }).click();
   await expect(page.getByText(/Precisão ±8 m/)).toBeVisible();
-  await form.getByLabel('Tipo',{exact:true}).selectOption('Alagamentos/Inundação');
-  await form.getByLabel('Nome de contato',{exact:true}).fill('Pessoa sintética');
-  await form.getByLabel('Contato',{exact:true}).fill('555-0100');
-  await form.getByLabel(/^Endereço/).fill('Rua das Flores, 123');
-  await form.getByLabel('Descrição',{exact:true}).fill('Água avançando na via');
+  await page.getByRole('combobox',{name:'Tipo',exact:true}).selectOption('Alagamentos/Inundação');
+  await page.getByRole('textbox',{name:'Nome de contato',exact:true}).fill('Pessoa sintética');
+  await page.getByRole('textbox',{name:'Contato',exact:true}).fill('555-0100');
+  await page.getByRole('textbox',{name:/Endereço/}).fill('Rua das Flores, 123');
+  await page.getByRole('textbox',{name:'Descrição',exact:true}).fill('Água avançando na via');
   await page.getByRole('button', { name: 'Registrar ocorrência', exact: true }).click();
-  await expect(form.getByLabel('Descrição',{exact:true})).toBeDisabled();
-  await expect(form.getByLabel('Tipo',{exact:true})).toBeDisabled();
-  await expect(form.getByLabel(/^Endereço/)).toBeDisabled();
+  await expect(page.getByRole('textbox',{name:'Descrição',exact:true})).toBeDisabled();
+  await expect(page.getByRole('combobox',{name:'Tipo',exact:true})).toBeDisabled();
+  await expect(page.getByRole('textbox',{name:/Endereço/})).toBeDisabled();
   releaseFirstResponse();
 
   await expect(page.getByText('Protocolo 1')).toBeVisible();

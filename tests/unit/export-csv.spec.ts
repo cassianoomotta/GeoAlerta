@@ -33,3 +33,11 @@ test('CSV sempre exporta identificador e nome do evento climático',()=>{
   expect(csv).toContain('"ID do evento climático";"Evento climático"');
   expect(csv).toContain('"90000000-0000-4000-8000-000000000035";"Cheia do Arroio"');
 });
+test('apoio médico exporta os três estados sem perder false',()=>{
+  expect(buildOccurrencesCsv([{...item,needsMedicalSupport:true}],['needsMedicalSupport']))
+    .toBe('\uFEFF"Apoio médico"\r\n"Sim"\r\n');
+  expect(buildOccurrencesCsv([{...item,needsMedicalSupport:false}],['needsMedicalSupport']))
+    .toBe('\uFEFF"Apoio médico"\r\n"Não"\r\n');
+  expect(buildOccurrencesCsv([{...item,needsMedicalSupport:null}],['needsMedicalSupport']))
+    .toBe('\uFEFF"Apoio médico"\r\n"Não informado"\r\n');
+});

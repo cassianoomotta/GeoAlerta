@@ -23,6 +23,8 @@ test('RF-009 situação da categoria aceita somente todas ativas ou desativadas 
   expect(()=>parseListFilters(new URLSearchParams('categoryStatus=unknown'))).toThrow();
 });
 test('RF-009 colunas são whitelist por capacidade sem duplicadas ou vazias',()=>{
+  expect(availableColumns(false)).toContain('needsMedicalSupport');
+  expect(availableColumns(true)).toContain('needsMedicalSupport');
   expect(availableColumns(false)).not.toContain('reporterName');expect(validateColumns(['protocol','reporterName'],availableColumns(true))).toEqual(['protocol','reporterName']);
   for(const columns of [[],['reporterName'],['protocol','protocol'],['photo_url'],['__proto__']])expect(()=>validateColumns(columns,availableColumns(false))).toThrow();
 });

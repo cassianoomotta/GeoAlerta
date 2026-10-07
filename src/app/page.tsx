@@ -70,8 +70,14 @@ export default function Home(){
     const form=new FormData(event.currentTarget);
     const file=selectedPhoto;
     let body:string;
-    try{body=locked&&attempt.current?attempt.current.baseBody:JSON.stringify(validatePublicInput({reporterName:form.get('reporterName'),reporterContact:form.get('reporterContact'),address:form.get('address'),type:form.get('type'),description:form.get('description'),position},{allowedTypes:occurrenceTypes}));}catch{setError('Verifique os campos obrigatórios, o tipo selecionado e a localização.');return;}
     const current=attempt.current;
+    if(locked&&current){
+      body=current.baseBody;
+    }else{
+      const medicalSupport=form.get('needsMedicalSupport');
+      if(medicalSupport!=='true'&&medicalSupport!=='false'){setError('Informe se precisa de apoio médico.');return;}
+      try{body=JSON.stringify(validatePublicInput({reporterName:form.get('reporterName'),reporterContact:form.get('reporterContact'),address:form.get('address'),type:form.get('type'),description:form.get('description'),position,needsMedicalSupport:medicalSupport==='true'},{allowedTypes:occurrenceTypes}));}catch{setError('Verifique os campos obrigatórios, o tipo selecionado e a localização.');return;}
+    }
     if(!locked && (current?.baseBody!==body || current?.file?.name!==file?.name || current?.file?.size!==file?.size || current?.file?.lastModified!==file?.lastModified)){
       attempt.current={baseBody:body,key:crypto.randomUUID(),file,uploadFailed:false,submissionStarted:false};setPhotoFailed(false);
       // Confirmation applies only to the file/fields for which upload failed.
@@ -151,6 +157,13 @@ export default function Home(){
             <label className="block text-sm font-semibold text-foreground"><span>Contato <span aria-hidden="true" className="text-danger">*</span></span><input name="reporterContact" required maxLength={40} autoComplete="tel" className={inputClass} /></label>
             <label className="block text-sm font-semibold text-foreground"><span>Tipo de ocorrência <span aria-hidden="true" className="text-danger">*</span></span><select name="type" required defaultValue="" disabled={typesLoading||typesError||occurrenceTypes.length===0} className={`${inputClass} public-intake-select`}><option value="" disabled>{typesLoading?'Carregando tipos de ocorrência...':typesError?'Tipos temporariamente indisponíveis':'Selecione o tipo de ocorrência'}</option>{occurrenceTypes.map(type=><option key={type} value={type}>{type}</option>)}</select>{typesError&&<span role="status" className="mt-2 block text-sm font-normal text-warning">Não foi possível carregar os tipos. Atualize a página para tentar novamente.</span>}{!typesLoading&&!typesError&&occurrenceTypes.length===0&&<span role="status" className="mt-2 block text-sm font-normal text-muted-foreground">Nenhum tipo está disponível no momento.</span>}</label>
             <label className="block text-sm font-semibold text-foreground"><span>Descrição <span aria-hidden="true" className="text-danger">*</span></span><textarea name="description" required maxLength={2000} placeholder="Conte o que aconteceu e indique um ponto de referência próximo. Inclua detalhes que ajudem as equipes a localizar e atender a ocorrência." className={`${inputClass} min-h-32 resize-y`} /></label>
+            <fieldset className="space-y-3">
+              <legend className="text-sm font-semibold text-foreground">Precisa de apoio médico? <span aria-hidden="true" className="text-danger">*</span></legend>
+              <div className="flex flex-wrap gap-4">
+                <label className="flex min-h-11 items-center gap-2 text-sm text-foreground"><input type="radio" name="needsMedicalSupport" value="true" required className="h-4 w-4 accent-primary" />Sim</label>
+                <label className="flex min-h-11 items-center gap-2 text-sm text-foreground"><input type="radio" name="needsMedicalSupport" value="false" required className="h-4 w-4 accent-primary" />Não</label>
+              </div>
+            </fieldset>
             <label className="block text-sm font-semibold text-foreground"><span>Endereço da ocorrência (opcional)</span><input name="address" maxLength={300} autoComplete="street-address" placeholder="Informe o endereço ou local onde ocorreu o problema" className={inputClass} /><span className="mt-2 block text-sm font-normal leading-relaxed text-muted-foreground">Informe o endereço do local, especialmente se estiver sem sinal ou registrando para outra pessoa.</span></label>
             <div className="space-y-3">
               <p className="text-sm font-semibold text-foreground">Foto opcional <span className="font-normal text-muted-foreground">(JPEG, PNG ou WebP, até 5 MiB)</span></p>

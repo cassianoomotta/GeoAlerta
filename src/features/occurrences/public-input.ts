@@ -29,8 +29,9 @@ function coordinate(value:unknown,minimum:number,maximum:number):number {
 // Public input cannot choose persisted priority, status, municipality or group.
 export function validatePublicInput(value:unknown, options: {allowCustomType?: boolean;allowedTypes?:readonly string[]} = {}):PublicOccurrenceInput {
   const input=object(value);
-  if(Object.keys(input).some(key=>!['type','description','reporterName','reporterContact','address','position','photoToken'].includes(key))) throw new PublicInputError();
+  if(Object.keys(input).some(key=>!['type','description','reporterName','reporterContact','address','position','needsMedicalSupport','photoToken'].includes(key))) throw new PublicInputError();
   if(input.photoToken!==undefined && (typeof input.photoToken!=='string' || input.photoToken.length>1024 || !/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{43}$/.test(input.photoToken))) throw new PublicInputError();
+  if(input.needsMedicalSupport!==undefined && input.needsMedicalSupport!==null && typeof input.needsMedicalSupport!=='boolean') throw new PublicInputError();
   const type=text(input.type,80);
   if(!options.allowCustomType && !options.allowedTypes?.includes(type)) throw new PublicInputError();
   const position=object(input.position);
@@ -39,6 +40,7 @@ export function validatePublicInput(value:unknown, options: {allowCustomType?: b
     type,description:text(input.description,2000),
     reporterName:text(input.reporterName,120),reporterContact:text(input.reporterContact,40),
     address:optionalText(input.address,300),
+    needsMedicalSupport:input.needsMedicalSupport ?? null,
     position:{latitude:coordinate(position.latitude,-90,90),longitude:coordinate(position.longitude,-180,180),accuracy:coordinate(position.accuracy,0,Number.MAX_VALUE)},
     ...(input.photoToken===undefined?{}:{photoToken:input.photoToken as string}),
   };

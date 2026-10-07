@@ -79,6 +79,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
         occurrence_situation: string | null; damage_location_code: string | null;
         damage_location_label: string | null; damage_location_detail: string | null;
         has_victims: boolean | null; has_displaced: boolean | null;
+        needs_medical_support: boolean | null;
       })[]>`
         SELECT o.id::text AS id,o.protocol,o.type,o.description,o.address,o.status,s.label AS status_label,
           o.priority,o.group_id::text AS group_id,g.name AS group_name,
@@ -89,7 +90,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
           o.registering_institution_code,ri.label AS registering_institution_label,
           o.neighborhood_code,n.label AS neighborhood_label,o.locality_code,l.label AS locality_label,
           o.occurrence_situation,o.damage_location_code,d.label AS damage_location_label,
-          o.damage_location_detail,o.has_victims,o.has_displaced
+          o.damage_location_detail,o.has_victims,o.has_displaced,o.needs_medical_support
         FROM public.occurrences o
         JOIN public.groups g ON g.id=o.group_id
         JOIN public.status_presentations s ON s.code=o.status
@@ -175,6 +176,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
           damageLocation: occurrence.damage_location_code ? { code: occurrence.damage_location_code, label: occurrence.damage_location_label, detail: occurrence.damage_location_detail } : null,
           hasVictims: occurrence.has_victims,
           hasDisplaced: occurrence.has_displaced,
+          needsMedicalSupport: occurrence.needs_medical_support,
         },
         serviceRecords: serviceRows.map((record) => ({
           id: record.id,

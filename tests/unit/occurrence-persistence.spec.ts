@@ -49,7 +49,7 @@ test('US-05 persistência comum inclui protocolo, trilha com ator, alerta e idem
   } as unknown as Prisma.TransactionClient;
 
   const result = await persistOccurrence(tx, {
-    input,
+    input: { ...input, needsMedicalSupport: false },
     groupId: '00000000-0000-4000-8000-000000000001',
     idempotencyKey: 'manual:user:request',
     requestHash: 'hash',
@@ -71,8 +71,23 @@ test('US-05 persistência comum inclui protocolo, trilha com ator, alerta e idem
   expect(occurrence.sql).not.toMatch(/INSERT INTO public\.occurrences\s*\([^)]*protocol/);
   expect(occurrence.sql).toContain('address');
   expect(occurrence.values).toContain('Rua das Flores, 123');
+  expect(occurrence.sql).toContain('needs_medical_support');
+  expect(occurrence.values).toContain(false);
   const event = statements.find(({ sql }) => sql.includes('occurrence_events'))!;
   const audit = statements.find(({ sql }) => sql.includes('audit_events'))!;
   expect(event.values).toContain('00000000-0000-4000-8000-000000000003');
   expect(audit.values).toContain('00000000-0000-4000-8000-000000000003');
+
+  statements.length = 0;
+  await persistOccurrence(tx, {
+    input,
+    groupId: '00000000-0000-4000-8000-000000000001',
+    idempotencyKey: 'manual:user:legacy-request',
+    requestHash: 'legacy-hash',
+    classification: { priority: 'NORMAL', zones: [] },
+    actorId: null,
+  });
+  const legacyOccurrence = statements.find(({ sql }) => sql.includes('INSERT INTO public.occurrences'))!;
+  expect(legacyOccurrence.sql).toContain('needs_medical_support');
+  expect(legacyOccurrence.values).toContain(null);
 });

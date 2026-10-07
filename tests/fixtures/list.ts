@@ -1,6 +1,7 @@
 import type pg from 'pg';
 import {randomUUID} from 'node:crypto';
 import {groupA,groupB,groupOther,accounts} from './access';
+import {publicColumns} from '../../src/features/occurrences/list-input';
 export const listType=()=>process.env.CORE_LIST_FIXTURE_TYPE!;
 export async function prepareListTests(db:pg.Client){
   const type=`list-${randomUUID()}`;process.env.CORE_LIST_FIXTURE_TYPE=type;
@@ -12,5 +13,5 @@ export async function prepareListTests(db:pg.Client){
       '2025-01-01T00:00:00Z'::timestamptz+(i/2)*interval '1 hour',CASE WHEN $4 THEN now() ELSE NULL END FROM generate_series(0,$3-1) i`,[type,group,n,deleted]);
   }
   await db.query(`INSERT INTO public.occurrence_private_data(occurrence_id,reporter_name,reporter_contact) SELECT id,'Synthetic private name','Synthetic private contact' FROM public.occurrences WHERE type=$1`,[type]);
-  for(const a of accounts)await db.query(`INSERT INTO public.user_preferences(user_id,columns) VALUES($1,'["protocol","createdAt","status","priority","type","groupId"]') ON CONFLICT(user_id) DO UPDATE SET columns=EXCLUDED.columns`,[a.id]);
+  for(const a of accounts)await db.query('INSERT INTO public.user_preferences(user_id,columns) VALUES($1,$2::jsonb) ON CONFLICT(user_id) DO UPDATE SET columns=EXCLUDED.columns',[a.id,JSON.stringify(publicColumns)]);
 }

@@ -11,6 +11,7 @@ function cell(item:ListItem,column:Column,labels:Record<string,string>){
   if(column==='groupId')return item.groupName;
   if(column==='status')return <StatusBadge status={item.status} label={labels[item.status]??item.status}/>;
   if(column==='priority')return <PriorityBadge priority={item.priority}/>;
+  if(column==='needsMedicalSupport')return item.needsMedicalSupport==null?'Não informado':item.needsMedicalSupport?'Sim':'Não';
   return item[column]??'—';
 }
 function exportHref(filters:ListResult['filters']){

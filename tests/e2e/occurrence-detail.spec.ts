@@ -26,7 +26,7 @@ test.beforeAll(async () => {
     await db.query(`INSERT INTO public.occurrence_classification_zones(occurrence_id,zone_id,zone_version) VALUES ($1,$2,1) ON CONFLICT DO NOTHING`, [occurrenceA, zoneId]);
     await db.query(`UPDATE public.occurrences SET reporter_name=$1,photo_url='SENTINEL_PRIVATE_PHOTO_TICKET05' WHERE id=$2`, [privateName, occurrenceA]);
     await db.query(`UPDATE public.occurrence_private_data SET reporter_name=$1,reporter_contact=$2,photo_object_key='core/92000000-0000-4000-8000-000000000021.jpg' WHERE occurrence_id=$3`, [privateName, privateContact, occurrenceA]);
-    await db.query(`UPDATE public.occurrences SET registering_institution_code='CIDADAO',neighborhood_code='CENTRO',locality_code='PINHEIRINHOS_4D',occurrence_situation='EM_RISCO',damage_location_code='OUTROS',damage_location_detail='Margem do arroio',has_victims=NULL,has_displaced=false WHERE id=$1`, [occurrenceA]);
+    await db.query(`UPDATE public.occurrences SET registering_institution_code='CIDADAO',neighborhood_code='CENTRO',locality_code='PINHEIRINHOS_4D',occurrence_situation='EM_RISCO',damage_location_code='OUTROS',damage_location_detail='Margem do arroio',has_victims=NULL,has_displaced=false,needs_medical_support=true WHERE id=$1`, [occurrenceA]);
     fixtureProtocol=(await db.query<{protocol:string}>('SELECT protocol FROM public.occurrences WHERE id=$1',[occurrenceA])).rows[0].protocol;
     const operatorId='10000000-0000-4000-8000-000000000002';
     await db.query('BEGIN');
@@ -67,6 +67,7 @@ test('RF-010 detalhe apresenta protocolo, classificação, localização e hist�
   await expect(page.getByRole('heading', { name: 'Informações do cidadão' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Informações da ocorrência' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Impactos e triagem' })).toBeVisible();
+  await expect(page.getByText('Apoio médico', {exact:true}).locator('..')).toContainText('Sim');
   await expect(page.getByRole('heading', { name: 'Atendimento e ações' })).toBeVisible();
   await expect(page.getByText(privateName)).toBeVisible();
   await expect(page.getByText('Margem do arroio')).toBeVisible();
@@ -132,7 +133,7 @@ test('RF-010 ocorrência sem posição mostra estado indisponível', async ({ pa
       classification: null,
       events: [],
       occurrenceContext: { registeringInstitution: null, neighborhood: null, locality: null },
-      triage: { situation: null, damageLocation: null, hasVictims: null, hasDisplaced: null },
+      triage: { situation: null, damageLocation: null, hasVictims: null, hasDisplaced: null, needsMedicalSupport: null },
       serviceRecords: [],
       actions: { canOperate: false, canReclassify: false, canAdminister: false, availableTransitions: [] },
       availableGroups: [],
@@ -141,6 +142,7 @@ test('RF-010 ocorrência sem posição mostra estado indisponível', async ({ pa
   }));
   await page.goto(`/painel/ocorrencias/${id}`);
   await expect(page.getByText('Localização indisponível')).toBeVisible();
+  await expect(page.getByText('Apoio médico', {exact:true}).locator('..')).toContainText('Não informado');
   await expect(page.getByText(/-29\.5|-50\.5/)).toHaveCount(0);
 });
 
