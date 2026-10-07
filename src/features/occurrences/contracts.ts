@@ -2,6 +2,13 @@ export const STATUSES = ['NOVA', 'EM_TRIAGEM', 'EM_ATENDIMENTO', 'RESOLVIDA', 'C
 export type Status = typeof STATUSES[number];
 export type Priority = 'NORMAL' | 'ALTA';
 export type GeoPosition = { latitude: number; longitude: number; accuracy: number };
+export type PersistedGeoPosition = { latitude: number; longitude: number; accuracy: number | null };
+export type RegistrationChannel = 'PUBLICO' | 'MANUAL' | 'BATALHAO';
+export type LocationSource = 'GPS_NATIVO' | 'MAPA';
+export type OccurrenceCreationInput = {
+  type: string; description: string; reporterName: string | null; reporterContact: string | null;
+  address: string | null; position: PersistedGeoPosition; needsMedicalSupport?: boolean | null;
+};
 export type PublicOccurrenceInput = { type: string; description: string; reporterName: string; reporterContact: string; address: string | null; position: GeoPosition; needsMedicalSupport?: boolean | null; photoToken?: string };
 export type OpenResult = { id: string; protocol: string; status: Status; priority: Priority; version: number };
 export type OccurrenceRow = OpenResult & { type: string; groupId: string; createdAt: string; updatedAt: string; climateEventId?: string | null; climateEventName?: string | null };
@@ -15,7 +22,7 @@ export type IdempotencyRecord = { key: string; requestHash: string; response: Op
 export type AlertEvent = { eventId: string; occurrenceId: string; groupId: string; priority: Priority; status: Status; at: string };
 export type OccurrenceFilters = { from?: string; to?: string; status?: Status; priority?: Priority; type?: string; groupId?: string; climateEventId?: string | '__NULL__'; page?: number; pageSize?: number; sort?: 'protocol' | 'createdAt' | 'status' | 'priority' | 'type' | 'groupId' | 'needsMedicalSupport' | 'reporterName' | 'reporterContact'; direction?: 'asc' | 'desc' };
 export type OccurrencePage = { items: OccurrenceRow[]; page: number; pageSize: number; total: number };
-export type OccurrenceDetail = OccurrenceRow & { position: GeoPosition | null; address: string | null; description: string; deletedAt: string | null; privateData?: { reporterName: string | null; reporterContact: string | null; photoUrl?: string }; events: OccurrenceEvent[] };
+export type OccurrenceDetail = OccurrenceRow & { position: PersistedGeoPosition | null; address: string | null; description: string; deletedAt: string | null; registrationChannel?: RegistrationChannel | null; locationSource?: LocationSource | null; privateData?: { reporterName: string | null; reporterContact: string | null; photoUrl?: string }; events: OccurrenceEvent[] };
 export type OccurrenceMutation = { kind: 'edit'; type?: string; description?: string; groupId?: string } | { kind: 'transition'; target: Status; reason?: string } | { kind: 'reclassify'; priority: Priority; reason: string } | { kind: 'delete' | 'restore'; reason: string };
 export type MapQuery = { west: number; south: number; east: number; north: number; from: string; to: string };
 export type DashboardView = { markers: { id: string; protocol: string; type: string; latitude: number; longitude: number; priority: Priority; status: Status; state: 'open' | 'closed' }[]; counts: { byStatus: Record<Status, number>; byPriority: Record<Priority, number> }; availableTypes: string[]; matchingCount: number; limited: boolean };

@@ -32,7 +32,7 @@ export default defineConfig({
     { name: 'chromium', testMatch: /e2e\/.*\.spec\.ts/, use: { ...devices['Desktop Chrome'] } },
     { name: 'firefox', testMatch: /e2e\/.*\.spec\.ts/, use: { ...devices['Desktop Firefox'] } },
     { name: 'webkit', testMatch: /e2e\/.*\.spec\.ts/, use: { ...devices['Desktop Safari'] } },
-    { name: 'mobile-chromium', testMatch: /e2e\/public-occurrence\.spec\.ts/, use: { ...devices['Pixel 7'] } },
+    { name: 'mobile-chromium', testMatch: /e2e\/(public-occurrence|battalion-occurrence)\.spec\.ts/, use: { ...devices['Pixel 7'] } },
     { name: 'mobile-webkit', testMatch: /e2e\/public-occurrence\.spec\.ts/, use: { ...devices['iPhone 13'] } },
   ],
 });

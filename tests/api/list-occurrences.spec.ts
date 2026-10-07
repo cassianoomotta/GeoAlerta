@@ -2,7 +2,7 @@ import {test,expect,type APIRequestContext} from '@playwright/test';
 import pg from 'pg';
 import {fixtureCookies} from '../fixtures/session';
 import {listType} from '../fixtures/list';
-import {accounts,groupA,groupB,groupOther,occurrenceA} from '../fixtures/access';
+import {accounts,groupA,groupB,groupOther,occurrenceA,occurrenceB} from '../fixtures/access';
 import {assertTestTarget} from '../fixtures/database';
 import {publicColumns} from '../../src/features/occurrences/list-input';
 const path='/api/core/occurrences';
@@ -28,6 +28,33 @@ test('RF-008 filtros e ordenações coincidem com consulta independente no PostG
     }
     expect((await(await query(request,'operador',{type:'absent-fixture-type'})).json()).total).toBe(0);
   }finally{await db.end();}
+});
+test('filtro de origem restringe lista e CSV sem remover registros históricos sem origem',async({request})=>{
+  const db=await database();
+  let previous:{id:string;protocol:string;registration_channel:string|null;location_source:string|null;accuracy:number|null}[]=[];
+  try{
+    previous=(await db.query('SELECT id,protocol,registration_channel,location_source,accuracy FROM public.occurrences WHERE id=ANY($1::uuid[])',[ [occurrenceA,occurrenceB] ])).rows;
+    await db.query("UPDATE public.occurrences SET registration_channel=CASE WHEN id=$1 THEN 'BATALHAO' ELSE NULL END,location_source=CASE WHEN id=$1 THEN 'MAPA' ELSE NULL END,accuracy=CASE WHEN id=$1 THEN NULL ELSE accuracy END WHERE id=ANY($2::uuid[])",[occurrenceA,[occurrenceA,occurrenceB]]);
+
+    const battalion=await query(request,'gestor',{type:'fixture',registrationChannel:'BATALHAO',pageSize:'100'});
+    expect(battalion.status()).toBe(200);
+    const result=await battalion.json();
+    expect(result.total).toBe(1);
+    expect(result.items.map((item:{id:string})=>item.id)).toEqual([occurrenceA]);
+
+    const unidentified=await query(request,'gestor',{type:'fixture',registrationChannel:'__NULL__',pageSize:'100'});
+    expect(unidentified.status()).toBe(200);
+    expect((await unidentified.json()).items.map((item:{id:string})=>item.id)).toEqual([occurrenceB]);
+
+    const cookies=await fixtureCookies('gestor');
+    const exported=await request.get('/api/core/occurrences/export?'+new URLSearchParams({type:'fixture',registrationChannel:'BATALHAO',columns:'protocol'}),{headers:{Cookie:cookies.map(cookie=>`${cookie.name}=${cookie.value}`).join('; ')}});
+    expect(exported.status()).toBe(200);
+    expect(exported.headers()['x-exported-count']).toBe('1');
+    expect(await exported.text()).toContain(`\"${previous.find(item=>item.id===occurrenceA)!.protocol}\"`);
+  }finally{
+    for(const item of previous)await db.query('UPDATE public.occurrences SET registration_channel=$1,location_source=$2,accuracy=$3 WHERE id=$4',[item.registration_channel,item.location_source,item.accuracy,item.id]);
+    await db.end();
+  }
 });
 test('RF-009 filtros categóricos usam códigos exatos e valores desconhecidos são rejeitados',async({request})=>{
   const db=await database();

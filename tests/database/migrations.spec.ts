@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import pg from 'pg';
-import { readFileSync, writeFileSync, mkdirSync, readdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync } from 'node:fs';
 import { createHash, randomUUID } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { assertTestTarget, assertMigrationEnvironment } from '../fixtures/database';
@@ -9,7 +9,10 @@ import { resolveExecutable } from '../../scripts/with-env.mjs';
 test.setTimeout(120_000);
 const coreSQL = readFileSync('prisma/migrations/202609300001_core_foundation/migration.sql', 'utf8').replace(/^BEGIN;\s*/, '').replace(/COMMIT;\s*$/, '');
 const legacyTables = ['resource_movements','resources','settings','shelter_people','shelters','team_locations','team_members','teams','volunteers'];
-const migrationNames = readdirSync('prisma/migrations', { withFileTypes: true }).filter(entry => entry.isDirectory()).map(entry => entry.name).sort();
+const migrationNames = readdirSync('prisma/migrations', { withFileTypes: true })
+  .filter(entry => entry.isDirectory() && existsSync(`prisma/migrations/${entry.name}/migration.sql`))
+  .map(entry => entry.name)
+  .sort();
 const run = randomUUID().replaceAll('-','');
 const invalidSchema = `core_test_invalid_${run}`;
 const legacySchema = `core_test_legacy_${run}`;
@@ -113,11 +116,13 @@ test('RNF-007 Prisma baseline e expansão preservam registros IDs referências e
       } else expect(afterRows).toEqual(before[table]);
     }
     const afterOccurrences = (await client.query(`SELECT id,type,description,ST_AsEWKT(location::geometry) AS location,photo_url,reporter_name,assigned_to,created_at,
-      registering_institution_code,neighborhood_code,locality_code,occurrence_situation,damage_location_code,damage_location_detail,has_victims,has_displaced
+      registering_institution_code,neighborhood_code,locality_code,occurrence_situation,damage_location_code,damage_location_detail,has_victims,has_displaced,
+      registration_channel,location_source
       FROM public.occurrences ORDER BY id`)).rows;
-    const triageFields=new Set(['registering_institution_code','neighborhood_code','locality_code','occurrence_situation','damage_location_code','damage_location_detail','has_victims','has_displaced']);
+    const triageFields=new Set(['registering_institution_code','neighborhood_code','locality_code','occurrence_situation','damage_location_code','damage_location_detail','has_victims','has_displaced','registration_channel','location_source']);
     expect(afterOccurrences.map(row=>Object.fromEntries(Object.entries(row).filter(([field])=>!triageFields.has(field))))).toEqual(beforeOccurrences);
     expect(afterOccurrences.every((row)=>[row.registering_institution_code,row.neighborhood_code,row.locality_code,row.occurrence_situation,row.damage_location_code,row.damage_location_detail,row.has_victims,row.has_displaced].every(value=>value===null))).toBe(true);
+    expect(afterOccurrences.every(row=>row.registration_channel===null&&row.location_source===null)).toBe(true);
     expect(hash()).toBe(beforeHash);
     for (const [index,status] of ['NOVA','EM_ATENDIMENTO','RESOLVIDA','CANCELADA'].entries()) {
       const row = (await client.query('SELECT status,legacy_status,accuracy,needs_sanitation FROM public.occurrences WHERE id=$1',[occurrenceIds[index]])).rows[0];
@@ -142,10 +147,26 @@ test('RNF-007 histórico Prisma reproduz baseline expansão e SQL complementar e
     expect((await client.query("SELECT pubname FROM pg_publication_tables WHERE tablename='occurrence_alerts' AND schemaname='public'")).rows).toEqual([{pubname:`${scope}_publication`}]);
     expect((await client.query("SELECT relrowsecurity FROM pg_class WHERE oid='public.occurrence_private_data'::regclass")).rows[0].relrowsecurity).toBe(true);
     expect((await client.query("SELECT relrowsecurity FROM pg_class WHERE oid='public.occurrence_service_records'::regclass")).rows[0].relrowsecurity).toBe(true);
+    expect((await client.query("SELECT policyname FROM pg_policies WHERE schemaname='public' AND tablename='idempotency_keys' AND policyname LIKE 'core_battalion_idempotency_%' ORDER BY policyname")).rows).toEqual([
+      { policyname: 'core_battalion_idempotency_insert' }, { policyname: 'core_battalion_idempotency_read' },
+    ]);
+    expect((await client.query("SELECT policyname FROM pg_policies WHERE schemaname='public' AND tablename='groups' AND policyname='core_default_group_lookup'")).rows).toEqual([{ policyname: 'core_default_group_lookup' }]);
     expect((await client.query("SELECT column_default,is_nullable FROM information_schema.columns WHERE table_schema='public' AND table_name='shelters' AND column_name='is_active'")).rows).toEqual([{column_default:'true',is_nullable:'NO'}]);
     expect((await client.query("SELECT confdeltype FROM pg_constraint WHERE conrelid='public.shelter_people'::regclass AND conname='shelter_people_shelter_id_fkey'")).rows).toEqual([{confdeltype:'r'}]);
     await expect(client.query("INSERT INTO public.occurrences(type,protocol,group_id,location) SELECT 'fixture','missing-accuracy',id,ST_SetSRID(ST_MakePoint(-50.5,-29.5),4326)::geography FROM public.groups LIMIT 1")).rejects.toThrow('occurrences_native_accuracy');
     await expect(client.query("INSERT INTO public.occurrences(type,protocol,group_id,location,legacy_status) SELECT 'fixture','fake-legacy',id,ST_SetSRID(ST_MakePoint(-50.5,-29.5),4326)::geography,'Aberto' FROM public.groups LIMIT 1")).rejects.toThrow('LEGACY_PROVENANCE_IMMUTABLE');
+    await client.query(`INSERT INTO public.occurrences(type,protocol,group_id,location,accuracy,needs_medical_support,registration_channel,location_source)
+      SELECT 'fixture','battalion-null-accuracy',id,ST_SetSRID(ST_MakePoint(-50.5,-29.5),4326)::geography,NULL,true,'BATALHAO','MAPA'
+      FROM public.groups WHERE is_default LIMIT 1`);
+    await expect(client.query(`INSERT INTO public.occurrences(type,protocol,group_id,location,registration_channel,location_source)
+      SELECT 'fixture','public-null-accuracy',id,ST_SetSRID(ST_MakePoint(-50.5,-29.5),4326)::geography,'PUBLICO','GPS_NATIVO'
+      FROM public.groups WHERE is_default LIMIT 1`)).rejects.toThrow('occurrences_native_accuracy');
+    await expect(client.query(`INSERT INTO public.occurrences(type,protocol,group_id,location,accuracy,registration_channel,location_source)
+      SELECT 'fixture','battalion-fake-accuracy',id,ST_SetSRID(ST_MakePoint(-50.5,-29.5),4326)::geography,8,'BATALHAO','MAPA'
+      FROM public.groups WHERE is_default LIMIT 1`)).rejects.toThrow('occurrences_native_accuracy');
+    expect((await client.query(`SELECT has_column_privilege('geoalerta_runtime','public.occurrences','registration_channel','INSERT') AS runtime_channel,
+      has_column_privilege('geoalerta_runtime','public.occurrences','location_source','SELECT') AS runtime_location,
+      has_column_privilege('geoalerta_ingest','public.occurrences','registration_channel','INSERT') AS ingest_channel`)).rows[0]).toEqual({runtime_channel:true,runtime_location:true,ingest_channel:true});
     const schema = (await client.query("SELECT column_name FROM information_schema.columns WHERE table_schema='public' AND table_name='occurrence_alerts'")).rows.map((row)=>row.column_name).sort();
     expect(schema).toEqual(['at','event_id','group_id','occurrence_id','priority','status']);
   } finally { await client.end(); }

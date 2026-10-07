@@ -12,7 +12,10 @@ export function buildOccurrencesCsv(items:readonly ListItem[],columns:readonly C
   const exportColumns=[...columns,'climateEventId','climateEventName'] as CsvColumn[];
   const header=exportColumns.map(column=>safeCell(csvLabels[column])).join(';');
   const rows=items.map(item=>exportColumns.map(column=>{
-    const value=column==='groupId'?item.groupName:column==='climateEventName'?(item.climateEventName??'Sem evento'):column==='needsMedicalSupport'?item.needsMedicalSupport===true?'Sim':item.needsMedicalSupport===false?'Não':'Não informado':item[column];
+    const value=column==='groupId'?item.groupName
+      :column==='climateEventName'?(item.climateEventName??'Sem evento')
+      :column==='needsMedicalSupport'?(item.needsMedicalSupport==null?'Não informado':item.needsMedicalSupport?'Sim':'Não')
+      :item[column];
     return safeCell(value);
   }).join(';'));
   return `\uFEFF${[header,...rows].join('\r\n')}${rows.length?'\r\n':''}`;

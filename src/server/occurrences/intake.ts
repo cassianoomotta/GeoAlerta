@@ -66,6 +66,8 @@ export async function openOccurrence(input:PublicOccurrenceInput,key:string,orig
       actorId:null,
       occurrenceId:id,
       photoObjectKey,
+      registrationChannel:'PUBLICO',
+      locationSource:'GPS_NATIVO',
     });
     return {result,replay:false};
   },{timeout:15000,maxWait:15000});

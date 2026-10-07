@@ -30,19 +30,21 @@ export default async function Occurrences({searchParams}:{searchParams:Promise<R
   let result:ListResult;
   let canAdminister=false;
   let canExport=false;
+  let canUseBattalionFlow=false;
   try{
     const params=new URLSearchParams();for(const [key,value]of Object.entries(await searchParams))if(Array.isArray(value))value.forEach(v=>params.append(key,v));else if(value!==undefined)params.set(key,value);
-    const loaded=await withSession(async(tx,actor)=>({result:await listOccurrences(tx,actor,parseListFilters(params)),canAdminister:actor.role==='ADMINISTRADOR',canExport:can(actor,'export',{municipalityId:actor.municipalityId,groupId:actor.groupIds[0]})}));
-    result=loaded.result;canAdminister=loaded.canAdminister;canExport=loaded.canExport;
+    const loaded=await withSession(async(tx,actor)=>({result:await listOccurrences(tx,actor,parseListFilters(params)),canAdminister:actor.role==='ADMINISTRADOR',canExport:can(actor,'export',{municipalityId:actor.municipalityId,groupId:actor.groupIds[0]}),canUseBattalionFlow:['OPERADOR','GESTOR','ADMINISTRADOR'].includes(actor.role)}));
+    result=loaded.result;canAdminister=loaded.canAdminister;canExport=loaded.canExport;canUseBattalionFlow=loaded.canUseBattalionFlow;
   }catch(error){
     return <section className="p-6"><h1 className="text-2xl font-bold">Ocorrências</h1><p role="alert" className="my-4">{error instanceof ListInputError?'Verifique os filtros e as colunas; o grupo deve estar autorizado.':'Não foi possível carregar a lista. Tente novamente.'}</p><Link href="/painel/ocorrencias">Limpar filtros e tentar novamente</Link></section>;
   }
   const {filters,columns,availableColumns,items,total,groups,statusPresentations,occurrenceTypes,catalogs}=result;
   const labels=Object.fromEntries(statusPresentations.map(item=>[item.code,item.label]));
   const pages=Math.max(1,Math.ceil(total/filters.pageSize));
-  const activeFilterCount=[filters.from,filters.to,filters.status,filters.priority,filters.type,filters.categoryStatus,filters.registeringInstitutionCode,filters.neighborhoodCode,filters.localityCode,filters.situation,filters.damageLocationCode,filters.hasVictims,filters.hasDisplaced,filters.agencyCode,filters.groupId,filters.climateEventId].filter(Boolean).length;
+  const activeFilterCount=[filters.from,filters.to,filters.status,filters.priority,filters.type,filters.registrationChannel,filters.categoryStatus,filters.registeringInstitutionCode,filters.neighborhoodCode,filters.localityCode,filters.situation,filters.damageLocationCode,filters.hasVictims,filters.hasDisplaced,filters.agencyCode,filters.groupId,filters.climateEventId].filter(Boolean).length;
   return <section className="space-y-5 p-4 md:p-6">
     <h1 className="text-2xl font-bold">Ocorrências</h1>
+    {canUseBattalionFlow&&<Link className="inline-flex rounded bg-primary px-4 py-2 font-medium text-primary-foreground" href="/painel/ocorrencias/rapida">Registro rápido do batalhão</Link>}
     {canExport&&<a className="btn btn-secondary" href={exportHref(filters)}>Baixar CSV das ocorrências filtradas</a>}
     {canAdminister&&<><Link className="inline-flex rounded border border-warning/30 px-3 py-2 text-sm text-warning" href="/painel/ocorrencias/excluidas">Excluídas e restauração</Link><Link className="inline-flex rounded border border-primary/30 px-3 py-2 text-sm text-primary" href="/painel/admin">Administrar usuários e grupos</Link></>}
     <details aria-label="Filtros de ocorrências" className="rounded border border-control-border">
@@ -57,6 +59,7 @@ export default async function Occurrences({searchParams}:{searchParams:Promise<R
       <label>Status<select className="block w-full rounded bg-surface p-2" name="status" defaultValue={filters.status??''}><option value="">Todos</option>{statusPresentations.map(({code,label})=><option key={code} value={code}>{label}</option>)}</select></label>
       <label>Prioridade<select className="block w-full rounded bg-surface p-2" name="priority" defaultValue={filters.priority??''}><option value="">Todas</option><option value="ALTA">Alta</option><option value="NORMAL">Normal</option></select></label>
       <label>Tipo<select className="block w-full rounded bg-surface p-2" name="type" defaultValue={filters.type??''}><option value="">Todos os tipos</option>{occurrenceTypes.map(type=><option key={type.name} value={type.name}>{type.name}{type.active?'':' (desativada)'}</option>)}</select></label>
+      <label>Origem do registro<select className="block w-full rounded bg-surface p-2" name="registrationChannel" defaultValue={filters.registrationChannel??''}><option value="">Todas</option><option value="PUBLICO">Cidadão</option><option value="MANUAL">Painel</option><option value="BATALHAO">Batalhão</option><option value="__NULL__">Não identificada</option></select></label>
       <label>Evento climático<select className="block w-full rounded bg-surface p-2" name="climateEventId" defaultValue={filters.climateEventId??''}><option value="">Todos</option><option value="__NULL__">Sem evento</option>{result.climateEvents.map(event=><option key={event.id} value={event.id}>{event.name} · {event.state.replaceAll('_',' ')}</option>)}</select></label>
       <label>Situação da categoria<select className="block w-full rounded bg-surface p-2" name="categoryStatus" defaultValue={filters.categoryStatus??''}><option value="">Todas</option><option value="active">Ativas</option><option value="inactive">Desativadas</option></select></label>
       <label>Instituição que registrou<select className="block w-full rounded bg-surface p-2" name="registeringInstitutionCode" defaultValue={filters.registeringInstitutionCode??''}><option value="">Todas</option><option value="__NULL__">Não informado</option>{catalogs.registeringInstitutions.map(item=><option key={item.code} value={item.code}>{item.label}</option>)}</select></label>

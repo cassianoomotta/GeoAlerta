@@ -1,12 +1,12 @@
 import { randomUUID } from 'node:crypto';
 import type { Prisma } from '../../../prisma/generated/client/client';
-import type { OpenResult, PublicOccurrenceInput, Priority } from '@/features/occurrences/contracts';
+import type { LocationSource, OccurrenceCreationInput, OpenResult, Priority, RegistrationChannel } from '@/features/occurrences/contracts';
 
 export type OccurrenceClassification = { priority: Priority; zones: { zoneId: string; version: number }[] };
 
 export async function classifyOccurrence(
   tx: Prisma.TransactionClient,
-  position: PublicOccurrenceInput['position'],
+  position: Pick<OccurrenceCreationInput['position'], 'latitude' | 'longitude'>,
 ): Promise<OccurrenceClassification> {
   const zones = await tx.$queryRaw<{ zone_id: string; version: number }[]>`
     SELECT z.zone_id::text AS zone_id,z.version FROM public.risk_zones z
@@ -27,25 +27,29 @@ export async function classifyOccurrence(
 export async function persistOccurrence(
   tx: Prisma.TransactionClient,
   command: {
-    input: PublicOccurrenceInput;
+    input: OccurrenceCreationInput;
     groupId: string;
     idempotencyKey: string;
     requestHash: string;
     classification: OccurrenceClassification;
     climateEventId?: string | null;
     actorId: string | null;
+    registrationChannel: RegistrationChannel;
+    locationSource: LocationSource;
+    onStep?: (step: string) => void;
     occurrenceId?: string;
     photoObjectKey?: string | null;
   },
 ): Promise<OpenResult> {
   const id = command.occurrenceId ?? randomUUID();
   const eventId = randomUUID();
+  command.onStep?.('main_row');
   const inserted = await tx.$queryRaw<{ protocol: string }[]>`
-    INSERT INTO public.occurrences(id,type,description,address,location,accuracy,status,priority,group_id,needs_medical_support,climate_event_id)
+    INSERT INTO public.occurrences(id,type,description,address,location,accuracy,status,priority,group_id,climate_event_id,needs_medical_support,registration_channel,location_source)
     VALUES(${id}::uuid,${command.input.type},${command.input.description},${command.input.address},
       ST_SetSRID(ST_MakePoint(${command.input.position.longitude},${command.input.position.latitude}),4326)::geography,
-      ${command.input.position.accuracy},'NOVA',${command.classification.priority},${command.groupId}::uuid,
-      ${command.input.needsMedicalSupport ?? null},${command.climateEventId ?? null}::uuid)
+      ${command.input.position.accuracy},'NOVA',${command.classification.priority},${command.groupId}::uuid,${command.climateEventId ?? null}::uuid,
+      ${command.input.needsMedicalSupport ?? null},${command.registrationChannel},${command.locationSource})
     RETURNING protocol
   `;
   if (!inserted[0]) throw new Error('Occurrence protocol was not generated.');
@@ -56,28 +60,34 @@ export async function persistOccurrence(
     priority: command.classification.priority,
     version: 1,
   };
+  command.onStep?.('private_data');
   await tx.$executeRaw`
     INSERT INTO public.occurrence_private_data(occurrence_id,reporter_name,reporter_contact,photo_object_key)
     VALUES(${id}::uuid,${command.input.reporterName},${command.input.reporterContact},${command.photoObjectKey ?? null})
   `;
   for (const zone of command.classification.zones) {
+    command.onStep?.('classification_zones');
     await tx.$executeRaw`
       INSERT INTO public.occurrence_classification_zones(occurrence_id,zone_id,zone_version)
       VALUES(${id}::uuid,${zone.zoneId}::uuid,${zone.version})
     `;
   }
+  command.onStep?.('occurrence_history');
   await tx.$executeRaw`
     INSERT INTO public.occurrence_events(id,occurrence_id,kind,actor_id)
     VALUES(${eventId}::uuid,${id}::uuid,'OPENED',${command.actorId}::uuid)
   `;
+  command.onStep?.('audit_events');
   await tx.$executeRaw`
     INSERT INTO public.audit_events(actor_id,entity_id,kind)
     VALUES(${command.actorId}::uuid,${id}::uuid,'OPENED')
   `;
+  command.onStep?.('alerts');
   await tx.$executeRaw`
     INSERT INTO public.occurrence_alerts(event_id,occurrence_id,group_id,priority,status)
     VALUES(${eventId}::uuid,${id}::uuid,${command.groupId}::uuid,${result.priority},'NOVA')
   `;
+  command.onStep?.('idempotency_record');
   await tx.$executeRaw`
     INSERT INTO public.idempotency_keys(key,request_hash,occurrence_id,response)
     VALUES(${command.idempotencyKey},${command.requestHash},${id}::uuid,${JSON.stringify(result)}::jsonb)

@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import type { Prisma } from '../../prisma/generated/client/client';
 import { classifyOccurrence, persistOccurrence } from '../../src/server/occurrences/persist';
 import type { PublicOccurrenceInput } from '../../src/features/occurrences/contracts';
+import type { BattalionOccurrenceInput } from '../../src/features/occurrences/battalion-input';
 
 const input: PublicOccurrenceInput = {
   type: 'alagamento',
@@ -55,6 +56,8 @@ test('US-05 persistência comum inclui protocolo, trilha com ator, alerta e idem
     requestHash: 'hash',
     classification: { priority: 'ALTA', zones: [{ zoneId: '00000000-0000-4000-8000-000000000002', version: 2 }] },
     actorId: '00000000-0000-4000-8000-000000000003',
+    registrationChannel: 'MANUAL',
+    locationSource: 'GPS_NATIVO',
   });
 
   expect(result).toMatchObject({ protocol: '1', status: 'NOVA', priority: 'ALTA', version: 1 });
@@ -72,7 +75,11 @@ test('US-05 persistência comum inclui protocolo, trilha com ator, alerta e idem
   expect(occurrence.sql).toContain('address');
   expect(occurrence.values).toContain('Rua das Flores, 123');
   expect(occurrence.sql).toContain('needs_medical_support');
+  expect(occurrence.sql).toContain('registration_channel');
+  expect(occurrence.sql).toContain('location_source');
   expect(occurrence.values).toContain(false);
+  expect(occurrence.values).toContain('MANUAL');
+  expect(occurrence.values).toContain('GPS_NATIVO');
   const event = statements.find(({ sql }) => sql.includes('occurrence_events'))!;
   const audit = statements.find(({ sql }) => sql.includes('audit_events'))!;
   expect(event.values).toContain('00000000-0000-4000-8000-000000000003');
@@ -86,8 +93,31 @@ test('US-05 persistência comum inclui protocolo, trilha com ator, alerta e idem
     requestHash: 'legacy-hash',
     classification: { priority: 'NORMAL', zones: [] },
     actorId: null,
+    registrationChannel: 'PUBLICO',
+    locationSource: 'GPS_NATIVO',
   });
   const legacyOccurrence = statements.find(({ sql }) => sql.includes('INSERT INTO public.occurrences'))!;
   expect(legacyOccurrence.sql).toContain('needs_medical_support');
   expect(legacyOccurrence.values).toContain(null);
+
+  statements.length = 0;
+  const battalionInput: BattalionOccurrenceInput = {
+    type: 'Alagamento / Inundação', address: 'Rua das Flores', description: 'Água na via',
+    needsMedicalSupport: true, reporterName: null, reporterContact: null,
+    position: { latitude: -29.5, longitude: -50.5, accuracy: null },
+  };
+  await persistOccurrence(tx, {
+    input: battalionInput,
+    groupId: '00000000-0000-4000-8000-000000000001',
+    idempotencyKey: 'battalion:user:request',
+    requestHash: 'battalion-hash',
+    classification: { priority: 'NORMAL', zones: [] },
+    actorId: '00000000-0000-4000-8000-000000000003',
+    registrationChannel: 'BATALHAO',
+    locationSource: 'MAPA',
+  });
+  const battalionOccurrence = statements.find(({ sql }) => sql.includes('INSERT INTO public.occurrences'))!;
+  expect(battalionOccurrence.values).toContain('BATALHAO');
+  expect(battalionOccurrence.values).toContain('MAPA');
+  expect(battalionOccurrence.values).toContain(null);
 });

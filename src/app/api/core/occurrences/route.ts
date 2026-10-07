@@ -87,6 +87,8 @@ export async function POST(request: Request) {
             requestHash,
             classification,
             actorId: command.actorId,
+            registrationChannel: 'MANUAL',
+            locationSource: 'GPS_NATIVO',
           });
           return { result, replay: false };
         },

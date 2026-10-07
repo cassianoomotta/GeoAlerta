@@ -75,6 +75,8 @@ model occurrences {
   has_victims                     Boolean?
   has_displaced                   Boolean?
   needs_medical_support           Boolean?
+  registration_channel            String?
+  location_source                 String?
 
   @@index([group_id, created_at(sort: Desc), id], map: "occurrences_group_created")
   @@index([registering_institution_code, created_at(sort: Desc), id], map: "occurrences_registering_created")
