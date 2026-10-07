@@ -72,6 +72,7 @@ model occurrences {
   damage_location_detail          String?
   has_victims                     Boolean?
   has_displaced                   Boolean?
+  needs_medical_support           Boolean?
 
   @@index([group_id, created_at(sort: Desc), id], map: "occurrences_group_created")
   @@index([registering_institution_code, created_at(sort: Desc), id], map: "occurrences_registering_created")

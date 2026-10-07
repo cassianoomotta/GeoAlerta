@@ -26,3 +26,11 @@ test('RF-016 neutraliza fórmulas e escapa aspas e quebras de linha',()=>{
 test('RF-016 conjunto vazio ainda gera cabeçalho verificável',()=>{
   expect(buildOccurrencesCsv([],['protocol'])).toBe('\uFEFF"Protocolo"');
 });
+test('apoio médico exporta os três estados sem perder false',()=>{
+  expect(buildOccurrencesCsv([{...item,needsMedicalSupport:true}],['needsMedicalSupport']))
+    .toBe('\uFEFF"Apoio médico"\r\n"Sim"\r\n');
+  expect(buildOccurrencesCsv([{...item,needsMedicalSupport:false}],['needsMedicalSupport']))
+    .toBe('\uFEFF"Apoio médico"\r\n"Não"\r\n');
+  expect(buildOccurrencesCsv([{...item,needsMedicalSupport:null}],['needsMedicalSupport']))
+    .toBe('\uFEFF"Apoio médico"\r\n"Não informado"\r\n');
+});

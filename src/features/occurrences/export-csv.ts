@@ -9,6 +9,7 @@ function safeCell(value:unknown):string{
 export function buildOccurrencesCsv(items:readonly ListItem[],columns:readonly Column[]):string{
   const header=columns.map(column=>safeCell(columnLabels[column])).join(';');
   const rows=items.map(item=>columns.map(column=>{
+    if(column==='needsMedicalSupport')return safeCell(item.needsMedicalSupport==null?'Não informado':item.needsMedicalSupport?'Sim':'Não');
     const value=column==='groupId'?item.groupName:item[column];
     return safeCell(value);
   }).join(';'));

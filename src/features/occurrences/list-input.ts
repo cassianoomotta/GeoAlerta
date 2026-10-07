@@ -1,9 +1,9 @@
 import {STATUSES,type OccurrenceRow,type OccurrenceFilters,type Status,type Priority} from './contracts';
 export const statuses = STATUSES;
-export const publicColumns = ['protocol','createdAt','status','priority','type','groupId'] as const;
+export const publicColumns = ['protocol','createdAt','status','priority','type','groupId','needsMedicalSupport'] as const;
 export const privateColumns = ['reporterName','reporterContact'] as const;
 export type Column = typeof publicColumns[number] | typeof privateColumns[number];
-export const columnLabels: Record<Column,string> = {protocol:'Protocolo',createdAt:'Registro',status:'Status',priority:'Prioridade',type:'Tipo',groupId:'Grupo',reporterName:'Nome do cidadão',reporterContact:'Contato do cidadão'};
+export const columnLabels: Record<Column,string> = {protocol:'Protocolo',createdAt:'Registro',status:'Status',priority:'Prioridade',type:'Tipo',groupId:'Grupo',needsMedicalSupport:'Apoio médico',reporterName:'Nome do cidadão',reporterContact:'Contato do cidadão'};
 export type CategoryStatus='active'|'inactive';
 export type NullableFilter = string | '__NULL__';
 export type BooleanFilter = 'true' | 'false' | '__NULL__';
@@ -19,7 +19,7 @@ export type ListFilters = OccurrenceFilters & {
   agencyCode?:string;
   page:number;pageSize:number;sort:'createdAt'|'priority'|'status';direction:'asc'|'desc';columns?:string[]
 };
-export type ListItem = OccurrenceRow & {groupName:string;reporterName?:string|null;reporterContact?:string|null};
+export type ListItem = OccurrenceRow & {groupName:string;needsMedicalSupport?:boolean|null;reporterName?:string|null;reporterContact?:string|null};
 export type ListCatalogs = {
   registeringInstitutions:{code:string;label:string}[];
   neighborhoods:{code:string;label:string}[];
