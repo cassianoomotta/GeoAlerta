@@ -3,6 +3,7 @@ export const statuses = STATUSES;
 export const publicColumns = ['protocol','createdAt','status','priority','type','groupId','needsMedicalSupport'] as const;
 export const privateColumns = ['reporterName','reporterContact'] as const;
 export type Column = typeof publicColumns[number] | typeof privateColumns[number];
+export type SortColumn = Column;
 export const columnLabels: Record<Column,string> = {protocol:'Protocolo',createdAt:'Registro',status:'Status',priority:'Prioridade',type:'Tipo',groupId:'Grupo',needsMedicalSupport:'Apoio médico',reporterName:'Nome do cidadão',reporterContact:'Contato do cidadão'};
 export type CategoryStatus='active'|'inactive';
 export type NullableFilter = string | '__NULL__';
@@ -17,7 +18,7 @@ export type ListFilters = OccurrenceFilters & {
   hasVictims?:BooleanFilter;
   hasDisplaced?:BooleanFilter;
   agencyCode?:string;
-  page:number;pageSize:number;sort:'createdAt'|'priority'|'status';direction:'asc'|'desc';columns?:string[]
+  page:number;pageSize:number;sort:SortColumn;direction:'asc'|'desc';columns?:string[]
 };
 export type ListItem = OccurrenceRow & {groupName:string;needsMedicalSupport?:boolean|null;reporterName?:string|null;reporterContact?:string|null};
 export type ListCatalogs = {
@@ -63,7 +64,7 @@ export function parseListFilters(params:URLSearchParams):ListFilters{
   };
   const registeringInstitutionCode=code('registeringInstitutionCode'),neighborhoodCode=code('neighborhoodCode'),localityCode=code('localityCode'),damageLocationCode=code('damageLocationCode'),agencyCode=code('agencyCode');
   const situation=get('situation');
-  if(!['createdAt','priority','status'].includes(sort)||!['asc','desc'].includes(direction)||status&&!statuses.includes(status as typeof statuses[number])||priority&&!['ALTA','NORMAL'].includes(priority)||type&&type.length>80||categoryStatus&&!['active','inactive'].includes(categoryStatus)||groupId&&!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(groupId)||(climateEventId!=='__NULL__'&&climateEventId!==undefined&&!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(climateEventId))||situation&&!['EM_RISCO','JA_OCORREU','__NULL__'].includes(situation)||agencyCode==='__NULL__')throw new ListInputError();
+  if(!([...publicColumns,...privateColumns] as string[]).includes(sort)||!['asc','desc'].includes(direction)||status&&!statuses.includes(status as typeof statuses[number])||priority&&!['ALTA','NORMAL'].includes(priority)||type&&type.length>80||categoryStatus&&!['active','inactive'].includes(categoryStatus)||groupId&&!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(groupId)||(climateEventId!=='__NULL__'&&climateEventId!==undefined&&!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(climateEventId))||situation&&!['EM_RISCO','JA_OCORREU','__NULL__'].includes(situation)||agencyCode==='__NULL__')throw new ListInputError();
   const from=get('from')?date(get('from')!,false):undefined,to=get('to')?date(get('to')!,true):undefined;
   if(from&&to&&from>=to)throw new ListInputError();
   return {from,to,status:status as Status|undefined,priority:priority as Priority|undefined,type,categoryStatus:categoryStatus as CategoryStatus|undefined,groupId,climateEventId:climateEventId as ListFilters['climateEventId'],registeringInstitutionCode,neighborhoodCode,localityCode,situation:situation as ListFilters['situation'],damageLocationCode,hasVictims:bool('hasVictims'),hasDisplaced:bool('hasDisplaced'),agencyCode,page:integer('page',1,1000000),pageSize:integer('pageSize',50,100),sort:sort as ListFilters['sort'],direction:direction as ListFilters['direction'],...(get('columns')?{columns:get('columns')!.split(',')}:{})};

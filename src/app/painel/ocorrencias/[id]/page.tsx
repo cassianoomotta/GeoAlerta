@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { use } from 'react';
 import { useEffect, useState } from 'react';
 import {OccurrencePhoto} from '@/features/occurrences/ui/OccurrencePhoto';
+import {auditActionLabel} from '@/features/audit/application/presentation';
 import {PriorityBadge,StatusBadge} from '@/features/occurrences/ui/OccurrenceBadges';
 import type { Priority, Status } from '@/features/occurrences/contracts';
 
@@ -84,6 +85,7 @@ export default function OccurrenceDetailPage({ params }: { params: Promise<{ id:
 function OccurrenceDetailView({id}: {id: string}) {
   const [detail, setDetail] = useState<OccurrenceDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<'unavailable' | 'failed' | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -92,12 +94,15 @@ function OccurrenceDetailView({id}: {id: string}) {
       signal: controller.signal,
     })
       .then(async (response) => {
-        if (!response.ok) throw new Error('Occurrence unavailable');
+        if (!response.ok) {
+          setLoadError(response.status >= 500 ? 'failed' : 'unavailable');
+          return null;
+        }
         return await response.json() as OccurrenceDetail;
       })
-      .then(setDetail)
+      .then((value) => { if(value) setDetail(value); })
       .catch(() => {
-        if (!controller.signal.aborted) setDetail(null);
+        if (!controller.signal.aborted) setLoadError('failed');
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false);
@@ -118,12 +123,14 @@ function OccurrenceDetailView({id}: {id: string}) {
   }
 
   if (!detail) {
+    const unavailable = loadError !== 'failed';
     return (
       <main className="mx-auto w-full max-w-5xl space-y-5 p-4 sm:p-6" aria-labelledby="occurrence-unavailable-title">
         <Link className="text-sm font-medium text-primary hover:text-primary" href="/painel/ocorrencias">← Voltar para ocorrências</Link>
         <section className="glass-card p-6 sm:p-8">
-          <h1 id="occurrence-unavailable-title" className="text-xl font-bold text-foreground">Ocorrência indisponível</h1>
-          <p className="mt-2 text-sm text-muted-foreground">Não foi possível localizar esta ocorrência ou você não tem acesso a ela.</p>
+          <h1 id="occurrence-unavailable-title" className="text-xl font-bold text-foreground">{unavailable?'Ocorrência indisponível':'Falha ao carregar ocorrência'}</h1>
+          <p className="mt-2 text-sm text-muted-foreground">{unavailable?'Não foi possível localizar esta ocorrência ou você não tem acesso a ela.':'O serviço não conseguiu carregar os dados agora. Tente novamente.'}</p>
+          {!unavailable&&<button type="button" onClick={()=>window.location.reload()} className="mt-4 rounded-lg border border-control-border px-3 py-2 text-sm text-foreground">Tentar novamente</button>}
         </section>
       </main>
     );
@@ -187,7 +194,7 @@ function OccurrenceDetailView({id}: {id: string}) {
         ) : <p className="mt-3 text-sm text-muted-foreground">Nenhuma zona registrada na abertura.</p>}
       </section>
 
-      {detail.privateData?.hasPhoto && <section className="glass-card p-5 sm:p-7" aria-label="Foto anexada">
+      {detail.privateData?.hasPhoto && <section className="glass-card p-5 sm:p-7" aria-label="Foto da ocorrência">
         <OccurrencePhoto occurrenceId={detail.id} />
       </section>}
 
@@ -232,7 +239,7 @@ function OccurrenceDetailView({id}: {id: string}) {
             {detail.events.map((event) => (
               <li key={event.id} className="relative border-b border-border py-3 last:border-b-0">
                 <span aria-hidden="true" className="absolute -left-[1.58rem] top-4 h-2 w-2 rounded-full bg-primary text-primary-foreground" />
-                <p className="text-sm font-medium text-foreground">{event.kind.replaceAll('_', ' ')}</p>
+                <p className="text-sm font-medium text-foreground">{auditActionLabel(event.kind)}</p>
                 <time className="mt-1 block text-xs text-muted-foreground" dateTime={event.at}>{formatDate(event.at)}</time>
               </li>
             ))}

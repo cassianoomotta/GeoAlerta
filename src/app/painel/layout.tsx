@@ -66,7 +66,7 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
       <GeoAlertaLogo className="block h-auto w-40 max-w-full" />
     </Link>
     <p className="mt-1 text-sm text-muted-foreground">Gabinete de Crise Integrado</p>
-    <p className="mt-2 text-sm text-muted-foreground">Santo Antônio da Patrulha · RS</p>
+    <p className="mt-2 text-sm text-muted-foreground">Santo Antônio da <span className="whitespace-nowrap">Patrulha · RS</span></p>
   </div>;
   const phoneList = <section aria-label="Contatos de plantão" className="mt-auto border-t pt-5">
     <h2 className="mb-3 text-sm font-medium text-foreground">Plantão</h2>

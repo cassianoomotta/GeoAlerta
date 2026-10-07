@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import {ArrowDown,ArrowUp,ArrowUpDown} from 'lucide-react';
 import {can} from '@/features/access/domain/permissions';
 import {withSession} from '@/server/access/session';
 import {listOccurrences} from '@/server/occurrences/list';
@@ -67,7 +68,7 @@ export default async function Occurrences({searchParams}:{searchParams:Promise<R
       <label>Desabrigados/desalojados<select className="block w-full rounded bg-surface p-2" name="hasDisplaced" defaultValue={filters.hasDisplaced??''}><option value="">Todas</option><option value="__NULL__">Não informado</option><option value="true">Sim</option><option value="false">Não</option></select></label>
       <label>Órgão que atendeu<select className="block w-full rounded bg-surface p-2" name="agencyCode" defaultValue={filters.agencyCode??''}><option value="">Todos</option>{catalogs.serviceAgencies.map(item=><option key={item.code} value={item.code}>{item.label}</option>)}</select></label>
       {groups.length>1?<label>Grupo<select className="block w-full rounded bg-surface p-2" name="groupId" defaultValue={filters.groupId??''}><option value="">Todos autorizados</option>{groups.map(g=><option key={g.id} value={g.id}>{g.name}</option>)}</select></label>:filters.groupId&&<input type="hidden" name="groupId" value={filters.groupId}/>}
-      <label>Ordenar por<select className="block w-full rounded bg-surface p-2" name="sort" defaultValue={filters.sort}><option value="createdAt">Registro</option><option value="priority">Prioridade</option><option value="status">Status</option></select></label>
+      <label>Ordenar por<select className="block w-full rounded bg-surface p-2" name="sort" defaultValue={filters.sort}>{availableColumns.map(column=><option key={column} value={column}>{columnLabels[column]}</option>)}</select></label>
       <label>Direção<select className="block w-full rounded bg-surface p-2" name="direction" defaultValue={filters.direction}><option value="desc">Decrescente</option><option value="asc">Crescente</option></select></label>
       <label>Por página<select className="block w-full rounded bg-surface p-2" name="pageSize" defaultValue={filters.pageSize}>{[10,25,50,100,...([10,25,50,100].includes(filters.pageSize)?[]:[filters.pageSize])].map(n=><option key={n} value={n}>{n}</option>)}</select></label>
       <button className="self-end rounded bg-primary px-4 py-2 text-primary-foreground">Aplicar filtros</button>
@@ -75,7 +76,13 @@ export default async function Occurrences({searchParams}:{searchParams:Promise<R
     </details>
     <ColumnPreferences key={columns.join(',')} columns={columns} available={availableColumns} filters={filters}/>
     <p role="status">{total} ocorrências · Página {filters.page} de {pages}</p>
-    {items.length?<div className="overflow-x-auto"><table className="w-full text-left text-sm"><caption className="sr-only">Lista de ocorrências autorizadas</caption><thead><tr>{columns.map(c=><th key={c} className="border-b border-control-border p-3">{['createdAt','priority','status'].includes(c)?<Link href={listHref(filters,{sort:c as typeof filters.sort,direction:filters.sort===c&&filters.direction==='desc'?'asc':'desc',page:1})}>{columnLabels[c]}</Link>:columnLabels[c]}</th>)}</tr></thead><tbody>{items.map(item=><tr key={item.id}>{columns.map(c=><td key={c} className="border-b border-border p-3">{cell(item,c,labels)}</td>)}</tr>)}</tbody></table></div>:<p>Nenhuma ocorrência encontrada para estes filtros.</p>}
+    {items.length?<div className="overflow-x-auto"><table className="w-full text-left text-sm"><caption className="sr-only">Lista de ocorrências autorizadas</caption><thead><tr>{columns.map(c=>{
+      const active=filters.sort===c;
+      const direction=active&&filters.direction==='desc'?'asc':'desc';
+      const Icon=active?(filters.direction==='desc'?ArrowDown:ArrowUp):ArrowUpDown;
+      const noWrap=c==='protocol';
+      return <th key={c} aria-sort={active?(filters.direction==='asc'?'ascending':'descending'):'none'} className={`border-b border-control-border bg-primary/20 p-3 ${noWrap?'whitespace-nowrap':''}`}><Link className="inline-flex items-center gap-1 whitespace-nowrap hover:text-primary" aria-label={`Ordenar por ${columnLabels[c]}`} href={listHref(filters,{sort:c,direction,page:1})}><span>{columnLabels[c]}</span><Icon size={15} aria-hidden="true" /></Link></th>;
+    })}</tr></thead><tbody>{items.map(item=><tr key={item.id} className="transition-colors hover:bg-primary/10 focus-within:bg-primary/10">{columns.map(c=><td key={c} className="border-b border-border p-3">{cell(item,c,labels)}</td>)}</tr>)}</tbody></table></div>:<p>Nenhuma ocorrência encontrada para estes filtros.</p>}
     <nav aria-label="Paginação" className="flex gap-6">{filters.page>1&&<Link href={listHref(filters,{page:filters.page-1})}>Página anterior</Link>}{filters.page<pages&&<Link href={listHref(filters,{page:filters.page+1})}>Próxima página</Link>}</nav>
   </section>;
 }
