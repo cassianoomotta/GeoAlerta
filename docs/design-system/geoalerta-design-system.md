@@ -6,7 +6,7 @@ Versão 1.1 · 06/10/2026 · **Base visual integrada à interface ativa; evoluç
 
 A implementação local integra as cores e seus estados com `scripts/generate-design-tokens.mjs`, `src/styles/tokens.css` e Tailwind 3. Claro é o padrão. Claro/Escuro/Sistema são selecionáveis no login, cabeçalho desktop, menu mobile, perfil e catálogo; a preferência fica somente no navegador e é aplicada antes da primeira pintura. Sem armazenamento disponível, a troca continua funcionando durante a sessão.
 
-A base reutilizável em `src/components/ui/` inclui `Button`, `Field`, `Badge`, `InlineNotice`, `PageHeader`, `EmptyState` e `Skeleton`. `PriorityBadge` e `StatusBadge` pertencem à feature de ocorrências. O catálogo público `/design-system` apresenta exemplos fictícios sem operar dados. O shell do painel usa superfícies sólidas, sidebar de 224 px, navegação móvel e diálogo nativo com foco contido e Escape.
+A base reutilizável em `src/components/ui/` inclui `Button`, `Field`, `Badge`, `InlineNotice`, `PageHeader`, `EmptyState` e `Skeleton`. `PriorityBadge` e `StatusBadge` pertencem à feature de ocorrências. O catálogo público `/design-system` apresenta exemplos fictícios sem operar dados. O shell do painel usa superfícies sólidas, sidebar de 240 px, navegação móvel e diálogo nativo com foco contido e Escape.
 
 Login, perfil, formulário público, lista, detalhe, administração e abrigos usam a paleta semântica. Lista, detalhe, mapa e centro de alertas separam prioridade de situação. Os rótulos configurados são mantidos; as marcas institucionais permanecem em placas brancas. O mapa recebe legenda, forma triangular para prioridade alta, popups temáticos e acesso à lista equivalente.
 

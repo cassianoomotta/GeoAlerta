@@ -6,7 +6,8 @@ import type {DailyActivity,IndicatorView} from '../domain/dashboard-indicators';
 
 export type StatusPresentation={code:Status;label:string;displayOrder:number};
 export const defaultPresentations:StatusPresentation[]=[{code:'NOVA',label:'Nova',displayOrder:1},{code:'EM_TRIAGEM',label:'Em triagem',displayOrder:2},{code:'EM_ATENDIMENTO',label:'Em atendimento',displayOrder:3},{code:'RESOLVIDA',label:'Resolvida',displayOrder:4},{code:'CANCELADA',label:'Cancelada',displayOrder:5}];
-const statusColors:Record<Status,string>={NOVA:'var(--primary)',EM_TRIAGEM:'var(--warning)',EM_ATENDIMENTO:'var(--info)',RESOLVIDA:'var(--success)',CANCELADA:'var(--text-muted)'};
+const chartColors={daily:'#087580',type:'#426A8A',opened:'var(--chart-opened)',closed:'var(--chart-closed)'} as const;
+const statusColors:Record<Status,string>={NOVA:'#087580',EM_TRIAGEM:'#A56B12',EM_ATENDIMENTO:'#426A8A',RESOLVIDA:'#43845F',CANCELADA:'var(--chart-cancelled)'};
 const number=new Intl.NumberFormat('pt-BR');
 const date=(day:string)=>`${day.slice(8,10)}/${day.slice(5,7)}`;
 const fullDate=(day:string)=>`${date(day)}/${day.slice(0,4)}`;
@@ -59,7 +60,7 @@ function BarChart({items,kind}:{items:{label:string;value:number;detail:string}[
     {items.map((item,index)=>{
       const x=left+span*(index+0.5);
       const short=kind==='types'&&item.label.length>11?`${item.label.slice(0,10)}…`:item.label;
-      return <g key={`${item.label}-${index}`}><rect x={x-barWidth/2} y={scale.y(item.value)} width={barWidth} height={bottom-scale.y(item.value)} rx={3} fill={kind==='types'?'var(--info)':'var(--primary)'}><title>{item.detail}: {number.format(item.value)} ocorrências</title></rect>
+      return <g key={`${item.label}-${index}`}><rect x={x-barWidth/2} y={scale.y(item.value)} width={barWidth} height={bottom-scale.y(item.value)} rx={3} fill={kind==='types'?chartColors.type:chartColors.daily}><title>{item.detail}: {number.format(item.value)} ocorrências</title></rect>
         {items.length<=12&&item.value>0&&<text x={x} y={scale.y(item.value)-6} textAnchor="middle" fill="var(--text)" fontSize={13} fontWeight={600}>{number.format(item.value)}</text>}
         {index%stride===0&&<text x={x} y={bottom+24} textAnchor="middle" fill="var(--text-muted)" fontSize={12}><title>{item.detail}</title>{short}</text>}
       </g>;
@@ -88,11 +89,22 @@ function ActivityArea({daily}:{daily:DailyActivity[]}){
   const x=(index:number)=>left+(daily.length===1?span/2:index/(daily.length-1)*span);
   const stride=Math.max(1,Math.ceil(daily.length/Math.max(2,Math.floor(span/65))));
   const points=(key:'opened'|'closed')=>daily.length===1?`${left},${scale.y(daily[0][key])} ${width-12},${scale.y(daily[0][key])}`:daily.map((item,index)=>`${x(index)},${scale.y(item[key])}`).join(' ');
-  return <div ref={ref}><div className="mb-3 flex flex-wrap gap-x-5 gap-y-2 text-sm"><span className="flex items-center gap-2"><span aria-hidden="true" className="h-0.5 w-5 bg-primary"/>Abertas</span><span className="flex items-center gap-2"><span aria-hidden="true" className="w-5 border-t-2 border-dashed border-success"/>Encerradas</span></div>
+  return <div ref={ref}><div className="mb-3 flex flex-wrap gap-x-5 gap-y-2 text-sm"><span className="flex items-center gap-2"><span aria-hidden="true" className="h-0.5 w-5" style={{backgroundColor:chartColors.opened}}/>Abertas</span><span className="flex items-center gap-2"><span aria-hidden="true" className="w-5 border-t-2 border-dashed" style={{borderColor:chartColors.closed}}/>Encerradas</span></div>
     <svg width="100%" viewBox={`0 0 ${width} ${height}`} height={height} className="block" role="img" aria-label="Gráfico de área: ocorrências abertas versus encerradas por dia">
       <Grid width={width} scale={scale}/>
-      {(['opened','closed'] as const).map(key=><g key={key}><polygon points={`${left},${bottom} ${points(key)} ${width-12},${bottom}`} fill={key==='opened'?'var(--primary)':'var(--success)'} fillOpacity={0.13}/><polyline points={points(key)} fill="none" stroke={key==='opened'?'var(--primary)':'var(--success)'} strokeWidth={2.5} strokeDasharray={key==='closed'?'6 4':undefined}/></g>)}
-      {daily.map((item,index)=><g key={item.day}>{(['opened','closed'] as const).map(key=><circle key={key} cx={x(index)} cy={scale.y(item[key])} r={daily.length>40?2:3.5} fill={key==='opened'?'var(--primary)':'var(--success)'} stroke="var(--surface)" strokeWidth={1}><title>{fullDate(item.day)}: {item[key]} {key==='opened'?'abertas':'encerradas'}</title></circle>)}{index%stride===0&&<text x={x(index)} y={bottom+24} textAnchor={index===0?'start':index===daily.length-1?'end':'middle'} fill="var(--text-muted)" fontSize={12}>{date(item.day)}</text>}</g>)}
+      {(['opened','closed'] as const).map(key=><g key={key}><polygon points={`${left},${bottom} ${points(key)} ${width-12},${bottom}`} fill={key==='opened'?chartColors.opened:chartColors.closed} fillOpacity={0.13}/><polyline points={points(key)} fill="none" stroke={key==='opened'?chartColors.opened:chartColors.closed} strokeWidth={2.5} strokeDasharray={key==='closed'?'6 4':undefined}/></g>)}
+      {daily.map((item,index)=>(
+        <g key={item.day}>
+          {(['opened','closed'] as const).map(key=>(
+            <circle key={key} cx={x(index)} cy={scale.y(item[key])} r={daily.length>40?2:3.5} fill={key==='opened'?chartColors.opened:chartColors.closed} stroke="var(--surface)" strokeWidth={1}>
+              <title>{fullDate(item.day)}: {item[key]} {key==='opened'?'abertas':'encerradas'}</title>
+            </circle>
+          ))}
+          {index%stride===0&&(
+            <text x={x(index)} y={bottom+24} textAnchor={index===0?'start':index===daily.length-1?'end':'middle'} fill="var(--text-muted)" fontSize={12}>{date(item.day)}</text>
+          )}
+        </g>
+      ))}
     </svg>
   </div>;
 }

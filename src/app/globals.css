@@ -47,6 +47,7 @@
 }
 
 @layer components {
+  .geoalerta-logo { background-color: transparent !important; filter: none !important; opacity: 1 !important; }
   /* Compatibility name for existing panels during the incremental migration. */
   .glass-card, .surface-panel { @apply rounded-xl border border-border bg-surface; }
   .btn {

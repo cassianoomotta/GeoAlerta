@@ -66,7 +66,7 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
       <GeoAlertaLogo className="block h-auto w-40 max-w-full" />
     </Link>
     <p className="mt-1 text-sm text-muted-foreground">Gabinete de Crise Integrado</p>
-    <p className="mt-2 text-sm text-muted-foreground">Santo Antônio da <span className="whitespace-nowrap">Patrulha · RS</span></p>
+    <p className="mt-2 text-xs text-muted-foreground"><span className="whitespace-nowrap">Santo Antônio da Patrulha · RS</span></p>
   </div>;
   const phoneList = <section aria-label="Contatos de plantão" className="mt-auto border-t pt-5">
     <h2 className="mb-3 text-sm font-medium text-foreground">Plantão</h2>
@@ -77,7 +77,7 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
 
   return <div className="flex h-dvh overflow-hidden bg-background text-foreground">
     <a href="#panel-content" className="skip-link">Pular para o conteúdo</a>
-    <aside className="hidden w-56 shrink-0 flex-col gap-6 overflow-y-auto border-r bg-surface p-5 lg:flex">
+    <aside className="hidden w-60 shrink-0 flex-col gap-6 overflow-y-auto border-r bg-surface p-5 lg:flex">
       {identity}{navigation}{phoneList}
     </aside>
     <dialog ref={dialog} aria-labelledby="mobile-nav-title" onCancel={() => setMobileMenuOpen(false)} onClose={() => setMobileMenuOpen(false)} onClick={event => { if (event.target === event.currentTarget) setMobileMenuOpen(false); }}

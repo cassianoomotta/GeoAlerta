@@ -65,7 +65,7 @@ export async function listOccurrences(tx:Prisma.TransactionClient,actor:Actor,fi
   // Total and page share one SQL statement/snapshot; only the limited page leaves the DB.
   const rows=await tx.$queryRaw<{total:number;items:ListItem[]}[]>(Prisma.sql`
     WITH counted AS(SELECT count(*)::int AS total FROM public.occurrences o WHERE ${where}),
-    page AS(SELECT o.id,o.protocol,o.type,o.status,o.priority,o.version,o.created_at AS "createdAt",o.updated_at AS "updatedAt",o.group_id AS "groupId",g.name AS "groupName",o.climate_event_id::text AS "climateEventId",ce.name AS "climateEventName",o.needs_medical_support AS "needsMedicalSupport" ${extra}
+    page AS(SELECT o.id,o.protocol,o.type,o.status,o.priority,o.version,o.created_at AS "createdAt",o.updated_at AS "updatedAt",o.group_id AS "groupId",g.name AS "groupName",o.climate_event_id::text AS "climateEventId",ce.name AS "climateEventName",o.needs_medical_support AS "needsMedicalSupport" ${extra},${sort} AS "__sortValue"
       FROM public.occurrences o JOIN public.groups g ON g.id=o.group_id LEFT JOIN public.climate_events ce ON ce.id=o.climate_event_id ${join} WHERE ${where}
       ORDER BY ${sort} ${direction},o.id ASC LIMIT ${filters.pageSize} OFFSET ${(filters.page-1)*filters.pageSize})
     SELECT total,coalesce((SELECT jsonb_agg(to_jsonb(p)-'__sortValue' ORDER BY p."__sortValue" ${direction},p.id ASC) FROM page p),'[]'::jsonb) AS items FROM counted`);
@@ -77,7 +77,7 @@ export async function exportOccurrences(tx:Prisma.TransactionClient,actor:Actor,
   const rows=await tx.$queryRaw<{item:ListItem;total:number}[]>(Prisma.sql`
     WITH filtered AS (
       SELECT o.id,o.protocol,o.type,o.status,o.priority,o.version,
-        o.created_at AS "createdAt",o.updated_at AS "updatedAt",o.group_id AS "groupId",g.name AS "groupName",o.climate_event_id::text AS "climateEventId",ce.name AS "climateEventName",o.needs_medical_support AS "needsMedicalSupport" ${extra}
+        o.created_at AS "createdAt",o.updated_at AS "updatedAt",o.group_id AS "groupId",g.name AS "groupName",o.climate_event_id::text AS "climateEventId",ce.name AS "climateEventName",o.needs_medical_support AS "needsMedicalSupport" ${extra},${sort} AS "__sortValue"
       FROM public.occurrences o JOIN public.groups g ON g.id=o.group_id LEFT JOIN public.climate_events ce ON ce.id=o.climate_event_id ${join}
       WHERE ${where}
     )

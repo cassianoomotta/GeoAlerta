@@ -16,6 +16,12 @@
   --control-border-rgb: 123 139 134;
   --primary: #087580;
   --primary-rgb: 8 117 128;
+  --chart-opened: #087580;
+  --chart-opened-rgb: 8 117 128;
+  --chart-closed: #43845F;
+  --chart-closed-rgb: 67 132 95;
+  --chart-cancelled: #A83F3F;
+  --chart-cancelled-rgb: 168 63 63;
   --primary-foreground: #FFFFFF;
   --primary-foreground-rgb: 255 255 255;
   --primary-hover: #06616A;
@@ -108,6 +114,12 @@
   --control-border-rgb: 123 145 134;
   --primary: #69B8BD;
   --primary-rgb: 105 184 189;
+  --chart-opened: #43C2CC;
+  --chart-opened-rgb: 67 194 204;
+  --chart-closed: #8CCF9A;
+  --chart-closed-rgb: 140 207 154;
+  --chart-cancelled: #F06B70;
+  --chart-cancelled-rgb: 240 107 112;
   --primary-foreground: #142523;
   --primary-foreground-rgb: 20 37 35;
   --primary-hover: #7FC6CB;
