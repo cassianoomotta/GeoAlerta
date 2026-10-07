@@ -49,6 +49,7 @@ model occurrences {
   accuracy                        Float?
   priority                        String                            @default("NORMAL")
   group_id                        String                            @db.Uuid
+  climate_event_id                String?                           @db.Uuid
   version                         Int                               @default(1)
   updated_at                      DateTime                          @default(now()) @db.Timestamptz(6)
   deleted_at                      DateTime?                         @db.Timestamptz(6)
@@ -60,6 +61,7 @@ model occurrences {
   occurrence_private_data         occurrence_private_data?
   occurrence_service_records      occurrence_service_records[]
   groups                          groups                            @relation(fields: [group_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  climate_event                   climate_events?                   @relation(fields: [climate_event_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   registering_institution         occurrence_registering_institutions? @relation(fields: [registering_institution_code], references: [code], onDelete: NoAction, onUpdate: NoAction)
   neighborhood                    occurrence_neighborhoods?          @relation(fields: [neighborhood_code], references: [code], onDelete: NoAction, onUpdate: NoAction)
   locality                        occurrence_localities?             @relation(fields: [locality_code], references: [code], onDelete: NoAction, onUpdate: NoAction)
@@ -318,6 +320,26 @@ model groups {
   user_group_memberships user_group_memberships[]
 
   @@unique([municipality_id, name])
+}
+
+/// Municipal climate events; writes are guarded by lifecycle triggers and RLS.
+model climate_events {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  municipality_id String
+  name            String
+  planned_start   DateTime      @db.Date
+  planned_end     DateTime      @db.Date
+  state           String        @default("PLANEJADO")
+  started_at      DateTime?     @db.Timestamptz(6)
+  ended_at        DateTime?     @db.Timestamptz(6)
+  created_by      String        @db.Uuid
+  created_at      DateTime      @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime      @default(now()) @db.Timestamptz(6)
+  version         Int           @default(1)
+  occurrences     occurrences[]
+
+  @@unique([municipality_id], map: "climate_events_one_active_per_municipality", where: raw("state = 'EM_ANDAMENTO'"))
+  @@index([municipality_id, state, planned_start(sort: Desc), id], map: "climate_events_municipality_state")
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.

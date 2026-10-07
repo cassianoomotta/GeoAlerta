@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Building2, LayoutDashboard, List, MapPin, Menu, Plus, UserRound, X } from 'lucide-react';
+import { Building2, CloudRain, LayoutDashboard, List, MapPin, Menu, Plus, UserRound, X } from 'lucide-react';
 import { CoreNotifications } from '@/features/occurrences/ui/CoreNotifications';
 import { getEnabledModules } from '@/modules/registry';
 import { ThemeSelect } from '@/components/theme/theme-select';
@@ -29,14 +29,18 @@ function isModuleActive(href: string, pathname: string) {
 export default function PainelLayout({ children }: { children: React.ReactNode }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [canAdminister, setCanAdminister] = useState(false);
+  const [canManageEvents, setCanManageEvents] = useState(false);
   const dialog = useRef<HTMLDialogElement>(null);
   const pathname = usePathname();
 
   useEffect(() => {
     let active = true;
-    fetch('/api/core/access?capability=administer', { cache: 'no-store' })
-      .then(response => { if (active && response.ok) setCanAdminister(true); })
-      .catch(() => { if (active) setCanAdminister(false); });
+    Promise.all([
+      fetch('/api/core/access?capability=administer', { cache: 'no-store' }),
+      fetch('/api/core/access?capability=reclassify', { cache: 'no-store' }),
+    ]).then(([admin, events]) => {
+      if (active) { setCanAdminister(admin.ok); setCanManageEvents(events.ok); }
+    }).catch(() => { if (active) { setCanAdminister(false); setCanManageEvents(false); } });
     return () => { active = false; };
   }, []);
 
@@ -47,6 +51,7 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
 
   const links = [
     ...getEnabledModules().map(module => ({ href: module.href, label: module.label, icon: icons[module.slug] })),
+    ...(canManageEvents ? [{ href: '/painel/admin/climate-events', label: 'Eventos climáticos', icon: <CloudRain size={18} aria-hidden="true" /> }] : []),
     ...(canAdminister ? [{ href: '/painel/admin/shelters', label: 'Abrigos', icon: <Building2 size={18} aria-hidden="true" /> }] : []),
     { href: '/painel/perfil', label: 'Meu perfil', icon: <UserRound size={18} aria-hidden="true" /> },
   ];

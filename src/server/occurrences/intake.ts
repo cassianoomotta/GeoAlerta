@@ -8,6 +8,7 @@ import {classifyOccurrence,persistOccurrence} from './persist';
 import {resolvePhotoToken} from '@/features/occurrences/photos/token';
 import {photoSecret} from '@/server/photos/storage';
 import {PublicInputError} from '@/features/occurrences/public-input';
+import {resolveActiveClimateEvent} from '@/server/climate-events/intake';
 export class IntakeError extends Error {
   constructor(public status:409|429,public code:string){super(code);}
 }
@@ -53,6 +54,7 @@ export async function openOccurrence(input:PublicOccurrenceInput,key:string,orig
     if(!allowed.length)throw new IntakeError(429,'RATE_LIMITED');
     const groups=await tx.$queryRaw<{id:string}[]>`SELECT id FROM public.groups WHERE is_default AND municipality_id='sa_patrulha'`;
     if(groups.length!==1)throw new Error('Default group unavailable.');
+    const climateEventId=await resolveActiveClimateEvent(tx,'sa_patrulha');
     const classification=await classifyOccurrence(tx,input.position);
     const result:OpenResult=await persistOccurrence(tx,{
       input,
@@ -60,6 +62,7 @@ export async function openOccurrence(input:PublicOccurrenceInput,key:string,orig
       idempotencyKey:key,
       requestHash:hash,
       classification,
+      climateEventId,
       actorId:null,
       occurrenceId:id,
       photoObjectKey,

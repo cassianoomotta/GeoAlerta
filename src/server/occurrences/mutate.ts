@@ -22,9 +22,9 @@ export async function mutateOccurrenceInTransaction(
     getOccurrence: async (occurrenceId) => {
       const rows = await tx.$queryRaw<{
         id: string; type: string; description: string | null; status: Status; priority: Priority;
-        group_id: string; version: number; deleted_at: Date | null;
+        group_id: string; version: number; deleted_at: Date | null; climate_event_id: string | null;
       }[]>`
-        SELECT id::text AS id,type,description,status,priority,group_id::text AS group_id,version,deleted_at
+        SELECT id::text AS id,type,description,status,priority,group_id::text AS group_id,version,deleted_at,climate_event_id::text AS climate_event_id
         FROM public.occurrences WHERE id=${occurrenceId}::uuid
       `;
       const row = rows[0];
@@ -37,6 +37,7 @@ export async function mutateOccurrenceInTransaction(
         groupId: row.group_id,
         version: row.version,
         deletedAt: row.deleted_at,
+        climateEventId: row.climate_event_id,
       } : null;
     },
     groupExistsInMunicipality: async (groupId, municipalityId) => {
@@ -55,6 +56,15 @@ export async function mutateOccurrenceInTransaction(
       return row ? { enabled: row.enabled, roles: parseRoles(row.roles), reasonRequired: row.reason_required } : undefined;
     },
     saveAtomically: async (mutation) => {
+      if (mutation.climateEventId !== undefined) {
+        await tx.$queryRaw`SELECT set_config('core.mutation_reason',${mutation.reason ?? ''},true)`;
+        const updated = await tx.$executeRaw`
+          UPDATE public.occurrences SET climate_event_id=${mutation.climateEventId}::uuid,
+            version=version+1,updated_at=transaction_timestamp()
+          WHERE id=${mutation.occurrence.id}::uuid AND version=${mutation.expectedVersion} AND deleted_at IS NULL
+        `;
+        return updated === 1;
+      }
       if (mutation.deletedAt !== undefined) {
         await tx.$queryRaw`SELECT set_config('core.mutation_reason',${mutation.reason ?? ''},true)`;
         const updated = mutation.deletedAt
