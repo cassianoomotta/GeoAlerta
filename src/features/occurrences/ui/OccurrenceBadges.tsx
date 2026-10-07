@@ -5,12 +5,12 @@ import type { Priority, Status } from '../contracts';
 const statusAppearance = {
   NOVA: { tone: 'neutral', Icon: Circle }, EM_TRIAGEM: { tone: 'warning', Icon: Clock },
   EM_ATENDIMENTO: { tone: 'info', Icon: Activity }, RESOLVIDA: { tone: 'success', Icon: CircleCheck },
-  CANCELADA: { tone: 'neutral', Icon: CircleX },
+  CANCELADA: { tone: 'danger', Icon: CircleX },
 } satisfies Record<Status, { tone: Tone; Icon: typeof Circle }>;
 
 export function StatusBadge({ status, label }: { status: Status; label: string }) {
   const { tone, Icon } = statusAppearance[status];
-  return <Badge tone={tone} icon={<Icon size={16} />}>{label}</Badge>;
+  return <Badge tone={tone} className={status === 'EM_ATENDIMENTO' ? 'max-w-none whitespace-nowrap' : ''} icon={<Icon size={16} />}>{label}</Badge>;
 }
 
 export function PriorityBadge({ priority }: { priority: Priority }) {
