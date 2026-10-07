@@ -6,11 +6,9 @@ test('reconecta o feed de alertas e recupera uma ocorrência criada durante a de
   const password=process.env.TASK26_MANAGER_PASSWORD;
   if(!email||!password)throw new Error('Credenciais sintéticas de homologação ausentes.');
 
-  let realtimeSockets=0;
   let successfulJoins=0;
   page.on('websocket',socket=>{
     if(!socket.url().includes('/realtime/v1/websocket'))return;
-    realtimeSockets++;
     socket.on('framereceived',frame=>{
       const payload=typeof frame.payload==='string'?frame.payload:frame.payload.toString();
       if(payload.includes('phx_reply')&&payload.includes('"status":"ok"'))successfulJoins++;
