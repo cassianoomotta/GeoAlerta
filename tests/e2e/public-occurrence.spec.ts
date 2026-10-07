@@ -23,7 +23,8 @@ test('formulário público usa seletor claro e exibe as marcas institucionais',a
   const institutions=page.getByRole('region',{name:'Instituições de atendimento'});
   for(const name of ['Prefeitura de Santo Antônio da Patrulha','Defesa Civil do Rio Grande do Sul','Corpo de Bombeiros Militar do Rio Grande do Sul']){
     const logo=institutions.getByRole('img',{name});await expect(logo).toBeVisible();
-    expect(await logo.evaluate(element=>(element as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+    await logo.scrollIntoViewIfNeeded();
+    await expect.poll(()=>logo.evaluate(element=>{const image=element as HTMLImageElement;return image.complete&&image.naturalWidth>0;})).toBe(true);
   }
   await expect(institutions.getByText('SEMOT', {exact:false})).toBeVisible();
   await expect(institutions.getByText('SMTDS', {exact:false})).toBeVisible();

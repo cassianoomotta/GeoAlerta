@@ -67,6 +67,7 @@ export function AdminPanel() {
     <Link href="/painel/admin/status" className="inline-flex rounded border border-primary/30 px-3 py-2 text-sm text-primary">Configurar rótulos e transições de status</Link>
     <Link href="/painel/admin/risk-zones" className="ml-2 inline-flex rounded border border-warning/30 px-3 py-2 text-sm text-warning">Administrar zonas de risco</Link>
     <Link href="/painel/admin/shelters" className="ml-2 inline-flex rounded border border-success/30 px-3 py-2 text-sm text-success">Administrar abrigos</Link>
+    <Link href="/painel/admin/auditoria" className="ml-2 inline-flex rounded border border-control-border px-3 py-2 text-sm text-foreground">Trilha de auditoria</Link>
     {error && <p role="alert" className="rounded-lg border border-danger/30 bg-danger-soft p-3 text-sm text-danger">{error}</p>}
     {message && <p role="status" className="rounded-lg border border-success/30 bg-success-soft p-3 text-sm text-success">{message}</p>}
     {link && <section className="glass-card space-y-2 p-4"><label htmlFor="provision-link" className="text-sm font-semibold text-foreground">Link de acesso temporário</label><input id="provision-link" readOnly value={link} className="w-full rounded-lg border border-control-border bg-background px-3 py-2 text-xs text-foreground"/><p className="text-xs text-warning">O link é exibido somente após salvar a conta PENDENTE. O sistema não envia e-mail.</p></section>}

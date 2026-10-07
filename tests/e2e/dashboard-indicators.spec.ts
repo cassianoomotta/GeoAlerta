@@ -10,6 +10,7 @@ test.beforeEach(async({context,page})=>{
   await page.route('**/*',route=>['127.0.0.1','localhost'].includes(new URL(route.request().url()).hostname)?route.continue():route.abort());
 });
 test('quadro filtra todos os gráficos, apresenta dados exatos e diferencia encerramento de status atual',async({page})=>{
+  await page.clock.install({time:new Date('2024-06-03T12:00:00-03:00')});
   await page.goto('/painel');
   await expect(page.getByRole('heading',{name:'Quadro de situação',exact:true})).toBeVisible();
   await page.getByLabel('Data inicial do dashboard').fill('2024-06-01');
@@ -27,6 +28,7 @@ test('quadro filtra todos os gráficos, apresenta dados exatos e diferencia ence
   await expect(page.getByText('Todo o histórico',{exact:true})).toBeVisible();
 });
 test('quadro funciona sem overflow em desktop e celular nos temas claro e escuro',async({page})=>{
+  await page.clock.install({time:new Date('2024-06-03T12:00:00-03:00')});
   await mkdir('.cache/dashboard-preview',{recursive:true});
   for(const width of [1440,390]){
     await page.setViewportSize({width,height:1000});
@@ -43,12 +45,16 @@ test('quadro funciona sem overflow em desktop e celular nos temas claro e escuro
   }
 });
 test('período vazio e falha de atualização mantêm mensagens explícitas',async({page})=>{
+  let failRefresh=false;
+  await page.route('**/api/core/dashboard/indicators?*',route=>{
+    return failRefresh
+      ? route.fulfill({status:503,json:{error:{message:'Serviço temporariamente indisponível.'}}})
+      : route.fulfill({status:200,json:{summary:{total:0,open:0,inProgress:0,highPriority:0},byStatus:{NOVA:0,EM_TRIAGEM:0,EM_ATENDIMENTO:0,RESOLVIDA:0,CANCELADA:0},byType:[],daily:[],window:{from:'2026-10-01T03:00:00.000Z',to:'2026-10-07T03:00:00.000Z'},updatedAt:'2026-10-06T15:00:00.000Z'}});
+  });
   await page.goto('/painel');
-  await page.getByLabel('Data inicial do dashboard').fill('2023-01-01');
-  await page.getByLabel('Data final do dashboard').fill('2023-01-03');
   await expect(page.getByText('Nenhuma ocorrência registrada neste período.',{exact:true})).toBeVisible();
   await expect(page.getByText('Nenhuma abertura ou encerramento neste período.',{exact:true})).toBeVisible();
-  await page.route('**/api/core/dashboard/indicators?*',route=>route.fulfill({status:503,json:{error:{message:'Serviço temporariamente indisponível.'}}}));
+  failRefresh=true;
   await page.getByRole('button',{name:'Atualizar',exact:true}).click();
   await expect(page.getByRole('alert').filter({hasText:'Não foi possível atualizar os dados.'})).toContainText('última consulta confirmada');
   await expect(page.getByText(/Dados desatualizados/)).toBeVisible();
