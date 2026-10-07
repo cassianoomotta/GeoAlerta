@@ -18,6 +18,8 @@ interface OccurrenceDetail {
   priority: Priority;
   group: { id: string; name: string };
   position: { latitude: number; longitude: number; accuracy: number | null } | null;
+  registrationChannel: 'PUBLICO' | 'MANUAL' | 'BATALHAO' | null;
+  locationSource: 'GPS_NATIVO' | 'MAPA' | null;
   openedAt: string;
   updatedAt: string;
   version: number;
@@ -74,6 +76,11 @@ function displayBoolean(value: boolean | null) {
 
 function displayValue(value: string | null | undefined) {
   return value?.trim() ? value : 'Não informado';
+}
+
+function registrationChannelLabel(value: OccurrenceDetail['registrationChannel']) {
+  const labels: Record<string, string> = { PUBLICO: 'Cidadão', MANUAL: 'Painel', BATALHAO: 'Batalhão' };
+  return value ? labels[value] ?? 'Não informada' : 'Não informada';
 }
 
 export default function OccurrenceDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -161,6 +168,7 @@ function OccurrenceDetailView({id}: {id: string}) {
           <div><dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Prioridade</dt><dd className="mt-1 text-sm text-foreground">{detail.priority}</dd></div>
           <div><dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Grupo responsável</dt><dd className="mt-1 text-sm text-foreground">{detail.group.name}</dd></div>
           <div><dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Evento climático</dt><dd className="mt-1 text-sm text-foreground">{detail.climateEvent ? `${detail.climateEvent.name} · ${detail.climateEvent.state.replaceAll('_', ' ')}` : 'Sem evento'}</dd></div>
+          <div><dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Origem do registro</dt><dd className="mt-1 text-sm text-foreground">{registrationChannelLabel(detail.registrationChannel)}</dd></div>
           <div><dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Abertura</dt><dd className="mt-1 text-sm text-foreground">{formatDate(detail.openedAt)}</dd></div>
           <div><dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Última atualização</dt><dd className="mt-1 text-sm text-foreground">{formatDate(detail.updatedAt)}</dd></div>
           <div className="sm:col-span-2"><dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Descrição do cidadão</dt><dd className="mt-1 whitespace-pre-wrap text-sm text-foreground">{detail.description || 'Sem descrição informada.'}</dd></div>
@@ -173,6 +181,7 @@ function OccurrenceDetailView({id}: {id: string}) {
             <p>Latitude: {formatCoordinate(detail.position.latitude)}</p>
             <p>Longitude: {formatCoordinate(detail.position.longitude)}</p>
             <p>Precisão: {detail.position.accuracy === null ? 'Indisponível' : `${formatCoordinate(detail.position.accuracy)} m`}</p>
+            <p>Origem da localização: {detail.locationSource === 'MAPA' ? 'Ponto confirmado no mapa' : detail.locationSource === 'GPS_NATIVO' ? 'GPS do dispositivo' : 'Não informada'}</p>
           </div>
         ) : <p className="mt-3 text-sm text-muted-foreground">Localização indisponível</p>}
         <h3 className="mt-6 text-sm font-semibold text-foreground">Classificação na abertura</h3>

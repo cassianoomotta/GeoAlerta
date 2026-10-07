@@ -33,6 +33,8 @@ interface OccurrenceRow {
   latitude: number | null;
   longitude: number | null;
   accuracy: number | null;
+  registration_channel: 'PUBLICO' | 'MANUAL' | 'BATALHAO' | null;
+  location_source: 'GPS_NATIVO' | 'MAPA' | null;
   opened_at: Date;
   updated_at: Date;
   version: number;
@@ -86,7 +88,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
           ce.id::text AS climate_event_id,ce.name AS climate_event_name,ce.state AS climate_event_state,
           ST_Y(o.location::geometry)::float8 AS latitude,
           ST_X(o.location::geometry)::float8 AS longitude,
-          o.accuracy::float8 AS accuracy,o.created_at AS opened_at,o.updated_at,o.version,
+          o.accuracy::float8 AS accuracy,o.registration_channel,o.location_source,
+          o.created_at AS opened_at,o.updated_at,o.version,
           o.registering_institution_code,ri.label AS registering_institution_label,
           o.neighborhood_code,n.label AS neighborhood_label,o.locality_code,l.label AS locality_label,
           o.occurrence_situation,o.damage_location_code,d.label AS damage_location_label,
@@ -162,6 +165,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
         position: occurrence.latitude === null || occurrence.longitude === null
           ? null
           : { latitude: occurrence.latitude, longitude: occurrence.longitude, accuracy: occurrence.accuracy },
+        registrationChannel: occurrence.registration_channel,
+        locationSource: occurrence.location_source,
         openedAt: occurrence.opened_at,
         updatedAt: occurrence.updated_at,
         version: occurrence.version,

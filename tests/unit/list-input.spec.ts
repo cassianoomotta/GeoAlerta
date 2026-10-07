@@ -38,3 +38,12 @@ test('filtro de eventos climáticos aceita ID ou ausência explícita de evento'
   expect(parseListFilters(new URLSearchParams('climateEventId=__NULL__')).climateEventId).toBe('__NULL__');
   expect(()=>parseListFilters(new URLSearchParams('climateEventId=unknown'))).toThrow();
 });
+test('filtro de origem aceita somente origens conhecidas e sobrevive à paginação',()=>{
+  const filters=parseListFilters(new URLSearchParams('registrationChannel=BATALHAO&type=fixture'));
+  expect(filters.registrationChannel).toBe('BATALHAO');
+  const nextPage=new URL(listHref(filters,{page:2}),'http://localhost');
+  expect(nextPage.searchParams.get('registrationChannel')).toBe('BATALHAO');
+  expect(nextPage.searchParams.get('type')).toBe('fixture');
+  expect(parseListFilters(new URLSearchParams('registrationChannel=__NULL__')).registrationChannel).toBe('__NULL__');
+  for(const value of ['TODOS','batalhao','PUBLICO%2CBATALHAO'])expect(()=>parseListFilters(new URLSearchParams(`registrationChannel=${value}`))).toThrow();
+});

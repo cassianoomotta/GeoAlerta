@@ -52,6 +52,24 @@ test('RF-009 filtros começam recolhidos e o seletor de grupo só aparece quando
   await expect(managerFilters).toHaveJSProperty('open',true);
   await expect(managerFilters.locator('form').getByRole('combobox',{name:'Grupo'})).toBeVisible();
 });
+test('RF-009 origem do registro filtra a lista e permanece no link de exportação',async({page,context})=>{
+  await context.clearCookies();
+  await context.addCookies((await fixtureCookies('gestor')).map(c=>({...c,url:'http://127.0.0.1:3102'})));
+  await page.goto(`/painel/ocorrencias?type=${listType()}`);
+  const filters=page.locator('details[aria-label="Filtros de ocorrências"]');
+  await filters.locator('summary').click();
+  const form=filters.locator('form[aria-label="Filtros de ocorrências"]');
+  const origin=form.getByRole('combobox',{name:'Origem do registro'});
+  await expect(origin).toBeVisible();
+  await origin.selectOption('BATALHAO');
+  await page.getByRole('button',{name:'Aplicar filtros'}).click();
+  await expect(page).toHaveURL(/registrationChannel=BATALHAO/);
+  await expect(page.getByText('Nenhuma ocorrência encontrada para estes filtros.')).toBeVisible();
+  await filters.locator('summary').click();
+  await expect(filters.locator('form').getByRole('combobox',{name:'Origem do registro'})).toHaveValue('BATALHAO');
+  const exportLink=page.getByRole('link',{name:'Baixar CSV das ocorrências filtradas'});
+  await expect(exportLink).toHaveAttribute('href',/registrationChannel=BATALHAO/);
+});
 test('RF-010 protocolo abre o detalhe autorizado da ocorrência',async({page})=>{
   await page.goto(`/painel/ocorrencias?type=${listType()}&pageSize=50&sort=createdAt&direction=desc`);
   const firstRow=page.locator('tbody tr').first();
