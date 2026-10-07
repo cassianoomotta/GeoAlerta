@@ -20,10 +20,10 @@ test('RF-009 paginação default total estável desempate por ID e exclusão ló
 test('RF-008 filtros e ordenações coincidem com consulta independente no PostGIS',async({request})=>{
   const db=await database();
   try{
-    for(const sort of ['createdAt','priority','status'])for(const direction of ['asc','desc']){
+    const sortExpression:Record<string,string>={protocol:'o.protocol',createdAt:'o.created_at',status:'o.status',priority:'o.priority',type:'o.type',groupId:'g.name',needsMedicalSupport:'o.needs_medical_support',reporterName:'d.reporter_name',reporterContact:'d.reporter_contact'};
+    for(const sort of Object.keys(sortExpression))for(const direction of ['asc','desc']){
       const result=await(await query(request,'operador',{from:'2025-01-02',to:'2025-01-03',status:'NOVA',priority:'ALTA',groupId:groupA,sort,direction,pageSize:'100'})).json();
-      const field={createdAt:'created_at',priority:'priority',status:'status'}[sort];
-      const expected=(await db.query(`SELECT id FROM public.occurrences WHERE type=$1 AND group_id=$2 AND deleted_at IS NULL AND created_at>='2025-01-02T00:00:00Z' AND created_at<'2025-01-04T00:00:00Z' AND status='NOVA' AND priority='ALTA' ORDER BY ${field} ${direction},id ASC`,[listType(),groupA])).rows;
+      const expected=(await db.query(`SELECT o.id FROM public.occurrences o JOIN public.groups g ON g.id=o.group_id LEFT JOIN public.occurrence_private_data d ON d.occurrence_id=o.id WHERE o.type=$1 AND o.group_id=$2 AND o.deleted_at IS NULL AND o.created_at>='2025-01-02T00:00:00Z' AND o.created_at<'2025-01-04T00:00:00Z' AND o.status='NOVA' AND o.priority='ALTA' ORDER BY ${sortExpression[sort]} ${direction},o.id ASC`,[listType(),groupA])).rows;
       expect(result.total).toBe(expected.length);expect(result.items.map((i:{id:string})=>i.id)).toEqual(expected.map(i=>i.id));
     }
     expect((await(await query(request,'operador',{type:'absent-fixture-type'})).json()).total).toBe(0);
@@ -99,6 +99,7 @@ test('RNF-001 manipulação de grupo tamanho sort colunas e identidade não ampl
   for(const name of ['pendente','suspenso','semgrupo','outromunicipio'])expect((await query(request,name)).status()).toBe(403);
   for(const params of [{groupId:groupB},{groupId:groupOther}])expect((await query(request,'operador',params)).status()).toBe(403);
   for(const params of [{pageSize:'101'},{sort:'reporter_name'},{columns:'protocol,reporterName'},{columns:'photo_url'},{groupId:'all'}] as Record<string,string>[])expect((await query(request,'consulta',params)).status()).toBe(422);
+  expect((await query(request,'consulta',{sort:'reporterName'})).status()).toBe(403);
   for(const name of ['gestor','admin'])expect((await(await query(request,name,{pageSize:'100'})).json()).total).toBe(133);
   const consulta=await(await query(request,'consulta')).json();expect(consulta.availableColumns).toContain('needsMedicalSupport');expect(consulta.availableColumns).not.toContain('reporterName');expect(consulta.items.every((i:Record<string,unknown>)=>'needsMedicalSupport'in i)).toBe(true);expect(JSON.stringify(consulta)).not.toContain('Synthetic private');expect(consulta.items.every((i:Record<string,unknown>)=>!('reporterName'in i)&&!('reporterContact'in i))).toBe(true);
   const operator=await(await query(request,'operador',{columns:'protocol,reporterName,reporterContact'})).json();expect(operator.items[0].reporterName).toBe('Synthetic private name');expect(operator.items[0].reporterContact).toBe('Synthetic private contact');

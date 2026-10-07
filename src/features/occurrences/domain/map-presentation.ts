@@ -21,25 +21,30 @@ export const typeIconPaths={
   home:'m3 10 9-7 9 7v11H3V10Zm6 11v-8h6v8',
   road:'m8 3-4 18m12-18 4 18M12 3v3m0 4v4m0 4v3',
   health:'M9 3h6v6h6v6h-6v6H9v-6H3V9h6V3Z',
-  hazard:'m12 3 10 18H2L12 3Zm0 5v6m0 3v1',
+  hazard:'m12 3 10 18H2L12 3Z',
   sun:'M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM12 2v2m0 16v2M2 12h2m16 0h2M5 5l2 2m10 10 2 2M5 19l2-2M17 7l2-2',
   cold:'M12 2v20M3 7l18 10M3 17 21 7M9 4l3 3 3-3M9 20l3-3 3 3M3 10l4-1-1-4M18 19l-1-4 4-1M3 14l4 1-1 4M18 5l-1 4 4 1',
   pipe:'M3 9h7V3h4v10H7v8H3V9Zm-2 0h6m3-8v6m-9 14h6',
   bug:'M8 9h8v7a4 4 0 0 1-8 0V9Zm2-4h4l2 4H8l2-4Zm-7 6h5m8 0h5M3 16h5m8 0h5M7 3l3 2m7-2-3 2',
   sign:'M3 4h18v12H3V4Zm9 12v6M6 8h12M6 12h8',
-  generic:'M12 3a8 8 0 1 0 0 16 8 8 0 0 0 0-16Zm0 4v5m0 3v1',
+  aid:'M3 9h18v12H3V9Zm5 0V5h8v4m-4 3v6m-3-3h6',
+  drain:'M4 6h16M4 12h16M4 18h16M7 4v16m10-16v16',
+  generic:'M4 4h16v16H4zM8 9h8M8 12h8M8 15h5',
+  other:'M12 3a8 8 0 1 0 0 16 8 8 0 0 0 0-16Zm0 4v5m0 3v1',
 };
 export type TypeIcon=keyof typeof typeIconPaths;
 const icons:Record<string,TypeIcon>={
   'alagamentos/inundacao':'water','alagamento / inundacao':'water','alagamento':'water','inundacao':'water','enxurrada':'water','rompimento de barragem':'water','contaminacao da agua':'water',
+  'alimentos / agua / resgate humanitario':'aid',
   'queda de arvore':'tree','incendio':'fire','rompimento de fiacao eletrica':'electricity','queda de poste':'electricity',
+  'fio partido / choque eletrico':'electricity',
   'movimentacao de massa':'mountain','deslizamento de terra':'mountain','deslizamento':'mountain','erosao':'mountain','terremoto':'mountain',
   'chuvas intensas':'rain','granizo':'rain','tornado':'wind','vendaval':'wind','ventos fortes':'wind',
-  'desabamento':'home','destelhamento':'home','desabrigados':'home','acolhimento':'home',
-  'buracos':'road','bueiro / ponte obstruida':'road','epidemias':'health','resgate humano urgente':'health','resgate':'health',
+  'desabamento':'home','destelhamento':'home','desabrigados':'home','acolhimento':'home','desabrigados / acolhimento e abrigo':'home',
+  'buracos':'road','bueiro / ponte obstruida':'road','bueiro / via publica obstruida':'drain','epidemias':'health','resgate humano urgente':'health','resgate':'health',
   'desastre radioativo':'hazard','produtos perigosos':'hazard','vazamento de produto perigoso':'hazard',
   'estiagem':'sun','onda de calor':'sun','onda de frio':'cold','rompimento de tubulacao':'pipe','infestacoes/pragas':'bug',
-  'outdoor e similares':'sign','queda de placa':'sign',
+  'outdoor e similares':'sign','queda de placa':'sign','outros':'other',
 };
 export function occurrenceTypeIcon(type:string):TypeIcon{
   const normalized=type.normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase();

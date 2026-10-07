@@ -94,38 +94,40 @@ export function ManualOccurrenceForm({ groups, types }: { groups: GroupOption[];
     }
   }
 
+  const fieldClass = 'h-12 w-full min-w-0 rounded border border-control-border bg-surface p-2 text-foreground';
+
   return (
     <form onSubmit={submit} onChange={() => { setCreated(null); setMessage(''); }} aria-busy={pending} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      <label className="grid gap-1 text-sm text-foreground">
-        Tipo <span aria-hidden="true" className="text-danger">*</span>
-        <select className="rounded border border-control-border bg-surface p-2 text-foreground" name="type" required defaultValue="" disabled={pending||!types.length}>
+      <label className="grid min-w-0 gap-1 text-sm text-foreground">
+        <span className="inline-flex items-baseline gap-1">Tipo <span aria-hidden="true" className="text-danger">*</span></span>
+        <select className={fieldClass} name="type" required defaultValue="" disabled={pending||!types.length}>
           <option value="" disabled>Selecione o tipo</option>{types.map(type=><option key={type} value={type}>{type}</option>)}
         </select>
       </label>
-      <label className="grid gap-1 text-sm text-foreground">
-        Grupo responsável <span aria-hidden="true" className="text-danger">*</span>
-        <select className="rounded border border-control-border bg-surface p-2 text-foreground" name="groupId" required defaultValue={groups[0]?.id ?? ''} disabled={pending || !groups.length}>
+      <label className="grid min-w-0 gap-1 text-sm text-foreground">
+        <span className="inline-flex items-baseline gap-1">Grupo responsável <span aria-hidden="true" className="text-danger">*</span></span>
+        <select className={fieldClass} name="groupId" required defaultValue={groups[0]?.id ?? ''} disabled={pending || !groups.length}>
           {groups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}
         </select>
       </label>
-      <label className="grid gap-1 text-sm text-foreground">
-        Nome de contato <span aria-hidden="true" className="text-danger">*</span>
-        <input className="rounded border border-control-border bg-surface p-2 text-foreground" name="reporterName" required maxLength={120} disabled={pending} />
+      <label className="grid min-w-0 gap-1 text-sm text-foreground">
+        <span className="inline-flex items-baseline gap-1">Nome de contato <span aria-hidden="true" className="text-danger">*</span></span>
+        <input className={fieldClass} name="reporterName" required maxLength={120} disabled={pending} />
       </label>
-      <label className="grid gap-1 text-sm text-foreground">
-        Contato <span aria-hidden="true" className="text-danger">*</span>
-        <input className="rounded border border-control-border bg-surface p-2 text-foreground" name="reporterContact" required maxLength={40} disabled={pending} />
+      <label className="grid min-w-0 gap-1 text-sm text-foreground">
+        <span className="inline-flex items-baseline gap-1">Contato <span aria-hidden="true" className="text-danger">*</span></span>
+        <input className={fieldClass} name="reporterContact" required maxLength={40} disabled={pending} />
       </label>
-      <label className="grid gap-1 text-sm text-foreground sm:col-span-2">
+      <label className="grid min-w-0 gap-1 text-sm text-foreground">
         <span>Endereço <span className="text-muted-foreground">(opcional)</span></span>
-        <input className="rounded border border-control-border bg-surface p-2 text-foreground" name="address" maxLength={300} autoComplete="street-address" placeholder="Rua, número e complemento" disabled={pending} />
+        <input className={fieldClass} name="address" maxLength={300} autoComplete="street-address" placeholder="Rua, número e complemento" disabled={pending} />
       </label>
-      <label className="grid gap-1 text-sm text-foreground sm:col-span-2 lg:col-span-3">
-        Descrição <span aria-hidden="true" className="text-danger">*</span>
-        <textarea className="min-h-24 rounded border border-control-border bg-surface p-2 text-foreground" name="description" required maxLength={2000} disabled={pending} />
+      <label className="grid min-w-0 gap-1 text-sm text-foreground sm:col-span-2 lg:col-span-3">
+        <span className="inline-flex items-baseline gap-1">Descrição <span aria-hidden="true" className="text-danger">*</span></span>
+        <textarea className="min-h-24 w-full min-w-0 rounded border border-control-border bg-surface p-2 text-foreground" name="description" required maxLength={2000} disabled={pending} />
       </label>
       <div className="flex flex-wrap items-center gap-3 sm:col-span-2 lg:col-span-3">
-        <span className="text-sm text-foreground">Localização GPS <span aria-hidden="true" className="text-danger">*</span></span>
+        <span className="inline-flex items-baseline gap-1 text-sm text-foreground">Localização GPS <span aria-hidden="true" className="text-danger">*</span></span>
         <button type="button" onClick={captureLocation} disabled={pending} className="rounded border border-control-border px-4 py-2 text-sm font-medium text-foreground hover:bg-surface-subtle disabled:cursor-not-allowed disabled:opacity-60">
           Obter localização GPS
         </button>

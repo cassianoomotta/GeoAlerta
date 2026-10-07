@@ -153,3 +153,10 @@ test('RF-010 ocorrência fora do escopo mostra estado indisponível', async ({ p
   expect(content).not.toContain(`TEST-${occurrenceB}`);
   expect(content).not.toContain('synthetic');
 });
+
+test('falha temporária no detalhe não é apresentada como ocorrência inexistente', async ({ page }) => {
+  await page.route('**/api/core/occurrences/**', route => route.fulfill({status:503,contentType:'application/json',body:'{}'}));
+  await page.goto(`/painel/ocorrencias/${occurrenceA}`);
+  await expect(page.getByRole('heading',{name:'Falha ao carregar ocorrência'})).toBeVisible();
+  await expect(page.getByRole('button',{name:'Tentar novamente'})).toBeVisible();
+});
