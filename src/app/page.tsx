@@ -117,18 +117,18 @@ export default function Home(){
     }catch(error){if(error instanceof PhotoUploadFailure){setPhotoFailed(true);setError(`${error.message} Você pode tentar novamente ou confirmar o envio sem foto.`);}else setError(error instanceof Error?error.message:'Resposta não confirmada. Tente novamente com os mesmos dados; seu envio não será duplicado.');}
     finally{setSending(false);}
   }
-  const inputClass='mt-2 block w-full rounded-xl border border-control-border bg-surface px-4 py-3 text-base text-foreground  outline-none transition placeholder:text-muted-foreground focus:border-primary/30 focus:ring-2 focus:ring-ring disabled:bg-surface-subtle';
-  return <main className="min-h-screen bg-background px-4 py-8 text-foreground sm:px-6 sm:py-12">
-    <div className="mx-auto max-w-[560px]">
-      <header className="mb-8">
-        <h1 className="mt-4"><GeoAlertaLogo className="block h-auto w-36 max-w-full sm:w-40" /></h1>
-        <p className="mt-3 max-w-2xl text-base leading-6 text-muted-foreground">Conte pra gente o que aconteceu. Preencha as informações que souber; você também pode registrar uma ocorrência para outra pessoa.</p>
+  const inputClass='mt-2 block min-w-0 w-full max-w-full rounded-xl border border-control-border bg-surface px-4 py-3 text-base text-foreground  outline-none transition placeholder:text-muted-foreground focus:border-primary/30 focus:ring-2 focus:ring-ring disabled:bg-surface-subtle';
+  return <main className="min-h-screen bg-background px-3 py-5 text-foreground sm:px-6 sm:py-12">
+    <div className="mx-auto min-w-0 max-w-[560px]">
+      <header className="mb-6 sm:mb-8">
+        <h1 className="flex justify-center"><GeoAlertaLogo className="block h-auto w-36 max-w-full sm:w-40" /></h1>
+        <p className="mt-3 text-center text-base leading-6 text-muted-foreground">Conte pra gente o que aconteceu. Preencha as informações que souber; você também pode registrar uma ocorrência para outra pessoa.</p>
       </header>
 
-      {result ? <section role="status" className="rounded-2xl border border-success/30 bg-surface p-6  sm:p-9">
+      {result ? <section role="status" className="rounded-2xl border border-success/30 bg-surface p-4 sm:p-9">
         <div className="flex items-start gap-4">
           <CheckCircle2 aria-hidden="true" className="mt-1 h-8 w-8 shrink-0 text-success" />
-          <div>
+          <div className="min-w-0 flex-1">
             <h2 className="text-2xl font-semibold text-foreground">Ocorrência registrada</h2>
             <p className="mt-2 text-muted-foreground">Guarde o protocolo para consultar este registro.</p>
             <p className="mt-5 rounded-xl bg-success-soft px-4 py-3 text-foreground">Protocolo: <strong className="break-all">{result.protocol}</strong></p>
@@ -151,33 +151,33 @@ export default function Home(){
           })}</ul>}
         </section>
       </section> : <section className="overflow-hidden rounded-2xl border border-border bg-surface ">
-        <div className="border-b border-border px-5 py-5 sm:px-8">
+        <div className="border-b border-border px-4 py-5 sm:px-8">
           <h2 className="text-xl font-semibold text-foreground">Informações da ocorrência</h2>
           <p className="mt-1 text-sm text-muted-foreground">Os campos marcados como opcionais podem ficar em branco.</p>
         </div>
         <form onSubmit={submit}>
-          <fieldset disabled={sending||locked} className="min-w-0 space-y-5 border-0 px-5 py-6 sm:px-8">
+          <fieldset disabled={sending||locked} className="min-w-0 space-y-5 border-0 px-4 py-5 sm:px-8 sm:py-6">
             <label className="block text-sm font-semibold text-foreground"><span>Nome <span aria-hidden="true" className="text-danger">*</span></span><input name="reporterName" required maxLength={120} autoComplete="name" className={inputClass} /></label>
             <label className="block text-sm font-semibold text-foreground"><span>Contato <span aria-hidden="true" className="text-danger">*</span></span><input name="reporterContact" type="tel" inputMode="numeric" pattern="[0-9]+" value={reporterContact} onChange={event=>setReporterContact(event.target.value.replace(/\D/g,''))} required maxLength={40} autoComplete="tel" className={inputClass} /><span className="mt-2 block text-sm font-normal text-muted-foreground">Informe o telefone com DDD, somente números.</span></label>
-            <label className="block text-sm font-semibold text-foreground"><span>Tipo de ocorrência <span aria-hidden="true" className="text-danger">*</span></span><select name="type" required defaultValue="" disabled={typesLoading||typesError||occurrenceTypes.length===0} className={`${inputClass} public-intake-select`}><option value="" disabled>{typesLoading?'Carregando tipos de ocorrência...':typesError?'Tipos temporariamente indisponíveis':'Selecione o tipo de ocorrência'}</option>{occurrenceTypes.map(type=><option key={type} value={type}>{type}</option>)}</select>{typesError&&<span role="status" className="mt-2 block text-sm font-normal text-warning">Não foi possível carregar os tipos. Atualize a página para tentar novamente.</span>}{!typesLoading&&!typesError&&occurrenceTypes.length===0&&<span role="status" className="mt-2 block text-sm font-normal text-muted-foreground">Nenhum tipo está disponível no momento.</span>}</label>
+            <label className="block text-sm font-semibold text-foreground"><span>Tipo de ocorrência <span aria-hidden="true" className="text-danger">*</span></span><select name="type" required defaultValue="" disabled={typesLoading||typesError||occurrenceTypes.length===0} className={`${inputClass} public-intake-select truncate pr-8`}><option value="" disabled>{typesLoading?'Carregando tipos de ocorrência...':typesError?'Tipos temporariamente indisponíveis':'Selecione o tipo de ocorrência'}</option>{occurrenceTypes.map(type=><option key={type} value={type}>{type}</option>)}</select>{typesError&&<span role="status" className="mt-2 block text-sm font-normal text-warning">Não foi possível carregar os tipos. Atualize a página para tentar novamente.</span>}{!typesLoading&&!typesError&&occurrenceTypes.length===0&&<span role="status" className="mt-2 block text-sm font-normal text-muted-foreground">Nenhum tipo está disponível no momento.</span>}</label>
             <label className="block text-sm font-semibold text-foreground"><span>Descrição <span aria-hidden="true" className="text-danger">*</span></span><textarea name="description" required maxLength={2000} placeholder="Conte o que aconteceu e indique um ponto de referência próximo. Inclua detalhes que ajudem as equipes a localizar e atender a ocorrência." className={`${inputClass} min-h-32 resize-y`} /></label>
-            <fieldset className="space-y-3">
+            <fieldset className="min-w-0 space-y-3">
               <legend className="text-sm font-semibold text-foreground">Precisa de apoio médico? <span aria-hidden="true" className="text-danger">*</span></legend>
               <div className="flex flex-wrap gap-4">
                 <label className="flex min-h-11 items-center gap-2 text-sm text-foreground"><input type="radio" name="needsMedicalSupport" value="true" required className="h-4 w-4 accent-primary" />Sim</label>
                 <label className="flex min-h-11 items-center gap-2 text-sm text-foreground"><input type="radio" name="needsMedicalSupport" value="false" required className="h-4 w-4 accent-primary" />Não</label>
               </div>
             </fieldset>
-            <label className="block text-sm font-semibold text-foreground"><span>Endereço da ocorrência (opcional)</span><input name="address" maxLength={300} autoComplete="street-address" placeholder="Informe o endereço ou local onde ocorreu o problema" className={inputClass} /><span className="mt-2 block text-sm font-normal leading-relaxed text-muted-foreground">Informe o endereço do local, especialmente se estiver sem sinal ou registrando para outra pessoa.</span></label>
+            <label className="block text-sm font-semibold text-foreground"><span>Endereço da ocorrência (opcional)</span><input name="address" maxLength={300} autoComplete="street-address" placeholder="Rua, número ou ponto de referência" className={inputClass} /><span className="mt-2 block text-sm font-normal leading-relaxed text-muted-foreground">Informe o endereço do local, especialmente se estiver sem sinal ou registrando para outra pessoa.</span></label>
             <div className="space-y-3">
               <p className="text-sm font-semibold text-foreground">Foto opcional <span className="font-normal text-muted-foreground">(JPEG, PNG ou WebP, até 5 MiB)</span></p>
-              <div className="flex flex-wrap gap-3">
+              <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2 sm:flex sm:flex-wrap">
                 <input ref={photoPickerRef} name="photo" type="file" accept="image/jpeg,image/png,image/webp" className="hidden" tabIndex={-1} onChange={selectPhoto} />
                 <input ref={cameraPickerRef} name="photo" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" className="hidden" tabIndex={-1} onChange={selectPhoto} />
-                <button type="button" onClick={()=>photoPickerRef.current?.click()} disabled={sending||locked} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-control-border bg-surface px-4 py-2.5 font-semibold text-foreground transition hover:bg-background focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-60">Escolher foto</button>
-                <button type="button" onClick={()=>cameraPickerRef.current?.click()} disabled={sending||locked} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-primary/30 bg-primary-soft px-4 py-2.5 font-semibold text-primary transition hover:bg-primary-soft focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-60">Tirar foto</button>
+                <button type="button" onClick={()=>photoPickerRef.current?.click()} disabled={sending||locked} className="inline-flex min-h-12 min-w-0 items-center justify-center rounded-xl border border-control-border bg-surface px-4 py-2.5 font-semibold text-foreground transition hover:bg-background focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-60">Escolher foto</button>
+                <button type="button" onClick={()=>cameraPickerRef.current?.click()} disabled={sending||locked} className="inline-flex min-h-12 min-w-0 items-center justify-center rounded-xl border border-primary/30 bg-primary-soft px-4 py-2.5 font-semibold text-primary transition hover:bg-primary-soft focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-60">Tirar foto</button>
               </div>
-              {selectedPhoto&&<p role="status" aria-live="polite" className="text-sm text-muted-foreground">Foto selecionada: <span className="font-medium text-foreground">{selectedPhoto.name}</span></p>}
+              {selectedPhoto&&<p role="status" aria-live="polite" className="break-words text-sm text-muted-foreground [overflow-wrap:anywhere]">Foto selecionada: <span className="font-medium text-foreground">{selectedPhoto.name}</span></p>}
             </div>
 
             <div className="rounded-2xl border border-primary/30 bg-primary-soft p-4 sm:p-5">
@@ -188,21 +188,21 @@ export default function Home(){
                   {position ? <p role="status" className="mt-1 text-sm text-success">Localização obtida. Precisão: {accuracyFormat.format(position.accuracy)} metros.</p> : <p role="note" className="mt-1 text-sm leading-relaxed text-muted-foreground">Para enviar, é necessário permitir o acesso à localização. Toque no botão e autorize quando o navegador solicitar.</p>}
                 </div>
               </div>
-              <button type="button" onClick={locate} disabled={!ready||locating||sending} className="mt-4 inline-flex min-h-11 items-center justify-center rounded-xl bg-primary px-5 py-2.5 font-semibold text-primary-foreground transition hover:bg-primary focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-60">{locating?'Obtendo localização...':position?'Atualizar localização':'Obter localização'}</button>
+              <button type="button" onClick={locate} disabled={!ready||locating||sending} className="mt-4 inline-flex min-h-12 w-full items-center justify-center sm:w-auto rounded-xl bg-primary px-5 py-2.5 font-semibold text-primary-foreground transition hover:bg-primary focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-60">{locating?'Obtendo localização...':position?'Atualizar localização':'Obter localização'}</button>
             </div>
           </fieldset>
 
-          <div className="space-y-4 border-t border-border bg-background px-5 py-5 sm:px-8">
+          <div className="space-y-4 border-t border-border bg-background px-4 py-5 sm:px-8">
             {error&&<p role="alert" aria-label="Problema no envio" className="rounded-xl border border-warning/30 bg-warning-soft px-4 py-3 text-sm text-warning">{error}</p>}
-            {!locked&&<label className={`flex items-start gap-3 rounded-xl border p-4 text-sm ${photoFailed?'border-warning/30 bg-warning-soft text-warning':'border-border bg-surface text-foreground'}`}><input type="checkbox" className="mt-0.5 h-4 w-4 shrink-0 accent-primary" checked={withoutPhoto} required={!selectedPhoto} onChange={event=>{setWithoutPhoto(event.target.checked);attempt.current=null;setError('');}} disabled={sending}/> <span>Confirmo que desejo enviar esta ocorrência sem foto.{selectedPhoto&&<span className="mt-1 block text-xs">Ao marcar, a foto selecionada não será anexada.</span>}</span></label>}
+            {!locked&&<label className={`flex items-start gap-3 rounded-xl border p-4 text-sm ${photoFailed?'border-warning/30 bg-warning-soft text-warning':'border-border bg-surface text-foreground'}`}><input type="checkbox" className="mt-0.5 h-5 w-5 shrink-0 accent-primary" checked={withoutPhoto} required={!selectedPhoto} onChange={event=>{setWithoutPhoto(event.target.checked);attempt.current=null;setError('');}} disabled={sending}/> <span>Confirmo que desejo enviar esta ocorrência sem foto.{selectedPhoto&&<span className="mt-1 block text-xs">Ao marcar, a foto selecionada não será anexada.</span>}</span></label>}
             <button type="submit" disabled={!ready||!position||locating||sending} className="block min-h-12 w-full rounded-xl bg-primary px-5 py-3 font-medium text-primary-foreground  transition hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:bg-surface-subtle disabled:text-muted-foreground disabled:shadow-none">{sending?'Registrando ocorrência...':'Enviar ocorrência'}</button>
             <p className="text-center text-xs leading-relaxed text-muted-foreground">{position?'Localização obtida. O registro será confirmado com um protocolo.':'Sua localização é necessária para concluir o registro.'}</p>
           </div>
         </form>
       </section>}
-      <section aria-label="Instituições de atendimento" className="mt-6 rounded-2xl border border-border bg-surface p-5  sm:p-6">
+      <section aria-label="Instituições de atendimento" className="mt-6 rounded-2xl border border-border bg-surface p-4 sm:p-6">
         <h2 className="text-center text-sm font-semibold text-foreground">Órgãos públicos</h2>
-        <div className="mt-4 grid grid-cols-2 items-stretch gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="mt-4 grid grid-cols-2 items-stretch gap-3 sm:grid-cols-3">
           <figure className="col-span-2 flex min-h-28 flex-col items-center justify-center rounded-2xl border border-border bg-white px-4 py-3 sm:col-span-1">
             <Image src="/institutional/prefeitura-sap.png" alt="Prefeitura de Santo Antônio da Patrulha" width={3000} height={1256} sizes="(min-width: 1024px) 180px, (min-width: 640px) 200px, 66vw" className="h-14 w-full object-contain" />
             <figcaption className="mt-2 text-center text-xs font-medium text-slate-700">Prefeitura municipal</figcaption>

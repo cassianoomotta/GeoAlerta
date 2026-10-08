@@ -1,7 +1,7 @@
 import 'server-only';
 import {Prisma} from '../../../prisma/generated/client/client';
 import type {Actor} from '@/features/access/contracts';
-import {availableColumns,validateColumns,ListInputError,type Column,type ListFilters,type ListItem,type ListResult,type ListCatalogs} from '@/features/occurrences/list-input';
+import {availableColumns,validateColumns,ListInputError,OCCURRENCES_PAGE_SIZE,type Column,type ListFilters,type ListItem,type ListResult,type ListCatalogs} from '@/features/occurrences/list-input';
 import {getColumns} from '@/features/access/infrastructure/preferences';
 async function queryContext(tx:Prisma.TransactionClient,actor:Actor,filters:ListFilters){
   const groups=await tx.$queryRaw<{id:string;name:string}[]>`SELECT id,name FROM public.groups ORDER BY name,id`;
@@ -61,6 +61,7 @@ async function queryContext(tx:Prisma.TransactionClient,actor:Actor,filters:List
 }
 
 export async function listOccurrences(tx:Prisma.TransactionClient,actor:Actor,filters:ListFilters):Promise<ListResult>{
+  filters={...filters,pageSize:OCCURRENCES_PAGE_SIZE};
   const {groups,climateEvents,statusPresentations,occurrenceTypes,catalogs,allowed,columns,where,sort,direction,extra,join}=await queryContext(tx,actor,filters);
   // Total and page share one SQL statement/snapshot; only the limited page leaves the DB.
   const rows=await tx.$queryRaw<{total:number;items:ListItem[]}[]>(Prisma.sql`

@@ -3,7 +3,7 @@ import {ArrowDown,ArrowUp,ArrowUpDown} from 'lucide-react';
 import {can} from '@/features/access/domain/permissions';
 import {withSession} from '@/server/access/session';
 import {listOccurrences} from '@/server/occurrences/list';
-import {parseListFilters,listHref,columnLabels,ListInputError,type ListResult,type Column,type ListItem} from '@/features/occurrences/list-input';
+import {parseListFilters,listHref,columnLabels,OCCURRENCES_PAGE_SIZE,ListInputError,type ListResult,type Column,type ListItem} from '@/features/occurrences/list-input';
 import {ColumnPreferences} from '@/features/occurrences/ui/ColumnPreferences';
 import {PriorityBadge,StatusBadge} from '@/features/occurrences/ui/OccurrenceBadges';
 function cell(item:ListItem,column:Column,labels:Record<string,string>){
@@ -17,7 +17,7 @@ function cell(item:ListItem,column:Column,labels:Record<string,string>){
 }
 function exportHref(filters:ListResult['filters']){
   const params=new URLSearchParams();
-  for(const [key,value]of Object.entries({...filters,page:1,pageSize:100}))if(value!==undefined)params.set(key,Array.isArray(value)?value.join(','):String(value));
+  for(const [key,value]of Object.entries({...filters,page:1,pageSize:OCCURRENCES_PAGE_SIZE}))if(value!==undefined)params.set(key,Array.isArray(value)?value.join(','):String(value));
   return `/api/core/occurrences/export?${params.toString()}`;
 }
 function inclusiveEndDate(value?:string){
@@ -73,12 +73,12 @@ export default async function Occurrences({searchParams}:{searchParams:Promise<R
       {groups.length>1?<label>Grupo<select className="block w-full rounded bg-surface p-2" name="groupId" defaultValue={filters.groupId??''}><option value="">Todos autorizados</option>{groups.map(g=><option key={g.id} value={g.id}>{g.name}</option>)}</select></label>:filters.groupId&&<input type="hidden" name="groupId" value={filters.groupId}/>}
       <label>Ordenar por<select className="block w-full rounded bg-surface p-2" name="sort" defaultValue={filters.sort}>{availableColumns.map(column=><option key={column} value={column}>{columnLabels[column]}</option>)}</select></label>
       <label>Direção<select className="block w-full rounded bg-surface p-2" name="direction" defaultValue={filters.direction}><option value="desc">Decrescente</option><option value="asc">Crescente</option></select></label>
-      <label>Por página<select className="block w-full rounded bg-surface p-2" name="pageSize" defaultValue={filters.pageSize}>{[10,25,50,100,...([10,25,50,100].includes(filters.pageSize)?[]:[filters.pageSize])].map(n=><option key={n} value={n}>{n}</option>)}</select></label>
+      <input type="hidden" name="pageSize" value={OCCURRENCES_PAGE_SIZE}/>
       <button className="self-end rounded bg-primary px-4 py-2 text-primary-foreground">Aplicar filtros</button>
       </form>
     </details>
     <ColumnPreferences key={columns.join(',')} columns={columns} available={availableColumns} filters={filters}/>
-    <p role="status">{total} ocorrências · Página {filters.page} de {pages}</p>
+    <p role="status">{total} ocorrências · Página {filters.page} de {pages} · {OCCURRENCES_PAGE_SIZE} por página</p>
     {items.length?<div className="overflow-x-auto"><table className="w-full text-left text-sm"><caption className="sr-only">Lista de ocorrências autorizadas</caption><thead><tr>{columns.map(c=>{
       const active=filters.sort===c;
       const direction=active&&filters.direction==='desc'?'asc':'desc';
