@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "node scripts/with-env.mjs next dev",
+    "prebuild": "node scripts/with-env.mjs prisma generate",
     "build": "node scripts/with-env.mjs next build",
     "start": "node scripts/with-env.mjs next start",
     "lint": "node scripts/with-env.mjs eslint",

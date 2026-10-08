@@ -4,7 +4,7 @@ import { assertMigrationEnvironment } from './tests/fixtures/database';
 import { resolve, relative } from 'node:path';
 
 loadLocalEnv();
-assertMigrationEnvironment();
+if (process.argv[2] !== 'generate') assertMigrationEnvironment();
 const testHistory = process.env.CORE_TEST_MIGRATIONS_PATH;
 if (testHistory && !relative(resolve('.cache'), resolve(testHistory)).startsWith('core_test_')) throw new Error('Histórico de teste fora da pasta permitida.');
 export default defineConfig({
