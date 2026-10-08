@@ -3,6 +3,7 @@ import {openOccurrence,IntakeError} from '@/server/occurrences/intake';
 import {resolveOrigin} from '@/server/occurrences/origin';
 import {PhotoError} from '@/features/occurrences/photos/contracts';
 import {photoResponse} from '@/features/occurrences/photos/http';
+import {reportPublicFailure} from '@/server/occurrences/public-failure';
 export const runtime='nodejs';
 async function readBody(request:Request){
   if(!request.headers.get('content-type')?.toLowerCase().startsWith('application/json'))throw new PublicInputError();
@@ -19,6 +20,7 @@ export async function POST(request:Request){
     const {result,replay}=await openOccurrence(input,key,resolveOrigin(request.headers));
     return Response.json(result,{status:replay?200:201,headers:{'Cache-Control':'no-store'}});
   }catch(error){
+    if(!(error instanceof PublicInputError)&&!(error instanceof IntakeError)&&!(error instanceof PhotoError))reportPublicFailure(error,'occurrence');
     if(error instanceof PhotoError)return photoResponse(error);
     const status=error instanceof PublicInputError?422:error instanceof IntakeError?error.status:503;
     const code=error instanceof PublicInputError?error.code:error instanceof IntakeError?error.code:'SERVICE_UNAVAILABLE';

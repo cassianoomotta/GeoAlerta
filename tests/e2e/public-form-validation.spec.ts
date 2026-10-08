@@ -45,6 +45,7 @@ test('escolha sem foto aparece antes do envio e evita upload da foto selecionada
 });
 test('falha de upload permite confirmação e registro sem foto na tentativa seguinte',async({page})=>{
   await fill(page);await choosePhoto(page);let opens=0;
+  await page.getByRole('button',{name:'Autorizar envio desta foto'}).click();
   await page.route('**/api/core/public/photos',route=>route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:{message:'Não foi possível enviar a foto.'}})}));
   await page.route('**/api/core/public/occurrences',route=>{opens++;return route.fulfill({status:201,contentType:'application/json',body:JSON.stringify(registered)});});
   await page.getByRole('button',{name:'Enviar ocorrência'}).click();
@@ -52,4 +53,18 @@ test('falha de upload permite confirmação e registro sem foto na tentativa seg
   await page.getByRole('checkbox',{name:'Confirmo que desejo enviar esta ocorrência sem foto.'}).check();
   await page.getByRole('button',{name:'Enviar ocorrência'}).click();
   await expect(page.getByRole('heading',{name:'Ocorrência registrada'})).toBeVisible();expect(opens).toBe(1);
+});
+test('foto exige autorização explícita e troca da foto revoga a autorização',async({page})=>{
+  await fill(page);await choosePhoto(page);let uploads=0;
+  await page.route('**/api/core/public/photos',route=>{uploads++;return route.fulfill({status:201,contentType:'application/json',body:JSON.stringify({photoToken:'synthetic-token'})});});
+  await page.route('**/api/core/public/occurrences',route=>{expect(route.request().postDataJSON().photoToken).toBe('synthetic-token');return route.fulfill({status:201,contentType:'application/json',body:JSON.stringify(registered)});});
+  await page.getByRole('button',{name:'Enviar ocorrência'}).click();
+  await expect(page.getByRole('alert',{name:'Problema no envio'})).toContainText('Autorize o envio');expect(uploads).toBe(0);
+  await page.getByRole('button',{name:'Autorizar envio desta foto'}).click();
+  await expect(page.getByRole('button',{name:'Envio desta foto autorizado'})).toHaveAttribute('aria-pressed','true');
+  await choosePhoto(page);
+  await expect(page.getByRole('button',{name:'Autorizar envio desta foto'})).toHaveAttribute('aria-pressed','false');
+  await page.getByRole('button',{name:'Autorizar envio desta foto'}).click();
+  await page.getByRole('button',{name:'Enviar ocorrência'}).click();
+  await expect(page.getByRole('heading',{name:'Ocorrência registrada'})).toBeVisible();expect(uploads).toBe(1);
 });

@@ -28,6 +28,7 @@ export default function Home(){
   const [selectedPhoto,setSelectedPhoto]=useState<File|null>(null);
   const [photoFailed,setPhotoFailed]=useState(false);
   const [withoutPhoto,setWithoutPhoto]=useState(false);
+  const [photoAuthorized,setPhotoAuthorized]=useState(false);
   const [reporterContact,setReporterContact]=useState('');
   const [locked,setLocked]=useState(false);
   const [occurrenceTypes,setOccurrenceTypes]=useState<string[]>([]);
@@ -45,7 +46,7 @@ export default function Home(){
   function selectPhoto(event:React.ChangeEvent<HTMLInputElement>){
     const file=event.currentTarget.files?.[0];
     if(!file)return;
-    setSelectedPhoto(file);attempt.current=null;setWithoutPhoto(false);setPhotoFailed(false);
+    setSelectedPhoto(file);attempt.current=null;setWithoutPhoto(false);setPhotoAuthorized(false);setPhotoFailed(false);
     try{photoMetadata(file);setError('');}
     catch{setPhotoFailed(true);setError('Selecione JPEG, PNG ou WebP de até 5 MiB, ou confirme o envio sem foto.');}
   }
@@ -73,6 +74,7 @@ export default function Home(){
     event.preventDefault();if(sending)return;setError('');
     if(!position){setError('Obtenha sua localização antes de enviar.');return;}
     if(!selectedPhoto&&!withoutPhoto&&!locked){setError('Confirme o envio da ocorrência sem foto.');return;}
+    if(selectedPhoto&&!withoutPhoto&&!photoAuthorized&&!locked){setError('Autorize o envio da foto selecionada ou confirme o envio sem foto.');return;}
     const form=new FormData(event.currentTarget);
     const file=selectedPhoto;
     let body:string;
@@ -178,6 +180,13 @@ export default function Home(){
                 <button type="button" onClick={()=>cameraPickerRef.current?.click()} disabled={sending||locked} className="inline-flex min-h-12 min-w-0 items-center justify-center rounded-xl border border-primary/30 bg-primary-soft px-4 py-2.5 font-semibold text-primary transition hover:bg-primary-soft focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-60">Tirar foto</button>
               </div>
               {selectedPhoto&&<p role="status" aria-live="polite" className="break-words text-sm text-muted-foreground [overflow-wrap:anywhere]">Foto selecionada: <span className="font-medium text-foreground">{selectedPhoto.name}</span></p>}
+              {selectedPhoto&&<div className="space-y-2 rounded-xl border border-border bg-background p-3">
+                <p id="photo-authorization-description" className="text-sm leading-relaxed text-muted-foreground">Autorize o envio desta imagem junto com a ocorrência para análise pelas equipes municipais. A foto será enviada ao registrar a ocorrência.</p>
+                <button type="button" aria-pressed={photoAuthorized&&!withoutPhoto} aria-describedby="photo-authorization-description" disabled={sending||locked} onClick={()=>{setPhotoAuthorized(!photoAuthorized||withoutPhoto);setWithoutPhoto(false);attempt.current=null;setError('');}} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary-soft px-4 py-3 font-semibold text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  {photoAuthorized&&!withoutPhoto&&<CheckCircle2 aria-hidden="true" className="h-5 w-5 shrink-0"/>}
+                  {photoAuthorized&&!withoutPhoto?'Envio desta foto autorizado':'Autorizar envio desta foto'}
+                </button>
+              </div>}
             </div>
 
             <div className="rounded-2xl border border-primary/30 bg-primary-soft p-4 sm:p-5">
@@ -194,7 +203,7 @@ export default function Home(){
 
           <div className="space-y-4 border-t border-border bg-background px-4 py-5 sm:px-8">
             {error&&<p role="alert" aria-label="Problema no envio" className="rounded-xl border border-warning/30 bg-warning-soft px-4 py-3 text-sm text-warning">{error}</p>}
-            {!locked&&<label className={`flex items-start gap-3 rounded-xl border p-4 text-sm ${photoFailed?'border-warning/30 bg-warning-soft text-warning':'border-border bg-surface text-foreground'}`}><input type="checkbox" className="mt-0.5 h-5 w-5 shrink-0 accent-primary" checked={withoutPhoto} required={!selectedPhoto} onChange={event=>{setWithoutPhoto(event.target.checked);attempt.current=null;setError('');}} disabled={sending}/> <span>Confirmo que desejo enviar esta ocorrência sem foto.{selectedPhoto&&<span className="mt-1 block text-xs">Ao marcar, a foto selecionada não será anexada.</span>}</span></label>}
+            {!locked&&<label className={`flex items-start gap-3 rounded-xl border p-4 text-sm ${photoFailed?'border-warning/30 bg-warning-soft text-warning':'border-border bg-surface text-foreground'}`}><input type="checkbox" className="mt-0.5 h-5 w-5 shrink-0 accent-primary" checked={withoutPhoto} required={!selectedPhoto} onChange={event=>{setWithoutPhoto(event.target.checked);if(event.target.checked)setPhotoAuthorized(false);attempt.current=null;setError('');}} disabled={sending}/> <span>Confirmo que desejo enviar esta ocorrência sem foto.{selectedPhoto&&<span className="mt-1 block text-xs">Ao marcar, a foto selecionada não será anexada.</span>}</span></label>}
             <button type="submit" disabled={!ready||!position||locating||sending} className="block min-h-12 w-full rounded-xl bg-primary px-5 py-3 font-medium text-primary-foreground  transition hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:bg-surface-subtle disabled:text-muted-foreground disabled:shadow-none">{sending?'Registrando ocorrência...':'Enviar ocorrência'}</button>
             <p className="text-center text-xs leading-relaxed text-muted-foreground">{position?'Localização obtida. O registro será confirmado com um protocolo.':'Sua localização é necessária para concluir o registro.'}</p>
           </div>

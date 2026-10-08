@@ -12,6 +12,10 @@ import {resolveActiveClimateEvent} from '@/server/climate-events/intake';
 export class IntakeError extends Error {
   constructor(public status:409|429,public code:string){super(code);}
 }
+class IngestConnectionError extends Error {
+  readonly code='UNSAFE_INGEST_ROLE';
+  constructor(){super('Restricted ingestion role required.');}
+}
 const cached=globalThis as unknown as {intakePrisma?:PrismaClient};
 function client(){
   if(cached.intakePrisma)return cached.intakePrisma;
@@ -37,7 +41,7 @@ export async function openOccurrence(input:PublicOccurrenceInput,key:string,orig
   const hash=createHash('sha256').update(JSON.stringify(input)).digest('hex');
   return client().$transaction(async tx=>{
     const roles=await tx.$queryRaw<{safe:boolean}[]>`SELECT NOT r.rolsuper AND NOT r.rolbypassrls AND NOT login.rolsuper AND NOT login.rolbypassrls AND r.rolname='geoalerta_ingest' AND NOT EXISTS(SELECT FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relowner IN(r.oid,login.oid)) AS safe FROM pg_roles r JOIN pg_roles login ON login.rolname=session_user WHERE r.rolname=current_user`;
-    if(!roles[0]?.safe)throw new Error('Unsafe ingestion connection.');
+    if(!roles[0]?.safe)throw new IngestConnectionError();
     const id=randomUUID();
     await tx.$queryRaw`SELECT set_config('core.attempt_key',${key},true),set_config('core.attempt_id',${id},true),set_config('core.origin_hash',${origin},true)`;
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${key},0))`;
@@ -75,7 +79,7 @@ export async function openOccurrence(input:PublicOccurrenceInput,key:string,orig
 export async function reservePhotoUpload(key:string,origin:string):Promise<void>{
   await client().$transaction(async tx=>{
     const roles=await tx.$queryRaw<{safe:boolean}[]>`SELECT NOT r.rolsuper AND NOT r.rolbypassrls AND NOT login.rolsuper AND NOT login.rolbypassrls AND r.rolname='geoalerta_ingest' AND NOT EXISTS(SELECT FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relowner IN(r.oid,login.oid)) AS safe FROM pg_roles r JOIN pg_roles login ON login.rolname=session_user WHERE r.rolname=current_user`;
-    if(!roles[0]?.safe)throw new Error('Unsafe ingestion connection.');
+    if(!roles[0]?.safe)throw new IngestConnectionError();
     const photoOrigin=`photo:${origin}`;
     await tx.$queryRaw`SELECT set_config('core.attempt_key',${key},true),set_config('core.origin_hash',${photoOrigin},true)`;
     const existing=await tx.$queryRaw<{key:string}[]>`SELECT key FROM public.idempotency_keys WHERE key=${key}`;

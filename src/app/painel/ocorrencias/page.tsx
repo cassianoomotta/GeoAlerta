@@ -41,6 +41,11 @@ export default async function Occurrences({searchParams}:{searchParams:Promise<R
   const {filters,columns,availableColumns,items,total,groups,statusPresentations,occurrenceTypes,catalogs}=result;
   const labels=Object.fromEntries(statusPresentations.map(item=>[item.code,item.label]));
   const pages=Math.max(1,Math.ceil(total/filters.pageSize));
+  const firstItem=items.length?(filters.page-1)*filters.pageSize+1:0;
+  const lastItem=items.length?firstItem+items.length-1:0;
+  const pageNumbers=Array.from(new Set([1,pages,...Array.from({length:5},(_,index)=>filters.page+index-2)]))
+    .filter(page=>page>=1&&page<=pages).sort((a,b)=>a-b);
+  const paginationClass='inline-flex min-h-12 items-center justify-center rounded-lg border border-control-border bg-surface px-4 py-2 text-sm font-medium text-foreground hover:bg-surface-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
   const activeFilterCount=[filters.from,filters.to,filters.status,filters.priority,filters.type,filters.registrationChannel,filters.categoryStatus,filters.registeringInstitutionCode,filters.neighborhoodCode,filters.localityCode,filters.situation,filters.damageLocationCode,filters.hasVictims,filters.hasDisplaced,filters.agencyCode,filters.groupId,filters.climateEventId].filter(Boolean).length;
   return <section className="space-y-5 p-4 md:p-6">
     <h1 className="text-2xl font-bold">Ocorrências</h1>
@@ -78,7 +83,6 @@ export default async function Occurrences({searchParams}:{searchParams:Promise<R
       </form>
     </details>
     <ColumnPreferences key={columns.join(',')} columns={columns} available={availableColumns} filters={filters}/>
-    <p role="status">{total} ocorrências · Página {filters.page} de {pages} · {OCCURRENCES_PAGE_SIZE} por página</p>
     {items.length?<div className="overflow-x-auto"><table className="w-full text-left text-sm"><caption className="sr-only">Lista de ocorrências autorizadas</caption><thead><tr>{columns.map(c=>{
       const active=filters.sort===c;
       const direction=active&&filters.direction==='desc'?'asc':'desc';
@@ -86,6 +90,21 @@ export default async function Occurrences({searchParams}:{searchParams:Promise<R
       const noWrap=c==='protocol';
       return <th key={c} aria-sort={active?(filters.direction==='asc'?'ascending':'descending'):'none'} className={`border-b border-control-border bg-primary/20 p-3 ${noWrap?'whitespace-nowrap':''}`}><Link className="inline-flex items-center gap-1 whitespace-nowrap hover:text-primary" aria-label={`Ordenar por ${columnLabels[c]}`} href={listHref(filters,{sort:c,direction,page:1})}><span>{columnLabels[c]}</span><Icon size={15} aria-hidden="true" /></Link></th>;
     })}</tr></thead><tbody>{items.map(item=><tr key={item.id} className="transition-colors hover:bg-primary/10 focus-within:bg-primary/10">{columns.map(c=><td key={c} className="border-b border-border p-3">{cell(item,c,labels)}</td>)}</tr>)}</tbody></table></div>:<p>Nenhuma ocorrência encontrada para estes filtros.</p>}
-    <nav aria-label="Paginação" className="flex gap-6">{filters.page>1&&<Link href={listHref(filters,{page:filters.page-1})}>Página anterior</Link>}{filters.page<pages&&<Link href={listHref(filters,{page:filters.page+1})}>Próxima página</Link>}</nav>
+    <nav aria-label="Paginação de ocorrências" className="flex flex-col items-center gap-3 border-t border-border pt-5 text-center">
+      <div role="status" className="space-y-1">
+        <p className="text-sm font-medium text-foreground">{items.length?`Exibindo ${firstItem}–${lastItem} de ${total} ocorrências`:total?`Nenhuma ocorrência nesta página · ${total} no total`:'0 ocorrências encontradas'}</p>
+        <p className="text-sm text-muted-foreground">Página {filters.page} de {pages} · {OCCURRENCES_PAGE_SIZE} por página</p>
+      </div>
+      <div className="flex w-full flex-wrap items-center justify-center gap-2">
+        {filters.page>1?<Link prefetch={false} className={paginationClass} href={listHref(filters,{page:filters.page-1})}>Página anterior</Link>:<span aria-disabled="true" className="inline-flex min-h-12 items-center justify-center rounded-lg border border-border bg-disabled px-4 py-2 text-sm text-disabled-text">Página anterior</span>}
+        <div className="order-last flex w-full flex-wrap justify-center gap-2 sm:order-none sm:w-auto">
+          {pageNumbers.map((page,index)=><span key={page} className="inline-flex items-center gap-2">
+            {index>0&&page-pageNumbers[index-1]>1&&<span className="px-1 text-muted-foreground"><span aria-hidden="true">…</span><span className="sr-only">Páginas intermediárias</span></span>}
+            {page===filters.page?<span aria-current="page" aria-label={`Página ${page}, atual`} className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground">{page}</span>:<Link prefetch={false} aria-label={`Ir para página ${page}`} className={`${paginationClass} min-w-12`} href={listHref(filters,{page})}>{page}</Link>}
+          </span>)}
+        </div>
+        {filters.page<pages?<Link prefetch={false} className={paginationClass} href={listHref(filters,{page:filters.page+1})}>Próxima página</Link>:<span aria-disabled="true" className="inline-flex min-h-12 items-center justify-center rounded-lg border border-border bg-disabled px-4 py-2 text-sm text-disabled-text">Próxima página</span>}
+      </div>
+    </nav>
   </section>;
 }
