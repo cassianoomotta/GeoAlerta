@@ -15,6 +15,6 @@ export function StatusBadge({ status, label }: { status: Status; label: string }
 
 export function PriorityBadge({ priority }: { priority: Priority }) {
   return <Badge tone={priority === 'ALTA' ? 'danger' : 'neutral'} icon={priority === 'ALTA' ? <TriangleAlert size={16} /> : <Circle size={16} />}>
-    Prioridade {priority === 'ALTA' ? 'alta' : 'normal'}
+    <span className="break-normal">Prioridade {priority === 'ALTA' ? 'alta' : 'normal'}</span>
   </Badge>;
 }
