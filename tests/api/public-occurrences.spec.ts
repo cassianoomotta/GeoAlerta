@@ -4,7 +4,7 @@ import {randomUUID} from 'node:crypto';
 import {assertTestTarget} from '../fixtures/database';
 const path='/api/core/public/occurrences';
 const typesPath='/api/core/public/occurrence-types';
-const input={type:'Alagamentos/Inundação',description:'synthetic <script>alert(1)</script>',reporterName:'Synthetic citizen',reporterContact:'Synthetic contact',position:{latitude:11,longitude:11,accuracy:7}};
+const input={type:'Alagamentos/Inundação',description:'synthetic <script>alert(1)</script>',reporterName:'Synthetic citizen',reporterContact:'51999990000',position:{latitude:11,longitude:11,accuracy:7}};
 async function database(){assertTestTarget(process.env.TEST_DATABASE_URL);const db=new pg.Client({connectionString:process.env.TEST_DATABASE_URL});await db.connect();return db;}
 test.beforeEach(async({request})=>{await request.post('/__fixture/rotate-origin');});
 test('RF-001 catálogo público reflete ativação e recusa tipo desativado no envio',async({request})=>{

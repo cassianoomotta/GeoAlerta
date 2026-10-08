@@ -33,12 +33,14 @@ export function validatePublicInput(value:unknown, options: {allowCustomType?: b
   if(input.photoToken!==undefined && (typeof input.photoToken!=='string' || input.photoToken.length>1024 || !/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{43}$/.test(input.photoToken))) throw new PublicInputError();
   if(input.needsMedicalSupport!==undefined && input.needsMedicalSupport!==null && typeof input.needsMedicalSupport!=='boolean') throw new PublicInputError();
   const type=text(input.type,80);
+  const reporterContact=text(input.reporterContact,40);
+  if(!/^[0-9]+$/.test(reporterContact)) throw new PublicInputError();
   if(!options.allowCustomType && !options.allowedTypes?.includes(type)) throw new PublicInputError();
   const position=object(input.position);
   if(Object.keys(position).some(key=>!['latitude','longitude','accuracy'].includes(key))) throw new PublicInputError();
   return {
     type,description:text(input.description,2000),
-    reporterName:text(input.reporterName,120),reporterContact:text(input.reporterContact,40),
+    reporterName:text(input.reporterName,120),reporterContact,
     address:optionalText(input.address,300),
     needsMedicalSupport:input.needsMedicalSupport ?? null,
     position:{latitude:coordinate(position.latitude,-90,90),longitude:coordinate(position.longitude,-180,180),accuracy:coordinate(position.accuracy,0,Number.MAX_VALUE)},

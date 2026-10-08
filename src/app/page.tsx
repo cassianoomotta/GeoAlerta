@@ -3,6 +3,7 @@
 import {useEffect,useRef,useState,useSyncExternalStore} from 'react';
 import Image from 'next/image';
 import {CheckCircle2,MapPin} from 'lucide-react';
+import {GeoAlertaLogo} from '@/components/brand/geoalerta-logo';
 import {validatePublicInput} from '@/features/occurrences/public-input';
 import type {GeoPosition,OpenResult} from '@/features/occurrences/contracts';
 import {photoMetadata} from '@/features/occurrences/photos/contracts';
@@ -10,6 +11,7 @@ import {sendPublicAttempt, PhotoUploadFailure, type PhotoAttempt} from '@/featur
 import type {PublicShelter} from '@/features/shelters/contracts';
 import {buildShelterDirections} from '@/features/shelters/domain/directions';
 const subscribe=()=>()=>{};
+const accuracyFormat=new Intl.NumberFormat('pt-BR',{maximumFractionDigits:1});
 export default function Home(){
   const ready=useSyncExternalStore(subscribe,()=>true,()=>false);
   const [position,setPosition]=useState<GeoPosition|null>(null);
@@ -26,6 +28,7 @@ export default function Home(){
   const [selectedPhoto,setSelectedPhoto]=useState<File|null>(null);
   const [photoFailed,setPhotoFailed]=useState(false);
   const [withoutPhoto,setWithoutPhoto]=useState(false);
+  const [reporterContact,setReporterContact]=useState('');
   const [locked,setLocked]=useState(false);
   const [occurrenceTypes,setOccurrenceTypes]=useState<string[]>([]);
   const [typesLoading,setTypesLoading]=useState(true);
@@ -43,6 +46,8 @@ export default function Home(){
     const file=event.currentTarget.files?.[0];
     if(!file)return;
     setSelectedPhoto(file);attempt.current=null;setWithoutPhoto(false);setPhotoFailed(false);
+    try{photoMetadata(file);setError('');}
+    catch{setPhotoFailed(true);setError('Selecione JPEG, PNG ou WebP de até 5 MiB, ou confirme o envio sem foto.');}
   }
   useEffect(()=>{
     let current=true;
@@ -67,6 +72,7 @@ export default function Home(){
   async function submit(event:React.FormEvent<HTMLFormElement>){
     event.preventDefault();if(sending)return;setError('');
     if(!position){setError('Obtenha sua localização antes de enviar.');return;}
+    if(!selectedPhoto&&!withoutPhoto&&!locked){setError('Confirme o envio da ocorrência sem foto.');return;}
     const form=new FormData(event.currentTarget);
     const file=selectedPhoto;
     let body:string;
@@ -80,8 +86,6 @@ export default function Home(){
     }
     if(!locked && (current?.baseBody!==body || current?.file?.name!==file?.name || current?.file?.size!==file?.size || current?.file?.lastModified!==file?.lastModified)){
       attempt.current={baseBody:body,key:crypto.randomUUID(),file,uploadFailed:false,submissionStarted:false};setPhotoFailed(false);
-      // Confirmation applies only to the file/fields for which upload failed.
-      if(withoutPhoto){setWithoutPhoto(false);setError('Os dados mudaram. Confirme o envio novamente.');return;}
     }
     setSending(true);
     try{
@@ -110,14 +114,14 @@ export default function Home(){
         },
       });
       setResult(data);loadPublicShelters();
-    }catch(error){if(error instanceof PhotoUploadFailure)setPhotoFailed(true);setError(error instanceof Error?error.message:'Resposta não confirmada. Tente novamente com os mesmos dados; seu envio não será duplicado.');}
+    }catch(error){if(error instanceof PhotoUploadFailure){setPhotoFailed(true);setError(`${error.message} Você pode tentar novamente ou confirmar o envio sem foto.`);}else setError(error instanceof Error?error.message:'Resposta não confirmada. Tente novamente com os mesmos dados; seu envio não será duplicado.');}
     finally{setSending(false);}
   }
   const inputClass='mt-2 block w-full rounded-xl border border-control-border bg-surface px-4 py-3 text-base text-foreground  outline-none transition placeholder:text-muted-foreground focus:border-primary/30 focus:ring-2 focus:ring-ring disabled:bg-surface-subtle';
   return <main className="min-h-screen bg-background px-4 py-8 text-foreground sm:px-6 sm:py-12">
     <div className="mx-auto max-w-[560px]">
       <header className="mb-8">
-        <h1 className="mt-4 text-2xl font-semibold text-primary">GeoAlerta</h1>
+        <h1 className="mt-4"><GeoAlertaLogo className="block h-auto w-36 max-w-full sm:w-40" /></h1>
         <p className="mt-3 max-w-2xl text-base leading-6 text-muted-foreground">Conte pra gente o que aconteceu. Preencha as informações que souber; você também pode registrar uma ocorrência para outra pessoa.</p>
       </header>
 
@@ -154,7 +158,7 @@ export default function Home(){
         <form onSubmit={submit}>
           <fieldset disabled={sending||locked} className="min-w-0 space-y-5 border-0 px-5 py-6 sm:px-8">
             <label className="block text-sm font-semibold text-foreground"><span>Nome <span aria-hidden="true" className="text-danger">*</span></span><input name="reporterName" required maxLength={120} autoComplete="name" className={inputClass} /></label>
-            <label className="block text-sm font-semibold text-foreground"><span>Contato <span aria-hidden="true" className="text-danger">*</span></span><input name="reporterContact" required maxLength={40} autoComplete="tel" className={inputClass} /></label>
+            <label className="block text-sm font-semibold text-foreground"><span>Contato <span aria-hidden="true" className="text-danger">*</span></span><input name="reporterContact" type="tel" inputMode="numeric" pattern="[0-9]+" value={reporterContact} onChange={event=>setReporterContact(event.target.value.replace(/\D/g,''))} required maxLength={40} autoComplete="tel" className={inputClass} /><span className="mt-2 block text-sm font-normal text-muted-foreground">Informe o telefone com DDD, somente números.</span></label>
             <label className="block text-sm font-semibold text-foreground"><span>Tipo de ocorrência <span aria-hidden="true" className="text-danger">*</span></span><select name="type" required defaultValue="" disabled={typesLoading||typesError||occurrenceTypes.length===0} className={`${inputClass} public-intake-select`}><option value="" disabled>{typesLoading?'Carregando tipos de ocorrência...':typesError?'Tipos temporariamente indisponíveis':'Selecione o tipo de ocorrência'}</option>{occurrenceTypes.map(type=><option key={type} value={type}>{type}</option>)}</select>{typesError&&<span role="status" className="mt-2 block text-sm font-normal text-warning">Não foi possível carregar os tipos. Atualize a página para tentar novamente.</span>}{!typesLoading&&!typesError&&occurrenceTypes.length===0&&<span role="status" className="mt-2 block text-sm font-normal text-muted-foreground">Nenhum tipo está disponível no momento.</span>}</label>
             <label className="block text-sm font-semibold text-foreground"><span>Descrição <span aria-hidden="true" className="text-danger">*</span></span><textarea name="description" required maxLength={2000} placeholder="Conte o que aconteceu e indique um ponto de referência próximo. Inclua detalhes que ajudem as equipes a localizar e atender a ocorrência." className={`${inputClass} min-h-32 resize-y`} /></label>
             <fieldset className="space-y-3">
@@ -181,7 +185,7 @@ export default function Home(){
                 <MapPin aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
                 <div className="min-w-0 flex-1">
                   <p className="font-semibold text-foreground">Localização do dispositivo <span aria-hidden="true" className="text-danger">*</span></p>
-                  {position ? <p role="status" className="mt-1 text-sm text-success">Localização obtida. Precisão: {position.accuracy} metros.</p> : <p role="note" className="mt-1 text-sm leading-relaxed text-muted-foreground">Para enviar, é necessário permitir o acesso à localização. Toque no botão e autorize quando o navegador solicitar.</p>}
+                  {position ? <p role="status" className="mt-1 text-sm text-success">Localização obtida. Precisão: {accuracyFormat.format(position.accuracy)} metros.</p> : <p role="note" className="mt-1 text-sm leading-relaxed text-muted-foreground">Para enviar, é necessário permitir o acesso à localização. Toque no botão e autorize quando o navegador solicitar.</p>}
                 </div>
               </div>
               <button type="button" onClick={locate} disabled={!ready||locating||sending} className="mt-4 inline-flex min-h-11 items-center justify-center rounded-xl bg-primary px-5 py-2.5 font-semibold text-primary-foreground transition hover:bg-primary focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-60">{locating?'Obtendo localização...':position?'Atualizar localização':'Obter localização'}</button>
@@ -190,9 +194,9 @@ export default function Home(){
 
           <div className="space-y-4 border-t border-border bg-background px-5 py-5 sm:px-8">
             {error&&<p role="alert" aria-label="Problema no envio" className="rounded-xl border border-warning/30 bg-warning-soft px-4 py-3 text-sm text-warning">{error}</p>}
-            {photoFailed&&!locked&&<label className="flex items-start gap-3 rounded-xl border border-warning/30 bg-warning-soft p-4 text-sm text-warning"><input type="checkbox" className="mt-0.5 h-4 w-4 accent-primary" checked={withoutPhoto} onChange={event=>setWithoutPhoto(event.target.checked)} disabled={sending}/> <span>Confirmo que desejo enviar esta ocorrência sem foto.</span></label>}
+            {!locked&&<label className={`flex items-start gap-3 rounded-xl border p-4 text-sm ${photoFailed?'border-warning/30 bg-warning-soft text-warning':'border-border bg-surface text-foreground'}`}><input type="checkbox" className="mt-0.5 h-4 w-4 shrink-0 accent-primary" checked={withoutPhoto} required={!selectedPhoto} onChange={event=>{setWithoutPhoto(event.target.checked);attempt.current=null;setError('');}} disabled={sending}/> <span>Confirmo que desejo enviar esta ocorrência sem foto.{selectedPhoto&&<span className="mt-1 block text-xs">Ao marcar, a foto selecionada não será anexada.</span>}</span></label>}
             <button type="submit" disabled={!ready||!position||locating||sending} className="block min-h-12 w-full rounded-xl bg-primary px-5 py-3 font-medium text-primary-foreground  transition hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:bg-surface-subtle disabled:text-muted-foreground disabled:shadow-none">{sending?'Registrando ocorrência...':'Enviar ocorrência'}</button>
-            <p className="text-center text-xs leading-relaxed text-muted-foreground">Sua localização é necessária para concluir o registro.</p>
+            <p className="text-center text-xs leading-relaxed text-muted-foreground">{position?'Localização obtida. O registro será confirmado com um protocolo.':'Sua localização é necessária para concluir o registro.'}</p>
           </div>
         </form>
       </section>}

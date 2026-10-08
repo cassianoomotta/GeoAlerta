@@ -6,7 +6,8 @@ export interface PublicPhotoTransport {
   open(body: string, key: string): Promise<OpenResult>;
 }
 export async function sendPublicAttempt(attempt: PhotoAttempt, withoutPhoto: boolean, transport: PublicPhotoTransport): Promise<OpenResult> {
-  if (withoutPhoto && (!attempt.uploadFailed || attempt.submissionStarted)) throw new Error('Explicit omission requires a failed upload before submission.');
+  // An omission can be chosen before upload; a submitted body must stay immutable on retry.
+  if (withoutPhoto && attempt.submissionStarted && attempt.finalBody && Object.hasOwn(JSON.parse(attempt.finalBody),'photoToken')) throw new Error('A foto de um envio já iniciado não pode ser removida.');
   if (!attempt.finalBody) {
     if (attempt.file && !withoutPhoto && !attempt.token) {
       try { attempt.token = await transport.stage(attempt.file, attempt.key); attempt.uploadFailed = false; }

@@ -1,24 +1,28 @@
 import {test,expect} from '@playwright/test';
 import {validatePublicInput,validateIdempotencyKey,PublicInputError} from '../../src/features/occurrences/public-input';
-const input={type:'Alagamentos/Inundação',description:'Rua com água',reporterName:'Pessoa sintética',reporterContact:'Contato sintético',position:{latitude:-29.5,longitude:-50.5,accuracy:10}};
+const input={type:'Alagamentos/Inundação',description:'Rua com água',reporterName:'Pessoa sintética',reporterContact:'51999990000',position:{latitude:-29.5,longitude:-50.5,accuracy:10}};
 const validate=(value:unknown,options:Parameters<typeof validatePublicInput>[1]={})=>validatePublicInput(value,{allowedTypes:['Alagamentos/Inundação'],...options});
 test('RF-001 limites textuais aceitos após trim e limites geográficos inclusivos',()=>{
   expect(validate({...input,reporterName:'  Pessoa sintética  '})).toEqual({...input,reporterName:'Pessoa sintética',address:null,needsMedicalSupport:null});
   expect(validate({...input,description:'x'.repeat(2000)}).description).toHaveLength(2000);
   for(const value of [' ','x'.repeat(2001),null,1]) expect(()=>validate({...input,description:value})).toThrow(PublicInputError);
   for(const [field,maximum] of [['reporterName',120],['reporterContact',40]] as const){
-    expect(validate({...input,[field]:'x'.repeat(maximum)})[field]).toHaveLength(maximum);
+    expect(validate({...input,[field]:(field==='reporterContact'?'1':'x').repeat(maximum)})[field]).toHaveLength(maximum);
     for(const value of ['x'.repeat(maximum+1),1]) expect(()=>validate({...input,[field]:value})).toThrow(PublicInputError);
   }
   for(const latitude of [-90,90])for(const longitude of [-180,180])expect(validate({...input,position:{latitude,longitude,accuracy:0}}).position).toEqual({latitude,longitude,accuracy:0});
 });
 test('RF-001 nome, contato e tipo são obrigatórios; endereço é opcional',()=>{
-  expect(validate({...input,address:'  '})).toMatchObject({reporterName:'Pessoa sintética',reporterContact:'Contato sintético',address:null});
+  expect(validate({...input,address:'  '})).toMatchObject({reporterName:'Pessoa sintética',reporterContact:'51999990000',address:null});
   for(const reporterName of ['', '  ', null, undefined, 1]) expect(()=>validate({...input,reporterName})).toThrow(PublicInputError);
   for(const reporterContact of ['', '  ', null, undefined, 1]) expect(()=>validate({...input,reporterContact})).toThrow(PublicInputError);
   for(const type of ['', '  ', null, undefined, 1]) expect(()=>validate({...input,type})).toThrow(PublicInputError);
   expect(validate({...input,address:'  Rua das Flores, 123  '})).toMatchObject({address:'Rua das Flores, 123'});
   expect(()=>validate({...input,address:'x'.repeat(301)})).toThrow(PublicInputError);
+});
+test('contato público aceita somente dígitos, inclusive quando enviado diretamente à API',()=>{
+  expect(validate({...input,reporterContact:'051999990000'}).reporterContact).toBe('051999990000');
+  for(const reporterContact of ['telefone','5199999abc','(51) 99999-0000','+5551999990000','5199\n990000'])expect(()=>validate({...input,reporterContact})).toThrow(PublicInputError);
 });
 test('RF-001 tipo público depende da lista ativa fornecida pelo catálogo',()=>{
   expect(validate({...input,type:'Alagamentos/Inundação'}).type).toBe('Alagamentos/Inundação');

@@ -9,6 +9,7 @@ async function fill(page:import('@playwright/test').Page,medicalSupport:'true'|'
   await expect(page.getByRole('option',{name:'Alagamentos/Inundação',exact:true})).toBeAttached();
   await page.getByRole('textbox',{name:'Nome'}).fill('Cidadão teste');await page.getByRole('textbox',{name:'Contato'}).fill('(51) 99999-0000');await page.getByRole('combobox',{name:'Tipo de ocorrência'}).selectOption('Alagamentos/Inundação');await page.getByRole('textbox',{name:'Descrição'}).fill('<script>window.fixtureXss=true</script>');
   if(medicalSupport)await page.getByRole('radio',{name:medicalSupport==='true'?'Sim':'Não'}).check();
+  await page.getByRole('checkbox',{name:'Confirmo que desejo enviar esta ocorrência sem foto.'}).check();
 }
 test('formulário público usa seletor claro e exibe as marcas institucionais',async({page})=>{
   await page.goto('/');
@@ -63,7 +64,7 @@ test('RF-001 GPS nativo e confirmação com protocolo no desktop e celular',asyn
   const responsePromise=page.waitForResponse(r=>r.url().endsWith('/api/core/public/occurrences')&&r.request().method()==='POST');
   await page.getByRole('button',{name:'Enviar ocorrência'}).click();const response=await responsePromise;expect(response.status()).toBe(201);
   const result=await response.json();expect(result.protocol).toMatch(/^\d+$/);await expect(page.locator('section[role="status"]')).toContainText(result.protocol);expect(await page.evaluate(()=>Object.hasOwn(window,'fixtureXss'))).toBe(false);
-  assertTestTarget(process.env.TEST_DATABASE_URL);const db=new pg.Client({connectionString:process.env.TEST_DATABASE_URL});await db.connect();try{const row=(await db.query('SELECT o.address,o.needs_medical_support,o.priority,d.reporter_name,d.reporter_contact FROM public.occurrences o JOIN public.occurrence_private_data d ON d.occurrence_id=o.id WHERE o.id=$1',[result.id])).rows[0];expect(row).toEqual({address:'Rua de Teste, 123',needs_medical_support:true,priority:'NORMAL',reporter_name:'Cidadão teste',reporter_contact:'(51) 99999-0000'});}finally{await db.end();}
+  assertTestTarget(process.env.TEST_DATABASE_URL);const db=new pg.Client({connectionString:process.env.TEST_DATABASE_URL});await db.connect();try{const row=(await db.query('SELECT o.address,o.needs_medical_support,o.priority,d.reporter_name,d.reporter_contact FROM public.occurrences o JOIN public.occurrence_private_data d ON d.occurrence_id=o.id WHERE o.id=$1',[result.id])).rows[0];expect(row).toEqual({address:'Rua de Teste, 123',needs_medical_support:true,priority:'NORMAL',reporter_name:'Cidadão teste',reporter_contact:'51999990000'});}finally{await db.end();}
 });
 test('RF-004 após o registro exibe abrigos abertos com rotas Google Maps e Waze',async({page,context})=>{
   await context.grantPermissions(['geolocation']);await context.setGeolocation({latitude:11,longitude:11,accuracy:8});

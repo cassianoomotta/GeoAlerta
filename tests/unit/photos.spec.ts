@@ -12,7 +12,7 @@ const secret = 'synthetic-secret-for-unit-tests-0123456789';
 const user: Actor = {userId: 'synthetic', municipalityId: 'sa_patrulha', groupIds: ['a','b'], state: 'ATIVO', role: 'OPERADOR'};
 const result = {id:'synthetic',protocol:'1',status:'NOVA',priority:'NORMAL',version:1} as const;
 const key = 'attempt-a';
-const baseBody = JSON.stringify({type:'Alagamentos/Inundação',description:'Dados sintéticos',reporterName:'Sintético',reporterContact:'Sintético',position:{latitude:0,longitude:0,accuracy:1}});
+const baseBody = JSON.stringify({type:'Alagamentos/Inundação',description:'Dados sintéticos',reporterName:'Sintético',reporterContact:'51999990000',position:{latitude:0,longitude:0,accuracy:1}});
 const reference = {objectKey:'core/00000000-0000-4000-a000-000000000001.png',groupId:'b',municipalityId:'sa_patrulha'};
 function storageDouble() {
   const calls: string[] = [];
@@ -119,7 +119,13 @@ test('RF-004 falha de foto impede registro; retry ou omissão explicitamente con
   await expect(sendPublicAttempt(a,false,transport)).rejects.toBeInstanceOf(PhotoUploadFailure);
   expect(opens).toBe(0);expect(a.uploadFailed).toBe(true);
   expect(await sendPublicAttempt(a,true,transport)).toEqual(result);expect(uploads).toBe(1);expect(opens).toBe(1);
-  await expect(sendPublicAttempt(attempt(file),true,transport)).rejects.toThrow();
+});
+test('omissão escolhida antes do envio evita upload e mantém corpo e chave após resposta perdida',async()=>{
+  const a=attempt(await fixture('png'));let uploads=0;const bodies:string[]=[];const keys:string[]=[];
+  const transport={stage:async()=>{uploads++;throw new Error('Storage indisponível');},open:async(body:string,attemptKey:string)=>{bodies.push(body);keys.push(attemptKey);if(bodies.length===1)throw new Error('Resposta perdida');return result;}};
+  await expect(sendPublicAttempt(a,true,transport)).rejects.toThrow('Resposta perdida');
+  expect(await sendPublicAttempt(a,true,transport)).toEqual(result);
+  expect(uploads).toBe(0);expect(JSON.parse(bodies[0]).photoToken).toBeUndefined();expect(bodies[1]).toBe(bodies[0]);expect(keys).toEqual([key,key]);
 });
 test('RF-004 retry após resposta perdida preserva exatamente token corpo e chave',async()=>{
   const a=attempt(await fixture('png'));let uploads=0;const bodies:string[]=[];const keys:string[]=[];
