@@ -23,7 +23,6 @@ export type MutateOccurrencePorts = {
     priority?: Priority;
     deletedAt?: boolean;
     type?: string;
-    description?: string;
     climateEventId?: string | null;
     eventKind: string;
     reason: string | null;
@@ -69,7 +68,6 @@ export async function mutateOccurrence(
     ...(command.kind === 'delete' ? { deletedAt: true } : {}),
     ...(command.kind === 'restore' ? { deletedAt: false } : {}),
     ...(command.kind === 'edit' && command.type !== undefined ? { type: command.type } : {}),
-    ...(command.kind === 'edit' && command.description !== undefined ? { description: command.description } : {}),
     ...(command.kind === 'climateEvent' ? { climateEventId: command.climateEventId } : {}),
     eventKind: decision.eventKind,
     reason: decision.reason,

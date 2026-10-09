@@ -26,7 +26,7 @@ async function queryContext(tx:Prisma.TransactionClient,actor:Actor,filters:List
     [filters.damageLocationCode,catalogs.damageLocations],
     [filters.agencyCode,catalogs.serviceAgencies],
   ] as const)if(value&&value!=='__NULL__'&&!options.some(option=>option.code===value))throw new ListInputError();
-  const allowed=availableColumns(actor.role!=='CONSULTA');
+  const allowed=availableColumns(actor.role!=='CONSULTA' && actor.role!=='VOLUNTARIO');
   if(!allowed.includes(filters.sort as Column))throw new ListInputError(403);
   const columns=filters.columns?validateColumns(filters.columns,allowed):await getColumns(tx,actor);
   const clauses=[Prisma.sql`o.deleted_at IS NULL`];

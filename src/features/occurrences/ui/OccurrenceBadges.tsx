@@ -10,7 +10,7 @@ const statusAppearance = {
 
 export function StatusBadge({ status, label }: { status: Status; label: string }) {
   const { tone, Icon } = statusAppearance[status];
-  return <Badge tone={tone} className={status === 'EM_ATENDIMENTO' ? 'max-w-none whitespace-nowrap' : ''} icon={<Icon size={16} />}>{label}</Badge>;
+  return <Badge tone={tone} className="max-w-none whitespace-nowrap" icon={<Icon size={16} />}>{label}</Badge>;
 }
 
 export function PriorityBadge({ priority }: { priority: Priority }) {

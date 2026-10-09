@@ -5,7 +5,7 @@ import type { Priority, Status } from '@/features/occurrences/contracts';
 import { mutateOccurrence, type MutateOccurrencePorts } from '@/features/occurrences/application/mutate-occurrence';
 import type { OccurrenceMutationPayload } from '@/features/occurrences/domain/mutation';
 
-const roles: readonly Role[] = ['CONSULTA', 'OPERADOR', 'GESTOR', 'ADMINISTRADOR'];
+const roles: readonly Role[] = ['CONSULTA', 'VOLUNTARIO', 'OPERADOR', 'GESTOR', 'ADMINISTRADOR'];
 
 function parseRoles(value: unknown): Role[] {
   if (!Array.isArray(value)) return [];
@@ -109,7 +109,6 @@ export async function mutateOccurrenceInTransaction(
       const updated = await tx.$executeRaw`
         UPDATE public.occurrences
         SET type=COALESCE(${mutation.type ?? null},type),
-            description=COALESCE(${mutation.description ?? null},description),
             status=COALESCE(${mutation.status ?? null},status),
             group_id=${mutation.groupId}::uuid,
             version=version+1,

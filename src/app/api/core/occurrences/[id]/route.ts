@@ -3,6 +3,7 @@ import { AccessError } from '@/server/access/context';
 import {privatePhotoAvailable} from '@/features/occurrences/photos/service';
 import { can } from '@/features/access/domain/permissions';
 import { parseOccurrenceMutation, OccurrenceMutationError } from '@/features/occurrences/domain/mutation';
+import { normalizeOccurrenceHistoryRow } from '@/features/occurrences/domain/history';
 import { mutateOccurrenceInTransaction } from '@/server/occurrences/mutate';
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -44,13 +45,6 @@ interface ZoneRow {
   id: string;
   name: string;
   version: number;
-}
-
-interface EventRow {
-  id: string;
-  kind: string;
-  actorId: string | null;
-  at: Date;
 }
 
 interface ServiceRecordRow {
@@ -114,11 +108,12 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
         WHERE cz.occurrence_id=${id}::uuid
         ORDER BY z.name,cz.zone_id,cz.zone_version
       `;
-      const events = await tx.$queryRaw<EventRow[]>`
-        SELECT id::text AS id,kind,"actorId"::text AS "actorId",at
-        FROM public.core_occurrence_history(${id}::uuid)
-        ORDER BY at,id
+      const eventRows = await tx.$queryRaw<{ history: unknown }[]>`
+        SELECT to_jsonb(history) AS history
+        FROM public.core_occurrence_history(${id}::uuid) AS history
+        ORDER BY history.at,history.id
       `;
+      const events = eventRows.map(({ history }) => normalizeOccurrenceHistoryRow(history));
       const scope = { municipalityId: 'sa_patrulha', groupId: occurrence.group_id };
       const privateCapability = can(actor, 'privateData', scope);
       const privateRows = privateCapability ? await tx.$queryRaw<{reporter_name: string | null; reporter_contact: string | null; photo_object_key: string | null}[]>`
@@ -201,9 +196,6 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
         availableGroups,
         serviceAgencyOptions,
         climateEvent: occurrence.climate_event_id ? { id: occurrence.climate_event_id, name: occurrence.climate_event_name, state: occurrence.climate_event_state } : null,
-        climateEvents: canReclassify ? await tx.$queryRaw<{id:string;name:string;state:'PLANEJADO'|'EM_ANDAMENTO'|'ENCERRADO'}[]>`
-          SELECT id::text,name,state FROM public.climate_events WHERE municipality_id=${actor.municipalityId} ORDER BY name,id
-        ` : [],
         ...(privateCapability ? { privateData: {
           reporterName: privateRow?.reporter_name ?? null,
           reporterContact: privateRow?.reporter_contact ?? null,

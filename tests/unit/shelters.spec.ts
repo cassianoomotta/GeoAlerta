@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { parseShelterInput, ShelterInputError } from '../../src/features/shelters/domain/input';
 import { buildShelterDirections } from '../../src/features/shelters/domain/directions';
+import { availableShelterPlaces, effectiveShelterStatus } from '../../src/features/shelters/domain/capacity';
 
 const valid = {
   name: '  Ginásio Municipal  ',
@@ -63,6 +64,22 @@ test('abrigo aceita links Google Maps e Waze com coordenadas e rejeita destino a
     { ...valid, lat: null, lng: null, mapUrl: 'https://waze.com/ul?ll=-29.79,181' },
     { ...valid, mapUrl: 'https://waze.com/ul?ll=-29.8,-50.5' },
   ]) expect(() => parseShelterInput(value)).toThrow(ShelterInputError);
+});
+
+test('link curto Google Maps é aceito apenas junto de coordenadas válidas já informadas', () => {
+  expect(parseShelterInput({ ...valid, mapUrl: 'https://maps.app.goo.gl/C3k4LN4jenqjj9Kz8' })).toMatchObject({ lat: -29.79, lng: -50.52 });
+  expect(() => parseShelterInput({ ...valid, lat: null, lng: null, mapUrl: 'https://maps.app.goo.gl/C3k4LN4jenqjj9Kz8' })).toThrow(ShelterInputError);
+  expect(() => parseShelterInput({ ...valid, mapUrl: 'https://attacker.example/C3k4LN4jenqjj9Kz8' })).toThrow(ShelterInputError);
+});
+
+test('vagas disponíveis nunca ficam negativas e a lotação acompanha ocupação e capacidade', () => {
+  expect(availableShelterPlaces(200, 0)).toBe(200);
+  expect(availableShelterPlaces(200, 75)).toBe(125);
+  expect(availableShelterPlaces(200, 230)).toBe(0);
+  expect(effectiveShelterStatus('Aberto', 200, 0)).toBe('Aberto');
+  expect(effectiveShelterStatus('Aberto', 200, 200)).toBe('Lotado');
+  expect(effectiveShelterStatus('Lotado', 200, 0)).toBe('Aberto');
+  expect(effectiveShelterStatus('Encerrado', 200, 200)).toBe('Encerrado');
 });
 
 test('links de rota usam destino validado e coordenadas com precisão estável', () => {

@@ -89,7 +89,7 @@ export default async function Occurrences({searchParams}:{searchParams:Promise<R
       const Icon=active?(filters.direction==='desc'?ArrowDown:ArrowUp):ArrowUpDown;
       const noWrap=c==='protocol';
       return <th key={c} aria-sort={active?(filters.direction==='asc'?'ascending':'descending'):'none'} className={`border-b border-control-border bg-primary/20 p-3 ${noWrap?'whitespace-nowrap':''}`}><Link className="inline-flex items-center gap-1 whitespace-nowrap hover:text-primary" aria-label={`Ordenar por ${columnLabels[c]}`} href={listHref(filters,{sort:c,direction,page:1})}><span>{columnLabels[c]}</span><Icon size={15} aria-hidden="true" /></Link></th>;
-    })}</tr></thead><tbody>{items.map(item=><tr key={item.id} className="transition-colors hover:bg-primary/10 focus-within:bg-primary/10">{columns.map(c=><td key={c} className="border-b border-border p-3">{cell(item,c,labels)}</td>)}</tr>)}</tbody></table></div>:<p>Nenhuma ocorrência encontrada para estes filtros.</p>}
+    })}</tr></thead><tbody>{items.map(item=><tr key={item.id} className="transition-colors hover:bg-primary/10 focus-within:bg-primary/10">{columns.map(c=><td key={c} className={`border-b border-border p-3 ${c==='status'?'whitespace-nowrap':''}`}>{cell(item,c,labels)}</td>)}</tr>)}</tbody></table></div>:<p>Nenhuma ocorrência encontrada para estes filtros.</p>}
     <nav aria-label="Paginação de ocorrências" className="flex flex-col items-center gap-3 border-t border-border pt-5 text-center">
       <div role="status" className="space-y-1">
         <p className="text-sm font-medium text-foreground">{items.length?`Exibindo ${firstItem}–${lastItem} de ${total} ocorrências`:total?`Nenhuma ocorrência nesta página · ${total} no total`:'0 ocorrências encontradas'}</p>

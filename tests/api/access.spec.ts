@@ -1,7 +1,7 @@
 import { test,expect } from '@playwright/test';
 import pg from 'pg';
 import { fixtureCookies } from '../fixtures/session';
-import { accounts,occurrenceA,occurrenceB,occurrenceOther } from '../fixtures/access';
+import { accounts,groupA,occurrenceA,occurrenceB,occurrenceOther } from '../fixtures/access';
 import { assertTestTarget } from '../fixtures/database';
 test('RNF-001 API combina capacidade e grupo sem aceitar papel do cliente',async({request})=>{
   for(const name of ['consulta','operador','gestor','admin']){
@@ -35,7 +35,7 @@ test('RF-005 ID fora do escopo é 404 igual a inexistente; Consulta recebe campo
   const consulta=await request.get(`/api/core/occurrences/${occurrenceA}`,{headers:{Cookie:cookieHeader(await fixtureCookies('consulta'))}});
   expect(consulta.status()).toBe(200);
   const detail=await consulta.json();
-  expect(Object.keys(detail).sort()).toEqual(['actions','address','availableGroups','classification','climateEvent','climateEvents','description','events','group','id','occurrenceContext','openedAt','position','priority','protocol','serviceAgencyOptions','serviceRecords','status','triage','type','updatedAt','version']);
+  expect(Object.keys(detail).sort()).toEqual(['actions','address','availableGroups','classification','climateEvent','description','events','group','id','occurrenceContext','openedAt','position','priority','protocol','serviceAgencyOptions','serviceRecords','status','triage','type','updatedAt','version']);
   expect(detail).not.toHaveProperty('privateData');
   expect(JSON.stringify(detail)).not.toMatch(/reporterName|reporterContact|photo_object_key|photo_url/i);
 });
@@ -50,4 +50,31 @@ test('RF-005 sessão emitida perde acesso após suspensão e alteração de pape
     await db.query("UPDATE public.admin_profiles SET state='ATIVO',role='CONSULTA' WHERE user_id=$1",[a.id]);
     expect((await(await request.get('/api/core/session',{headers})).json()).role).toBe('CONSULTA');
   }finally{await db.query("UPDATE public.admin_profiles SET state='ATIVO',role='OPERADOR' WHERE user_id=$1",[a.id]);await db.end();}
+});
+
+test('RF-013 administrador altera nome, telefone e grupos no escopo municipal com auditoria',async({request})=>{
+  assertTestTarget(process.env.TEST_DATABASE_URL);const db=new pg.Client({connectionString:process.env.TEST_DATABASE_URL});await db.connect();
+  const target=accounts.find(a=>a.name==='consulta')!;const headers={Cookie:cookieHeader(await fixtureCookies('admin'))};
+  const before=(await db.query('SELECT name,phone,role,state FROM public.admin_profiles WHERE user_id=$1',[target.id])).rows[0];
+  try{
+    const response=await request.post('/api/core/admin',{headers,data:{action:'update_user',userId:target.id,name:'Consulta revisada',phone:'(51) 99999-1010',role:'CONSULTA',state:'ATIVO',groupIds:[groupA]}});
+    expect(response.status()).toBe(200);
+    expect((await db.query('SELECT name,phone FROM public.admin_profiles WHERE user_id=$1',[target.id])).rows[0]).toEqual({name:'Consulta revisada',phone:'(51) 99999-1010'});
+    expect((await db.query("SELECT kind FROM public.audit_events WHERE entity_id=$1 AND kind='ADMIN_USER_ACCESS_UPDATED' ORDER BY at DESC LIMIT 1",[target.id])).rows[0]?.kind).toBe('ADMIN_USER_ACCESS_UPDATED');
+    const denied=await request.post('/api/core/admin',{headers:{Cookie:cookieHeader(await fixtureCookies('operador'))},data:{action:'update_user',userId:target.id,name:'Sem permissão',phone:null,role:'CONSULTA',state:'ATIVO',groupIds:[groupA]}});
+    expect(denied.status()).toBe(403);
+  }finally{await db.query('UPDATE public.admin_profiles SET name=$1,phone=$2,role=$3,state=$4 WHERE user_id=$5',[before.name,before.phone,before.role,before.state,target.id]);await db.end();}
+});
+
+test('RF-013 somente Administrador ativo pode criar uma conta diretamente em um grupo',async({request})=>{
+  const response=await request.post('/api/core/admin',{headers:{Cookie:cookieHeader(await fixtureCookies('operador'))},data:{action:'create_group_user',email:'nao-criar@example.invalid',name:'Sem permissão',phone:'',role:'CONSULTA',groupId:groupA}});
+  expect(response.status()).toBe(403);
+});
+
+test('RF-007 metadados de alertas respeitam grupos do operador e administração municipal',async({request})=>{
+  const ids=[occurrenceA,occurrenceB,occurrenceOther];
+  const operator=await request.post('/api/core/occurrences/notification-metadata',{headers:{Cookie:cookieHeader(await fixtureCookies('operador'))},data:{occurrenceIds:ids}});
+  expect(operator.status()).toBe(200);expect((await operator.json()).occurrences.map((row:{id:string})=>row.id)).toEqual([occurrenceA]);
+  const admin=await request.post('/api/core/occurrences/notification-metadata',{headers:{Cookie:cookieHeader(await fixtureCookies('admin'))},data:{occurrenceIds:ids}});
+  expect(admin.status()).toBe(200);expect((await admin.json()).occurrences.map((row:{id:string})=>row.id).sort()).toEqual([occurrenceA,occurrenceB].sort());
 });

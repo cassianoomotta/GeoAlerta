@@ -3,6 +3,7 @@ import type { Actor, Role } from '../contracts';
 export type Capability = 'read' | 'privateData' | 'operate' | 'reclassify' | 'export' | 'administer';
 const capabilities: Record<Role, readonly Capability[]> = {
   CONSULTA: ['read'],
+  VOLUNTARIO: ['read'],
   OPERADOR: ['read','privateData','operate'],
   GESTOR: ['read','privateData','operate','reclassify','export'],
   ADMINISTRADOR: ['read','privateData','operate','reclassify','export','administer'],
