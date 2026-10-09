@@ -4,7 +4,7 @@ import type { Priority, Status } from '../contracts';
 
 export type OccurrenceMutationCommand =
   | { kind: 'climateEvent'; climateEventId: string | null; reason?: string }
-  | { kind: 'edit'; type?: string; description?: string; groupId?: string }
+  | { kind: 'edit'; type?: string; groupId?: string }
   | { kind: 'transition'; target: Status; reason?: string }
   | { kind: 'reclassify'; priority: Priority; reason: string }
   | { kind: 'delete'; reason: string }
@@ -62,6 +62,9 @@ export function parseOccurrenceMutation(value: unknown): OccurrenceMutationPaylo
     return { expectedVersion: Number(value.expectedVersion), command: { kind: 'climateEvent', climateEventId: command.climateEventId as string | null, ...(reason ? { reason } : {}) } };
   }
   if (command.kind === 'edit') {
+    if (Object.keys(command).some(key => !['kind','type','groupId'].includes(key))) {
+      throw new OccurrenceMutationError(422, 'INVALID_INPUT');
+    }
     const edit: Extract<OccurrenceMutationCommand, { kind: 'edit' }> = { kind: 'edit' };
     if (typeof command.type === 'string') {
       const type = command.type.trim();
@@ -70,19 +73,12 @@ export function parseOccurrenceMutation(value: unknown): OccurrenceMutationPaylo
     } else if (command.type !== undefined) {
       throw new OccurrenceMutationError(422, 'INVALID_INPUT');
     }
-    if (typeof command.description === 'string') {
-      const description = command.description.trim();
-      if (description.length > 2000) throw new OccurrenceMutationError(422, 'INVALID_INPUT');
-      edit.description = description;
-    } else if (command.description !== undefined) {
-      throw new OccurrenceMutationError(422, 'INVALID_INPUT');
-    }
     if (typeof command.groupId === 'string' && uuidPattern.test(command.groupId)) {
       edit.groupId = command.groupId;
     } else if (command.groupId !== undefined) {
       throw new OccurrenceMutationError(422, 'INVALID_INPUT');
     }
-    if (edit.type === undefined && edit.description === undefined && edit.groupId === undefined) {
+    if (edit.type === undefined && edit.groupId === undefined) {
       throw new OccurrenceMutationError(422, 'INVALID_INPUT');
     }
     return { expectedVersion: Number(value.expectedVersion), command: edit };
@@ -158,7 +154,6 @@ export function authorizeOccurrenceMutation(
   if (command.kind === 'edit') {
     const changes: Record<string, { from: unknown; to: unknown }> = {};
     if (command.type !== undefined && command.type !== occurrence.type) changes.type = { from: occurrence.type, to: command.type };
-    if (command.description !== undefined && command.description !== occurrence.description) changes.description = { from: occurrence.description, to: command.description };
     if (command.groupId !== undefined && command.groupId !== occurrence.groupId) {
       if (!can(actor, 'operate', { municipalityId: actor.municipalityId, groupId: command.groupId })) {
         throw new OccurrenceMutationError(403, 'ACCESS_DENIED');

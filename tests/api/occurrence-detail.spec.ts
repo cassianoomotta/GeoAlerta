@@ -27,6 +27,7 @@ test.beforeAll(async () => {
     await db.query(`INSERT INTO public.occurrence_service_records(id,occurrence_id,agency_code,attending_person,attended_at,action,outcome,reinforcement_requested) VALUES ($1,$2,'DEFESA_CIVIL','Agente da fixture','2026-10-02T15:30:00Z','Vistoria realizada','Local isolado',true) ON CONFLICT(id) DO NOTHING`, [serviceRecordFixture, occurrenceA]);
     await db.query('COMMIT');
     await db.query(`UPDATE public.occurrence_events SET reason=$1,changes=$2::jsonb WHERE occurrence_id=$3`, [privateReason, JSON.stringify({ private: privateDiff }), occurrenceA]);
+    await db.query(`INSERT INTO public.occurrence_events(id,occurrence_id,kind,actor_id,at,changes) VALUES ('91000000-0000-4000-8000-000000000023',$1,'OCCURRENCE_EDITED',$2,'2026-10-01T12:00:00Z',$3::jsonb) ON CONFLICT(id) DO UPDATE SET kind=EXCLUDED.kind,actor_id=EXCLUDED.actor_id,at=EXCLUDED.at,changes=EXCLUDED.changes`, [occurrenceA, accounts.find((account) => account.name === 'operador')!.id, JSON.stringify({ type: { from: 'fixture', to: 'Alagamento' }, groupId: { from: groupA, to: '20000000-0000-4000-8000-000000000002' }, reporterContact: { from: 'private-before', to: 'private-after' } })]);
     const polygon = "ST_Multi(ST_GeomFromText('POLYGON((-51 -30,-50 -30,-50 -29,-51 -29,-51 -30))',4326))";
     await db.query(`INSERT INTO public.risk_zones(zone_id,version,name,type,active,geometry) VALUES ($1,1,'Zona histórica fixture','INUNDACAO',false,${polygon}),($1,2,'Zona atual fixture','INUNDACAO',true,${polygon}) ON CONFLICT(zone_id,version) DO UPDATE SET name=EXCLUDED.name,active=EXCLUDED.active`, [oldZone]);
     await db.query('DELETE FROM public.occurrence_classification_zones WHERE occurrence_id=$1', [occurrenceA]);
@@ -94,10 +95,13 @@ test('RF-010 detalhe autorizado retorna os campos operacionais, posição, class
   expect(new Date(detail.updatedAt).toISOString()).toBeTruthy();
   expect(detail.events.length).toBeGreaterThan(0);
   expect(detail.events[0].kind).toBeTruthy();
-  expect(detail.events[0].actorId).toBeNull();
-  expect(detail.events[0].at).toBeTruthy();
-  expect(detail.events.every((event: object) => Object.keys(event).sort().join(',') === 'actorId,at,id,kind')).toBe(true);
-  expect(Object.keys(detail).sort()).toEqual(['actions', 'address', 'availableGroups', 'classification', 'climateEvent', 'climateEvents', 'description', 'events', 'group', 'id', 'occurrenceContext', 'openedAt', 'position', 'priority', 'privateData', 'protocol', 'serviceAgencyOptions', 'serviceRecords', 'status', 'triage', 'type', 'updatedAt', 'version']);
+  expect(detail.events.some((event: { actorId: string | null }) => event.actorId === null)).toBe(true);
+  expect(detail.events.every((event: object) => Object.keys(event).sort().join(',') === 'actorId,actorName,at,changes,id,kind')).toBe(true);
+  expect(detail.events.find((event: { id: string }) => event.id === '91000000-0000-4000-8000-000000000023')).toMatchObject({
+    actorName: 'operador',
+    changes: { type: { from: 'fixture', to: 'Alagamento' }, groupId: { from: 'Fixture A', to: 'Fixture B' } },
+  });
+  expect(Object.keys(detail).sort()).toEqual(['actions', 'address', 'availableGroups', 'classification', 'climateEvent', 'description', 'events', 'group', 'id', 'occurrenceContext', 'openedAt', 'position', 'priority', 'privateData', 'protocol', 'serviceAgencyOptions', 'serviceRecords', 'status', 'triage', 'type', 'updatedAt', 'version']);
 });
 
 test('RF-010 detalhe inexistente e fora do escopo têm resposta indistinguível', async ({ request }) => {
@@ -116,7 +120,7 @@ test('RF-015 resposta de Consulta omite dados privados inclusive no histórico',
   for (const sentinel of [privateName, privateContact, privateReason, privateDiff, 'SENTINEL_PRIVATE_PHOTO_TICKET05', 'SENTINEL_PRIVATE_OBJECT_TICKET05']) {
     expect(body).not.toContain(sentinel);
   }
-  for (const field of ['reporter_name', 'reporter_contact', 'photo_url', 'photo_object_key', 'reason', 'changes']) {
+  for (const field of ['reporter_name', 'reporter_contact', 'photo_url', 'photo_object_key', 'reason', 'reporterContact', 'private-before', 'private-after']) {
     expect(body).not.toContain(field);
   }
   expect(body).not.toContain('privateData');

@@ -1,4 +1,4 @@
-import { AdminInputError, parseCreateManagedUser, parseManagedGroup, parseUpdateManagedUser } from '@/features/access/domain/admin';
+import { AdminInputError, parseCreateGroupUser, parseCreateManagedUser, parseManagedGroup, parseUpdateManagedUser } from '@/features/access/domain/admin';
 import { provisionPendingUser } from '@/features/access/application/admin';
 import { accessResponse, withSession } from '@/server/access/session';
 import { AccessError, requireCapability } from '@/server/access/context';
@@ -7,6 +7,8 @@ import type { Prisma } from '../../../../../prisma/generated/client/client';
 
 export const dynamic = 'force-dynamic';
 const municipalityId = 'sa_patrulha';
+
+class GroupUserAlreadyExistsError extends Error {}
 
 function requireAdmin(actor: Parameters<typeof requireCapability>[0]) {
   requireCapability(actor, 'administer');
@@ -78,18 +80,52 @@ export async function POST(request: Request) {
       return Response.json(result, { status: 201, headers: { 'Cache-Control': 'no-store' } });
     }
 
+    if (input.action === 'create_group_user') {
+      if (Object.keys(input).some((key) => !['action','email','name','phone','role','groupId'].includes(key))) throw new AdminInputError();
+      const user = parseCreateGroupUser({ email: input.email, name: input.name, phone: input.phone, role: input.role, groupId: input.groupId });
+      await withSession(async (tx, actor) => { requireAdmin(actor); await assertGroups(tx, user.groupIds); });
+      const result = await provisionPendingUser(user, {
+        ensureAuthUser,
+        createLink: createProvisioningLink,
+        async savePending(userId, details, authRetry) {
+          await withSession(async (tx, actor) => {
+            requireAdmin(actor);
+            await assertGroups(tx, details.groupIds);
+            const existing = await tx.$queryRaw<{ state: string; municipality_id: string }[]>`SELECT state,municipality_id FROM public.admin_profiles WHERE user_id=${userId}::uuid`;
+            let finalGroupIds = details.groupIds;
+            if (existing[0]) {
+              const memberships = existing[0].state === 'PENDENTE' && existing[0].municipality_id === municipalityId
+                ? await tx.$queryRaw<{ group_id: string }[]>`SELECT group_id::text AS group_id FROM public.user_group_memberships WHERE user_id=${userId}::uuid`
+                : [];
+              if (!details.groupIds.every((groupId) => memberships.some((membership) => membership.group_id === groupId))) throw new GroupUserAlreadyExistsError();
+              finalGroupIds = memberships.map((membership) => membership.group_id);
+              await tx.$executeRaw`UPDATE public.admin_profiles SET name=${details.name},phone=${details.phone},role=${details.role} WHERE user_id=${userId}::uuid AND municipality_id=${municipalityId} AND state='PENDENTE'`;
+            } else {
+              const inserted = await tx.$queryRaw<{ user_id: string }[]>`INSERT INTO public.admin_profiles(user_id,municipality_id,name,phone,role,state) VALUES(${userId}::uuid,${municipalityId},${details.name},${details.phone},${details.role},'PENDENTE') ON CONFLICT(user_id) DO NOTHING RETURNING user_id`;
+              if (!inserted[0]) throw new GroupUserAlreadyExistsError();
+              await replaceMemberships(tx, userId, details.groupIds);
+            }
+            const kind = authRetry ? 'ADMIN_USER_PROVISIONING_RETRIED' : 'ADMIN_USER_PROVISIONED';
+            const changes = JSON.stringify({ email: details.email, role: details.role, groupIds: finalGroupIds, state: 'PENDENTE' });
+            await tx.$executeRaw`INSERT INTO public.audit_events(actor_id,entity_id,kind,reason,changes) VALUES(${actor.userId}::uuid,${userId}::uuid,${kind},'Provisionamento administrativo por grupo',${changes}::jsonb)`;
+          });
+        },
+      });
+      return Response.json(result, { status: 201, headers: { 'Cache-Control': 'no-store' } });
+    }
+
     if (input.action === 'update_user') {
-      if (Object.keys(input).some((key) => !['action','userId','role','state','groupIds'].includes(key))) throw new AdminInputError();
-      const update = parseUpdateManagedUser({ userId: input.userId, role: input.role, state: input.state, groupIds: input.groupIds });
+      if (Object.keys(input).some((key) => !['action','userId','name','phone','role','state','groupIds'].includes(key))) throw new AdminInputError();
+      const update = parseUpdateManagedUser({ userId: input.userId, name: input.name, phone: input.phone, role: input.role, state: input.state, groupIds: input.groupIds });
       await withSession(async (tx, actor) => {
         requireAdmin(actor);
         if (update.userId === actor.userId) throw new AccessError(403, 'ACCESS_DENIED');
         await assertGroups(tx, update.groupIds);
         const current = await tx.$queryRaw<{ user_id: string }[]>`SELECT user_id FROM public.admin_profiles WHERE user_id=${update.userId}::uuid AND municipality_id=${municipalityId}`;
         if (!current[0]) throw new AccessError(404, 'NOT_FOUND');
-        await tx.$executeRaw`UPDATE public.admin_profiles SET role=${update.role},state=${update.state} WHERE user_id=${update.userId}::uuid AND municipality_id=${municipalityId}`;
+        await tx.$executeRaw`UPDATE public.admin_profiles SET name=${update.name},phone=${update.phone},role=${update.role},state=${update.state} WHERE user_id=${update.userId}::uuid AND municipality_id=${municipalityId}`;
         await replaceMemberships(tx, update.userId, update.groupIds);
-        const changes = JSON.stringify({ role: update.role, state: update.state, groupIds: update.groupIds });
+        const changes = JSON.stringify({ name: update.name, phone: update.phone, role: update.role, state: update.state, groupIds: update.groupIds });
         await tx.$executeRaw`INSERT INTO public.audit_events(actor_id,entity_id,kind,reason,changes) VALUES(${actor.userId}::uuid,${update.userId}::uuid,'ADMIN_USER_ACCESS_UPDATED','Alteração administrativa de acesso',${changes}::jsonb)`;
       });
       return Response.json({ updated: true });
@@ -120,6 +156,7 @@ export async function POST(request: Request) {
 
 function adminResponse(error: unknown) {
   if (error instanceof AdminInputError) return Response.json({ error: { code: error.message, message: 'Verifique os dados informados.' } }, { status: 400, headers: { 'Cache-Control': 'no-store' } });
+  if (error instanceof GroupUserAlreadyExistsError) return Response.json({ error: { code: 'USER_ALREADY_EXISTS', message: 'Esta pessoa já possui uma conta. Use “Adicionar pessoa existente” para vinculá-la ao grupo sem alterar os demais grupos.' } }, { status: 409, headers: { 'Cache-Control': 'no-store' } });
   if (error instanceof AdminAuthConfigurationError) return Response.json({ error: { code: error.message, message: 'Provisionamento Auth indisponível: configure SUPABASE_SERVICE_ROLE_KEY no .env da raiz.' } }, { status: 503, headers: { 'Cache-Control': 'no-store' } });
   return accessResponse(error);
 }

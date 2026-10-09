@@ -16,7 +16,7 @@ const body = {
   type: 'alagamento',
   description: 'Água na rua',
   reporterName: 'Pessoa que ligou',
-  reporterContact: '555-0100',
+  reporterContact: '5550100',
   groupId,
   position: { latitude: -29.9, longitude: -50.5, accuracy: 8 },
 };

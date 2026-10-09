@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useSyncExternalStore, type ReactNode } from 'react';
+import { usePathname } from 'next/navigation';
 import { applyTheme, isThemePreference, themeColors, themeEvent, themeStorageKey, type ResolvedTheme, type ThemePreference } from './theme';
 
 function subscribe(listener: () => void) {
@@ -30,6 +31,7 @@ export function useResolvedTheme(): ResolvedTheme {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
   useEffect(() => {
     // The bootstrap has already selected the first-paint theme.
     // Another tab may change storage while this page is still hydrating, before
@@ -58,6 +60,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       device.removeEventListener('change', onDeviceChange);
       window.removeEventListener('storage', onStorage);
     };
-  }, []);
+  }, [pathname]);
   return children;
 }

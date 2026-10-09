@@ -20,7 +20,7 @@ export class OccurrenceMapAccessError extends Error{
   constructor(status:401|403|503,code:string){super(code);this.status=status;this.code=code;}
 }
 
-const allowedRoles=new Set(['CONSULTA','OPERADOR','GESTOR','ADMINISTRADOR']);
+const allowedRoles=new Set(['CONSULTA','VOLUNTARIO','OPERADOR','GESTOR','ADMINISTRADOR']);
 
 export async function readOccurrenceMapSnapshot(pool:ReadOnlyPool,userId:string):Promise<MapOccurrence[]>{
   if(!/^[0-9a-f-]{36}$/i.test(userId))throw new OccurrenceMapAccessError(401,'UNAUTHENTICATED');

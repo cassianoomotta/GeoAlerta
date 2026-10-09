@@ -7,7 +7,7 @@ import {supabase} from '@/lib/supabase';
 import {PriorityBadge,StatusBadge} from './OccurrenceBadges';
 import {useStatusLabels} from './use-status-labels';
 import {formatTimeAgo} from '@/lib/dateUtils';
-import {isRealtimeAuthorizationFailure,mergeCoreAlerts,parseCoreAlert,type CoreAlert} from '../alerts';
+import {isRealtimeAuthorizationFailure,mergeCoreAlerts,parseAlertOccurrenceMetadata,parseCoreAlert,type CoreAlert} from '../alerts';
 
 const visibleAlerts=20;
 const recoveryLimit=50;
@@ -18,6 +18,10 @@ export function CoreNotifications(){
   const [unread,setUnread]=useState(0);
   const [open,setOpen]=useState(false);
   const [error,setError]=useState('');
+  const [metadata,setMetadata]=useState<ReturnType<typeof parseAlertOccurrenceMetadata>>({});
+  const [metadataError,setMetadataError]=useState(false);
+  const [metadataRetry,setMetadataRetry]=useState(0);
+  const requestedMetadata=useRef(new Set<string>());
   const seen=useRef(new Set<string>());
 
   const receive=useCallback((values:unknown[],isLive:boolean)=>{
@@ -28,6 +32,19 @@ export function CoreNotifications(){
     setAlerts(current=>mergeCoreAlerts(current,parsed,visibleAlerts));
     if(fresh)setUnread(count=>count+fresh);
   },[]);
+
+  useEffect(()=>{
+    if(!open)return;
+    const ids=[...new Set(alerts.map(alert=>alert.occurrenceId).filter(id=>!metadata[id]&&!requestedMetadata.current.has(id)))];
+    if(!ids.length)return;
+    ids.forEach(id=>requestedMetadata.current.add(id));
+    let active=true;
+    void fetch('/api/core/occurrences/notification-metadata',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({occurrenceIds:ids})})
+      .then(async response=>{if(!response.ok)throw new Error('metadata-unavailable');const body=await response.json();return parseAlertOccurrenceMetadata(body.occurrences);})
+      .then(result=>{if(active){setMetadata(current=>({...current,...result}));setMetadataError(false);}})
+      .catch(()=>{ids.forEach(id=>requestedMetadata.current.delete(id));if(active)setMetadataError(true);});
+    return()=>{active=false;};
+  },[open,alerts,metadata,metadataRetry]);
 
   useEffect(()=>{
     let closed=false;
@@ -85,7 +102,7 @@ export function CoreNotifications(){
     };
     void start().catch(()=>{if(!closed)setError('Não foi possível iniciar a conexão de alertas. Entre novamente.');});
     const {data:{subscription}}=supabase.auth.onAuthStateChange((_event,session)=>{
-      if(!session){closed=true;clearInterval(reconciliation);void supabase.removeChannel(channel);seen.current.clear();setAlerts([]);setUnread(0);}
+      if(!session){closed=true;clearInterval(reconciliation);void supabase.removeChannel(channel);seen.current.clear();requestedMetadata.current.clear();setAlerts([]);setMetadata({});setMetadataError(false);setUnread(0);}
     });
     return()=>{closed=true;clearInterval(reconciliation);subscription.unsubscribe();void supabase.removeChannel(channel);};
   },[receive]);
@@ -99,9 +116,13 @@ export function CoreNotifications(){
     {open&&<section aria-label="Alertas in-app" className="absolute top-[120%] right-0 w-[calc(100vw-1.5rem)] max-w-[360px] z-50 p-2 flex flex-col gap-1 max-h-[75vh] md:max-h-[500px] overflow-y-auto surface-panel ">
       <header className="px-3 py-2 border-b border-border flex items-center justify-between"><h2 className="text-sm font-semibold text-foreground">Alertas de ocorrências</h2><button type="button" onClick={()=>setOpen(false)} className="btn btn-text px-3" aria-label="Fechar alertas"><X size={18} aria-hidden="true"/></button></header>
       {error&&<p role="status" className="px-3 py-2 text-xs text-warning">{error}</p>}
-      {alerts.length===0?<p className="text-sm text-muted-foreground py-4 text-center">Nenhum alerta recente.</p>:alerts.map(alert=><Link key={alert.eventId} href={`/painel/ocorrencias/${encodeURIComponent(alert.occurrenceId)}`} onClick={()=>setOpen(false)} className="p-3 rounded-xl hover:bg-surface text-sm flex gap-3">
-        <span className="flex min-w-0 flex-col gap-2"><strong className="text-sm font-medium">Nova ocorrência</strong><PriorityBadge priority={alert.priority}/><StatusBadge status={alert.status} label={statusLabels[alert.status]}/><time className="text-sm text-muted-foreground" dateTime={alert.at}>há {formatTimeAgo(alert.at)}</time></span>
-      </Link>)}
+      {metadataError&&<p role="status" className="px-3 py-2 text-xs text-warning">Alguns protocolos não carregaram. <button type="button" className="font-semibold underline" onClick={()=>{requestedMetadata.current.clear();setMetadataError(false);setMetadataRetry(value=>value+1);}}>Tentar novamente</button></p>}
+      {alerts.length===0?<p className="text-sm text-muted-foreground py-4 text-center">Nenhum alerta recente.</p>:alerts.map(alert=>{
+        const detail=metadata[alert.occurrenceId];
+        return <Link key={alert.eventId} href={`/painel/ocorrencias/${encodeURIComponent(alert.occurrenceId)}`} onClick={()=>setOpen(false)} className="flex gap-3 rounded-xl border border-border bg-surface-subtle p-3 text-sm transition-colors hover:border-primary/40 hover:bg-surface">
+        <span className="flex min-w-0 flex-1 flex-col gap-2"><strong className="text-sm font-semibold text-foreground">{detail?.type??'Nova ocorrência'}</strong><span className="text-xs font-medium text-muted-foreground">{detail?`Protocolo ${detail.protocol}`:`Ocorrência ${alert.occurrenceId.slice(0,8)}`}</span><div className="flex flex-wrap gap-2"><PriorityBadge priority={alert.priority}/><StatusBadge status={alert.status} label={statusLabels[alert.status]}/></div><time className="text-sm text-muted-foreground" dateTime={alert.at}>há {formatTimeAgo(alert.at)}</time></span>
+      </Link>;
+      })}
     </section>}
   </div>;
 }

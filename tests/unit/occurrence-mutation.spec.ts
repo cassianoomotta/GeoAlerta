@@ -51,7 +51,6 @@ function fakePorts(initial = occurrence(), options: { auditFails?: boolean } = {
       state.current = {
         ...state.current,
         type: command.type ?? state.current.type,
-        description: command.description ?? state.current.description,
         status: command.status ?? state.current.status,
         priority: command.priority ?? state.current.priority,
         groupId: command.groupId,
@@ -65,13 +64,14 @@ function fakePorts(initial = occurrence(), options: { auditFails?: boolean } = {
 }
 
 test('RF-011 parser normalizes editable fields and rejects invalid versions, groups, and empty edits', () => {
-  expect(parseOccurrenceMutation({ expectedVersion: 4, command: { kind: 'edit', type: '  Alagamento  ', description: '  Rua  ' } })).toEqual({
+  expect(parseOccurrenceMutation({ expectedVersion: 4, command: { kind: 'edit', type: '  Alagamento  ' } })).toEqual({
     expectedVersion: 4,
-    command: { kind: 'edit', type: 'Alagamento', description: 'Rua' },
+    command: { kind: 'edit', type: 'Alagamento' },
   });
   for (const input of [
     { expectedVersion: 0, command: { kind: 'edit', type: 'Alagamento' } },
     { expectedVersion: 1, command: { kind: 'edit' } },
+    { expectedVersion: 1, command: { kind: 'edit', description: 'Cidadão não pode ter relato alterado' } },
     { expectedVersion: 1, command: { kind: 'edit', groupId: 'not-a-uuid' } },
     { expectedVersion: 1, command: { kind: 'transition', target: 'REMOVIDA' } },
   ]) {
@@ -98,7 +98,7 @@ test('climate event link changes require an authorized manager, current version 
 test('RF-011 authorized edit records actor, differences and group reassign in one version', async () => {
   const fake = fakePorts();
   const result = await mutateOccurrence(actor('GESTOR', [groupA, groupB]), occurrenceId, 4,
-    { kind: 'edit', type: 'Enchente', description: 'Avenida inundada', groupId: groupB }, fake.ports);
+    { kind: 'edit', type: 'Enchente', groupId: groupB }, fake.ports);
   expect(result).toEqual({ id: occurrenceId, version: 5, status: 'NOVA', priority: 'NORMAL', groupId: groupB, deletedAt: false });
   expect(fake.saved).toHaveLength(1);
   expect(fake.saved[0]).toMatchObject({
@@ -106,10 +106,10 @@ test('RF-011 authorized edit records actor, differences and group reassign in on
     eventKind: 'OCCURRENCE_EDITED',
     changes: {
       type: { from: 'Alagamento', to: 'Enchente' },
-      description: { from: 'Rua inundada', to: 'Avenida inundada' },
       groupId: { from: groupA, to: groupB },
     },
   });
+  expect(fake.state.current.description).toBe('Rua inundada');
   expect(fake.state.current.version).toBe(5);
 });
 

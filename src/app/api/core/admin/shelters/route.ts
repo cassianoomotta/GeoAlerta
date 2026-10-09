@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { AdminShelter } from '@/features/shelters/contracts';
 import { parseShelterInput, ShelterInputError } from '@/features/shelters/domain/input';
+import { effectiveShelterStatus } from '@/features/shelters/domain/capacity';
 import { accessResponse, withSession } from '@/server/access/session';
 import { AccessError, requireCapability } from '@/server/access/context';
 
@@ -13,7 +14,7 @@ type ShelterRow = {
 };
 function present(row: ShelterRow): AdminShelter {
   return { id: row.id, name: row.name, type: row.type as AdminShelter['type'], address: row.address, lat: row.lat, lng: row.lng,
-    capacity: row.capacity, occupied: row.occupied, phone: row.phone, manager: row.manager, status: row.status,
+    capacity: row.capacity, occupied: row.occupied, phone: row.phone, manager: row.manager, status: effectiveShelterStatus(row.status, row.capacity, row.occupied),
     isActive: row.is_active, createdAt: row.created_at?.toISOString() ?? null };
 }
 function record(value: unknown): Record<string, unknown> {

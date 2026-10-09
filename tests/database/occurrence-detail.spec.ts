@@ -19,6 +19,8 @@ test.beforeAll(async () => {
     await db.query(`INSERT INTO public.occurrences(id,protocol,type,description,location,accuracy,group_id,deleted_at) VALUES ($1,'TEST-TICKET05-DELETED','fixture','deleted synthetic',ST_SetSRID(ST_MakePoint(-50.5,-29.5),4326)::geography,10,$2,now()) ON CONFLICT(id) DO NOTHING`, [deletedOccurrence, groupA]);
     await db.query(`INSERT INTO public.occurrence_classification_zones(occurrence_id,zone_id,zone_version) VALUES ($1,$2,1),($3,$4,1),($5,$6,1),($7,$8,1) ON CONFLICT DO NOTHING`, [occurrenceA, zoneA, occurrenceB, zoneB, deletedOccurrence, zoneDeleted, occurrenceOther, zoneOther]);
     await db.query(`INSERT INTO public.occurrence_events(id,occurrence_id,kind,reason,changes) VALUES ('91000000-0000-4000-8000-000000000021',$1,'cross-group private ticket05','private sentinel','{"private":"ticket05"}'::jsonb),('91000000-0000-4000-8000-000000000022',$2,'deleted private ticket05','private sentinel','{"private":"ticket05"}'::jsonb) ON CONFLICT(id) DO UPDATE SET kind=EXCLUDED.kind,reason=EXCLUDED.reason,changes=EXCLUDED.changes`, [occurrenceB, deletedOccurrence]);
+    await db.query(`INSERT INTO public.occurrence_events(id,occurrence_id,kind,actor_id,changes) VALUES ('91000000-0000-4000-8000-000000000023',$1,'OCCURRENCE_EDITED',$2,$3::jsonb) ON CONFLICT(id) DO UPDATE SET kind=EXCLUDED.kind,actor_id=EXCLUDED.actor_id,changes=EXCLUDED.changes`, [occurrenceA, accounts.find((account) => account.name === 'operador')!.id, JSON.stringify({ type: { from: 'fixture', to: 'Alagamento' }, groupId: { from: groupA, to: '20000000-0000-4000-8000-000000000002' }, reporterContact: { from: 'private-before', to: 'private-after' } })]);
+    await db.query(`INSERT INTO public.occurrence_events(id,occurrence_id,kind,actor_id,reason,changes) VALUES ('91000000-0000-4000-8000-000000000024',$1,'PRIORITY_RECLASSIFIED',$2,'private priority reason',$3::jsonb) ON CONFLICT(id) DO UPDATE SET kind=EXCLUDED.kind,actor_id=EXCLUDED.actor_id,reason=EXCLUDED.reason,changes=EXCLUDED.changes`, [occurrenceA, accounts.find((account) => account.name === 'operador')!.id, JSON.stringify({ priority: { from: 'NORMAL', to: 'ALTA' }, secret: { from: 'private', to: 'private' } })]);
   } finally {
     await db.end();
   }
@@ -31,9 +33,20 @@ test('RF-015 Consulta lê somente timeline sanitizada no banco', async () => {
     await db.query('BEGIN');
     const consulta = accounts.find((account) => account.name === 'consulta')!;
     await db.query('SELECT set_config($1,$2,true),set_config($3,$4,true)', ['request.jwt.claim.sub', consulta.id, 'request.jwt.claims', JSON.stringify({ sub: consulta.id })]);
-    const history = await db.query('SELECT id,kind,"actorId",at FROM public.core_occurrence_history($1::uuid)', [occurrenceA]);
+    const history = await db.query('SELECT id,kind,"actorId","actorName",at,changes FROM public.core_occurrence_history($1::uuid)', [occurrenceA]);
     expect(history.rows.length).toBeGreaterThan(0);
-    for (const event of history.rows) expect(Object.keys(event).sort()).toEqual(['actorId', 'at', 'id', 'kind']);
+    for (const event of history.rows) expect(Object.keys(event).sort()).toEqual(['actorId', 'actorName', 'at', 'changes', 'id', 'kind']);
+    expect(history.rows.find((event) => event.id === '91000000-0000-4000-8000-000000000023')).toMatchObject({
+      actorName: 'operador',
+      changes: { type: { from: 'fixture', to: 'Alagamento' }, groupId: { from: 'Fixture A', to: 'Fixture B' } },
+    });
+    expect(history.rows.find((event) => event.id === '91000000-0000-4000-8000-000000000024')).toMatchObject({
+      changes: { priority: { from: 'NORMAL', to: 'ALTA' } },
+    });
+    expect(JSON.stringify(history.rows)).not.toContain('private-before');
+    expect(JSON.stringify(history.rows)).not.toContain('private-after');
+    expect(JSON.stringify(history.rows)).not.toContain('private priority reason');
+    expect(JSON.stringify(history.rows)).not.toContain('secret');
     expect((await db.query('SELECT * FROM public.core_occurrence_history($1::uuid)', [occurrenceB])).rows).toEqual([]);
     expect((await db.query('SELECT * FROM public.core_occurrence_history($1::uuid)', [deletedOccurrence])).rows).toEqual([]);
     expect((await db.query('SELECT * FROM public.core_occurrence_history($1::uuid)', ['30000000-0000-4000-8000-000000000098'])).rows).toEqual([]);

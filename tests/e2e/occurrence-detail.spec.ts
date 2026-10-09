@@ -62,7 +62,7 @@ test.beforeEach(async ({ page, context }) => {
 test('RF-010 detalhe apresenta protocolo, classificação, localização e histórico', async ({ page }) => {
   await page.goto(`/painel/ocorrencias/${occurrenceA}`);
 
-  await expect(page.getByRole('heading', { name: 'Detalhe da ocorrência' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'fixture', exact: true })).toBeVisible();
   await expect(page.getByText(`Protocolo ${fixtureProtocol}`)).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Informações do cidadão' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Informações da ocorrência' })).toBeVisible();
@@ -85,26 +85,123 @@ test('RF-010 detalhe apresenta protocolo, classificação, localização e hist�
   expect(browserRequests.some((url) => url.includes('/rest/v1/occurrences'))).toBe(false);
 });
 
-test('RF-018 operador registra atendimento e formulário fica pronto para novo registro', async ({ page }) => {
+test('RF-010 histórico de edição mostra autor, horário e campos alterados sem dados privados', async ({ page }) => {
+  await page.route(`**/api/core/occurrences/${occurrenceA}`, async (route) => {
+    const response = await route.fetch();
+    const body = await response.json();
+    body.events.push({
+      id: '91000000-0000-4000-8000-000000000023',
+      kind: 'OCCURRENCE_EDITED', actorId: '10000000-0000-4000-8000-000000000002', actorName: 'operador',
+      at: '2026-10-09T15:30:00.000Z',
+      changes: { type: { from: 'fixture', to: 'Alagamento' }, groupId: { from: 'Triagem', to: 'Jipeiros' } },
+    });
+    await route.fulfill({ response, json: body });
+  });
   await page.goto(`/painel/ocorrencias/${occurrenceA}`);
-  const form = page.getByRole('form', { name: 'Registrar ação de atendimento' });
-  await expect(form).toBeVisible();
-  await form.getByLabel(/Órgão responsável/).selectOption('DEFESA_CIVIL');
-  await form.getByLabel(/Agente ou responsável/).fill('Agente de atendimento E2E');
-  await form.getByLabel(/Data e hora do atendimento/).fill('2026-10-02T15:30');
-  await form.getByLabel(/Ação realizada/).fill('Primeira ação E2E');
-  await form.getByLabel(/Resultado ou observações/).fill('Primeiro resultado E2E');
-  await form.getByRole('button', { name: 'Salvar atendimento' }).click();
-  await expect(page.getByText('Primeira ação E2E')).toBeVisible();
-  await expect(form.getByLabel(/Agente ou responsável/)).toHaveValue('');
-  await expect(form.getByLabel(/Ação realizada/)).toHaveValue('');
+
+  const editEvent = page.getByRole('list', { name: 'Histórico' }).getByRole('listitem').filter({ hasText: 'Ocorrência editada' });
+  await expect(editEvent).toContainText('Por operador');
+  await expect(editEvent).toContainText('Tipo/categoria: fixture → Alagamento');
+  await expect(editEvent).toContainText('Grupo responsável: Triagem → Jipeiros');
+  await expect(editEvent.locator('time')).toHaveAttribute('datetime', '2026-10-09T15:30:00.000Z');
+});
+
+test('RF-010 mudança de status lista transições permitidas em seletor expansível e mantém cores semânticas', async ({ page }) => {
+  await page.goto(`/painel/ocorrencias/${occurrenceA}`);
+  await expect(page.getByRole('heading', { name: 'Mudar status da ocorrência' })).toBeVisible();
+  const statusSelect = page.getByRole('combobox', { name: 'Mudar status da ocorrência' });
+  await expect(statusSelect).toBeVisible();
+  await expect(statusSelect.locator('option[value="EM_TRIAGEM"]')).toHaveText('Em triagem');
+  await expect(statusSelect.locator('option[value="CANCELADA"]')).toHaveText('Cancelada');
+  await expect(statusSelect.locator('option')).toHaveCount(6);
+  await statusSelect.selectOption('EM_TRIAGEM');
+  const triage = page.getByRole('button', { name: 'Confirmar mudança para Em triagem' });
+  await expect(triage).toBeVisible();
+  await expect(triage).toHaveClass(/bg-info-soft/);
+  await statusSelect.selectOption('CANCELADA');
+  const cancel = page.getByRole('button', { name: 'Confirmar mudança para Cancelada' });
+  await expect(cancel).toBeVisible();
+  await expect(cancel).toHaveClass(/bg-danger-soft/);
+  await expect(page.getByText(/Justificativa obrigatória para/)).toHaveCount(0);
+});
+
+test('RF-010 edição permite trocar o tipo por lista, preserva descrição e mantém ação própria no cabeçalho', async ({ page }) => {
+  await page.goto(`/painel/ocorrencias/${occurrenceA}`);
+
+  await expect(page.getByRole('heading', { name: 'fixture', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Informações do cidadão' })).toHaveAttribute('id', 'occurrence-citizen-title');
+  await expect(page.getByRole('heading', { name: 'Informações do cidadão' })).toHaveCount(1);
+  const citizenCard = page.getByRole('heading', { name: 'Informações do cidadão' }).locator('..');
+  expect(await citizenCard.evaluate((element) => element.compareDocumentPosition(document.querySelector('#occurrence-mutation-title')!.parentElement!) & Node.DOCUMENT_POSITION_FOLLOWING)).toBeTruthy();
+
+  const form = page.locator('#occurrence-edit-form');
+  await expect(form.getByLabel(/Tipo/)).toHaveJSProperty('tagName', 'SELECT');
+  await expect(form.getByText('synthetic', { exact: true })).toBeVisible();
+  await expect(form.locator('textarea')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Salvar edição' })).toHaveAttribute('form', 'occurrence-edit-form');
+  await expect(page.getByRole('form', { name: 'Vincular ocorrência a evento climático' })).toHaveCount(0);
+});
+
+test('RF-011 edição salva apenas os campos da ocorrência, sem incluir atendimento ou status', async ({ page }) => {
+  let payload: { command?: Record<string, unknown> } | undefined;
+  await page.route(`**/api/core/occurrences/${occurrenceA}`, async (route) => {
+    if (route.request().method() === 'PATCH') {
+      payload = route.request().postDataJSON() as { command?: Record<string, unknown> };
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: occurrenceA, version: 2, status: 'NOVA', priority: 'NORMAL', groupId: '20000000-0000-4000-8000-000000000001', deletedAt: false }) });
+      return;
+    }
+    await route.continue();
+  });
+  await page.goto(`/painel/ocorrencias/${occurrenceA}`);
+  await page.locator('#occurrence-edit-form').getByLabel(/Tipo/).selectOption({ index: 1 });
+  await page.getByRole('button', { name: 'Salvar edição' }).click();
+  await expect(page.getByText('Edição salva.')).toBeVisible();
+  expect(payload?.command).toMatchObject({ kind: 'edit' });
+  expect(payload?.command).not.toHaveProperty('serviceRecord');
+  expect(payload?.command).not.toHaveProperty('status');
+});
+
+test('RF-010 salvar edição leva ao primeiro campo obrigatório quando falta uma opção de grupo', async ({ page }) => {
+  let patchRequests = 0;
+  page.on('request', (request) => { if (request.method() === 'PATCH' && request.url().includes(`/api/core/occurrences/${occurrenceA}`)) patchRequests += 1; });
+  await page.route(`**/api/core/occurrences/${occurrenceA}`, async (route) => {
+    const response = await route.fetch();
+    const body = await response.json();
+    body.availableGroups = [];
+    await route.fulfill({ response, json: body });
+  });
+  await page.goto(`/painel/ocorrencias/${occurrenceA}`);
+  const group = page.locator('#occurrence-edit-form').getByLabel(/Grupo responsável/);
+  await expect(group).toHaveJSProperty('validity.valid', false);
+  await page.getByRole('button', { name: 'Salvar edição' }).click();
+  await expect(group).toBeFocused();
+  await expect(group).toBeInViewport();
+  expect(patchRequests).toBe(0);
+});
+
+test('RF-018 atendimento é salvo separadamente pelo botão do próprio bloco', async ({ page }) => {
+  let attendancePayload: Record<string, unknown> | undefined;
+  await page.route(`**/api/core/occurrences/${occurrenceA}/service-records`, async (route) => {
+    attendancePayload = route.request().postDataJSON() as Record<string, unknown>;
+    await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: '92000000-0000-4000-8000-000000000012' }) });
+  });
+  await page.goto(`/painel/ocorrencias/${occurrenceA}`);
+  await page.getByLabel(/Agente ou responsável/).fill('Agente de atendimento E2E');
+  await page.getByLabel(/Data e hora do atendimento/).fill('2026-10-02T15:30');
+  await page.getByLabel(/Ação realizada/).fill('Primeira ação E2E');
+  await page.getByLabel(/Resultado ou observações/).fill('Primeiro resultado E2E');
+  await page.getByRole('button', { name: 'Salvar atendimento' }).click();
+  await expect(page.getByText('Registro de atendimento salvo.')).toBeVisible();
+  expect(attendancePayload).toMatchObject({
+    attendingPerson: 'Agente de atendimento E2E', action: 'Primeira ação E2E', outcome: 'Primeiro resultado E2E',
+  });
 });
 
 test('RF-015 Consulta não vê dados pessoais ou diferenças privadas', async ({ page, context }) => {
   await context.clearCookies();
   await context.addCookies((await fixtureCookies('consulta')).map((cookie) => ({ ...cookie, url: 'http://127.0.0.1:3100' })));
   await page.goto(`/painel/ocorrencias/${occurrenceA}`);
-  await expect(page.getByRole('heading', { name: 'Detalhe da ocorrência' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'fixture', exact: true })).toBeVisible();
   const content = await page.locator('body').innerText();
   for (const value of [privateName, privateContact, privateReason, privateDiff, 'SENTINEL_PRIVATE_PHOTO_TICKET05', 'SENTINEL_PRIVATE_OBJECT_TICKET05']) {
     expect(content).not.toContain(value);

@@ -68,7 +68,7 @@ export async function GET() {
         version: row.version,
         groups,
         columns: await getColumns(tx, actor),
-        availableColumns: availableColumns(actor.role !== 'CONSULTA'),
+        availableColumns: availableColumns(actor.role !== 'CONSULTA' && actor.role !== 'VOLUNTARIO'),
       };
     });
     return Response.json(profile, { headers: { 'Cache-Control': 'no-store' } });

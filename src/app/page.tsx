@@ -183,12 +183,12 @@ export default function Home(){
               {selectedPhoto&&<div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground"><p role="status" aria-live="polite" className="min-w-0 break-words [overflow-wrap:anywhere]">Foto selecionada: <span className="font-medium text-foreground">{selectedPhoto.name}</span></p><button type="button" disabled={sending||locked} onClick={()=>{setSelectedPhoto(null);setPhotoFailed(false);setPhotoAuthorized(false);setWithoutPhoto(false);attempt.current=null;setError('');}} className="min-h-9 rounded-lg px-2 font-semibold text-primary underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60">Remover foto</button></div>}
               {selectedPhoto&&withoutPhoto&&<p role="status" className="text-sm text-muted-foreground">A foto selecionada não será enviada.</p>}
               {selectedPhoto&&photoFailed&&!withoutPhoto&&<button type="button" disabled={sending||locked} onClick={()=>{setWithoutPhoto(true);setPhotoAuthorized(false);setError('');}} className="min-h-10 rounded-lg border border-warning/30 bg-warning-soft px-3 py-2 text-sm font-semibold text-warning focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60">Continuar sem foto</button>}
-              {selectedPhoto&&<div className="space-y-2 rounded-xl border border-border bg-background p-3">
-                <p id="photo-authorization-description" className="text-sm leading-relaxed text-muted-foreground">Autorize o envio desta imagem junto com a ocorrência para análise pelas equipes municipais. A foto será enviada ao registrar a ocorrência.</p>
-                <button type="button" aria-pressed={photoAuthorized&&!withoutPhoto} aria-describedby="photo-authorization-description" disabled={sending||locked} onClick={()=>{setPhotoAuthorized(!photoAuthorized||withoutPhoto);setWithoutPhoto(false);attempt.current=null;setPhotoFailed(false);setError('');}} className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary-soft px-4 py-2.5 font-semibold text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                  {photoAuthorized&&!withoutPhoto&&<CheckCircle2 aria-hidden="true" className="h-5 w-5 shrink-0"/>}
-                  {withoutPhoto?'Incluir foto no envio':photoAuthorized?'Envio desta foto autorizado':'Autorizar envio desta foto'}
-                </button>
+              {selectedPhoto&&!withoutPhoto&&<div className="space-y-3 rounded-xl border-2 border-primary bg-primary-soft p-4 shadow-sm">
+                <p id="photo-authorization-description" className="text-sm font-medium leading-relaxed text-foreground">A foto será enviada junto com a ocorrência para análise pelas equipes municipais. Autorize o envio para continuar.</p>
+                <label className="flex min-h-12 cursor-pointer items-center gap-3 rounded-lg border border-primary/30 bg-surface px-3 py-3 font-semibold text-foreground focus-within:ring-2 focus-within:ring-ring">
+                  <input type="checkbox" required checked={photoAuthorized} aria-describedby="photo-authorization-description" disabled={sending||locked} onChange={event=>{setPhotoAuthorized(event.target.checked);setWithoutPhoto(false);attempt.current=null;setPhotoFailed(false);setError('');}} className="h-5 w-5 shrink-0 accent-primary" />
+                  <span>Autorizo o envio desta foto</span>
+                </label>
               </div>}
             </div>
 
@@ -206,7 +206,7 @@ export default function Home(){
 
           <div className="space-y-4 border-t border-border bg-background px-4 py-5 sm:px-8">
             {error&&<p role="alert" aria-label="Problema no envio" className="rounded-xl border border-warning/30 bg-warning-soft px-4 py-3 text-sm text-warning">{error}</p>}
-            <button type="submit" disabled={!ready||!position||locating||sending} className="block min-h-12 w-full rounded-xl bg-primary px-5 py-3 font-medium text-primary-foreground  transition hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:bg-surface-subtle disabled:text-muted-foreground disabled:shadow-none">{sending?'Registrando ocorrência...':withoutPhoto&&selectedPhoto?'Enviar sem foto':'Enviar ocorrência'}</button>
+            <button type="submit" disabled={!ready||!position||locating||sending||Boolean(selectedPhoto&&!withoutPhoto&&!photoAuthorized)} className="block min-h-12 w-full rounded-xl bg-primary px-5 py-3 font-medium text-primary-foreground  transition hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:bg-surface-subtle disabled:text-muted-foreground disabled:shadow-none">{sending?'Registrando ocorrência...':withoutPhoto&&selectedPhoto?'Enviar sem foto':'Enviar ocorrência'}</button>
             <p className="text-center text-xs leading-relaxed text-muted-foreground">{position?'Localização obtida. O registro será confirmado com um protocolo.':'Sua localização é necessária para concluir o registro.'}</p>
           </div>
         </form>

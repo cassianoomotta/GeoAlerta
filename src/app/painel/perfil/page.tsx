@@ -14,7 +14,7 @@ type Profile = {
   name: string;
   phone: string | null;
   email: string;
-  role: 'CONSULTA' | 'OPERADOR' | 'GESTOR' | 'ADMINISTRADOR';
+  role: 'CONSULTA' | 'VOLUNTARIO' | 'OPERADOR' | 'GESTOR' | 'ADMINISTRADOR';
   state: 'PENDENTE' | 'ATIVO' | 'SUSPENSO' | 'DESATIVADO';
   municipalityId: string;
   version: number;
@@ -25,6 +25,7 @@ type Profile = {
 
 const roleLabels: Record<Profile['role'], string> = {
   CONSULTA: 'Consulta',
+  VOLUNTARIO: 'Voluntário',
   OPERADOR: 'Operador',
   GESTOR: 'Gestor',
   ADMINISTRADOR: 'Administrador',
