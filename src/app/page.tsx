@@ -25,6 +25,7 @@ export default function Home(){
   const attempt=useRef<PhotoAttempt|null>(null);
   const photoPickerRef=useRef<HTMLInputElement|null>(null);
   const cameraPickerRef=useRef<HTMLInputElement|null>(null);
+  const photoSourceDialogRef=useRef<HTMLDialogElement|null>(null);
   const [selectedPhoto,setSelectedPhoto]=useState<File|null>(null);
   const [photoFailed,setPhotoFailed]=useState(false);
   const [withoutPhoto,setWithoutPhoto]=useState(false);
@@ -44,11 +45,13 @@ export default function Home(){
     }).catch(()=>{setSheltersError(true);}).finally(()=>{setSheltersLoading(false);});
   }
   function selectPhoto(event:React.ChangeEvent<HTMLInputElement>){
-    const file=event.currentTarget.files?.[0];
+    const input=event.currentTarget;
+    const file=input.files?.[0];
+    input.value='';
     if(!file)return;
     setSelectedPhoto(file);attempt.current=null;setWithoutPhoto(false);setPhotoAuthorized(false);setPhotoFailed(false);
     try{photoMetadata(file);setError('');}
-    catch{setPhotoFailed(true);setError('Selecione JPEG, PNG ou WebP de até 5 MiB, ou confirme o envio sem foto.');}
+    catch{setPhotoFailed(true);setError('Selecione JPEG, PNG ou WebP de até 5 MiB, ou remova a foto para continuar sem ela.');}
   }
   useEffect(()=>{
     let current=true;
@@ -73,8 +76,7 @@ export default function Home(){
   async function submit(event:React.FormEvent<HTMLFormElement>){
     event.preventDefault();if(sending)return;setError('');
     if(!position){setError('Obtenha sua localização antes de enviar.');return;}
-    if(!selectedPhoto&&!withoutPhoto&&!locked){setError('Confirme o envio da ocorrência sem foto.');return;}
-    if(selectedPhoto&&!withoutPhoto&&!photoAuthorized&&!locked){setError('Autorize o envio da foto selecionada ou confirme o envio sem foto.');return;}
+    if(selectedPhoto&&!withoutPhoto&&!photoAuthorized&&!locked){setError('Autorize o envio da foto selecionada ou remova a foto para continuar sem ela.');return;}
     const form=new FormData(event.currentTarget);
     const file=selectedPhoto;
     let body:string;
@@ -91,7 +93,7 @@ export default function Home(){
     }
     setSending(true);
     try{
-      const data=await sendPublicAttempt(attempt.current!,withoutPhoto,{
+      const data=await sendPublicAttempt(attempt.current!,withoutPhoto||!file,{
         async stage(photo,key){
           try{photoMetadata(photo);}catch{throw new Error('Selecione JPEG, PNG ou WebP de até 5 MiB.');}
           const upload=new FormData();upload.set('file',photo);
@@ -116,7 +118,7 @@ export default function Home(){
         },
       });
       setResult(data);loadPublicShelters();
-    }catch(error){if(error instanceof PhotoUploadFailure){setPhotoFailed(true);setError(`${error.message} Você pode tentar novamente ou confirmar o envio sem foto.`);}else setError(error instanceof Error?error.message:'Resposta não confirmada. Tente novamente com os mesmos dados; seu envio não será duplicado.');}
+    }catch(error){if(error instanceof PhotoUploadFailure){setPhotoFailed(true);setError(`${error.message} Tente novamente ou escolha continuar sem foto.`);}else setError(error instanceof Error?error.message:'Resposta não confirmada. Tente novamente com os mesmos dados; seu envio não será duplicado.');}
     finally{setSending(false);}
   }
   const inputClass='mt-2 block min-w-0 w-full max-w-full rounded-xl border border-control-border bg-surface px-4 py-3 text-base text-foreground  outline-none transition placeholder:text-muted-foreground focus:border-primary/30 focus:ring-2 focus:ring-ring disabled:bg-surface-subtle';
@@ -172,43 +174,52 @@ export default function Home(){
             </fieldset>
             <label className="block text-sm font-semibold text-foreground"><span>Endereço da ocorrência (opcional)</span><input name="address" maxLength={300} autoComplete="street-address" placeholder="Rua, número ou ponto de referência" className={inputClass} /><span className="mt-2 block text-sm font-normal leading-relaxed text-muted-foreground">Informe o endereço do local, especialmente se estiver sem sinal ou registrando para outra pessoa.</span></label>
             <div className="space-y-3">
-              <p className="text-sm font-semibold text-foreground">Foto opcional <span className="font-normal text-muted-foreground">(JPEG, PNG ou WebP, até 5 MiB)</span></p>
-              <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2 sm:flex sm:flex-wrap">
+              <p className="text-sm font-semibold text-foreground">Foto <span className="font-normal text-muted-foreground">(opcional · JPEG, PNG ou WebP, até 5 MiB)</span></p>
+              <div className="flex flex-wrap items-center gap-3">
                 <input ref={photoPickerRef} name="photo" type="file" accept="image/jpeg,image/png,image/webp" className="hidden" tabIndex={-1} onChange={selectPhoto} />
                 <input ref={cameraPickerRef} name="photo" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" className="hidden" tabIndex={-1} onChange={selectPhoto} />
-                <button type="button" onClick={()=>photoPickerRef.current?.click()} disabled={sending||locked} className="inline-flex min-h-12 min-w-0 items-center justify-center rounded-xl border border-control-border bg-surface px-4 py-2.5 font-semibold text-foreground transition hover:bg-background focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-60">Escolher foto</button>
-                <button type="button" onClick={()=>cameraPickerRef.current?.click()} disabled={sending||locked} className="inline-flex min-h-12 min-w-0 items-center justify-center rounded-xl border border-primary/30 bg-primary-soft px-4 py-2.5 font-semibold text-primary transition hover:bg-primary-soft focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-60">Tirar foto</button>
+                <button type="button" onClick={()=>photoSourceDialogRef.current?.showModal()} disabled={sending||locked} className="inline-flex min-h-11 min-w-0 items-center justify-center rounded-xl border border-control-border bg-surface px-4 py-2.5 font-semibold text-foreground transition hover:bg-background focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-60">{selectedPhoto?'Trocar foto':'Adicionar foto'}</button>
               </div>
-              {selectedPhoto&&<p role="status" aria-live="polite" className="break-words text-sm text-muted-foreground [overflow-wrap:anywhere]">Foto selecionada: <span className="font-medium text-foreground">{selectedPhoto.name}</span></p>}
+              {selectedPhoto&&<div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground"><p role="status" aria-live="polite" className="min-w-0 break-words [overflow-wrap:anywhere]">Foto selecionada: <span className="font-medium text-foreground">{selectedPhoto.name}</span></p><button type="button" disabled={sending||locked} onClick={()=>{setSelectedPhoto(null);setPhotoFailed(false);setPhotoAuthorized(false);setWithoutPhoto(false);attempt.current=null;setError('');}} className="min-h-9 rounded-lg px-2 font-semibold text-primary underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60">Remover foto</button></div>}
+              {selectedPhoto&&withoutPhoto&&<p role="status" className="text-sm text-muted-foreground">A foto selecionada não será enviada.</p>}
+              {selectedPhoto&&photoFailed&&!withoutPhoto&&<button type="button" disabled={sending||locked} onClick={()=>{setWithoutPhoto(true);setPhotoAuthorized(false);setError('');}} className="min-h-10 rounded-lg border border-warning/30 bg-warning-soft px-3 py-2 text-sm font-semibold text-warning focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60">Continuar sem foto</button>}
               {selectedPhoto&&<div className="space-y-2 rounded-xl border border-border bg-background p-3">
                 <p id="photo-authorization-description" className="text-sm leading-relaxed text-muted-foreground">Autorize o envio desta imagem junto com a ocorrência para análise pelas equipes municipais. A foto será enviada ao registrar a ocorrência.</p>
-                <button type="button" aria-pressed={photoAuthorized&&!withoutPhoto} aria-describedby="photo-authorization-description" disabled={sending||locked} onClick={()=>{setPhotoAuthorized(!photoAuthorized||withoutPhoto);setWithoutPhoto(false);attempt.current=null;setError('');}} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary-soft px-4 py-3 font-semibold text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <button type="button" aria-pressed={photoAuthorized&&!withoutPhoto} aria-describedby="photo-authorization-description" disabled={sending||locked} onClick={()=>{setPhotoAuthorized(!photoAuthorized||withoutPhoto);setWithoutPhoto(false);attempt.current=null;setPhotoFailed(false);setError('');}} className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary-soft px-4 py-2.5 font-semibold text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                   {photoAuthorized&&!withoutPhoto&&<CheckCircle2 aria-hidden="true" className="h-5 w-5 shrink-0"/>}
-                  {photoAuthorized&&!withoutPhoto?'Envio desta foto autorizado':'Autorizar envio desta foto'}
+                  {withoutPhoto?'Incluir foto no envio':photoAuthorized?'Envio desta foto autorizado':'Autorizar envio desta foto'}
                 </button>
               </div>}
             </div>
 
-            <div className="rounded-2xl border border-primary/30 bg-primary-soft p-4 sm:p-5">
-              <div className="flex items-start gap-3">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-xl border border-primary/25 bg-primary-soft px-3 py-3 sm:px-4">
+              <div className="flex min-w-[220px] flex-1 items-start gap-2.5">
                 <MapPin aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
-                <div className="min-w-0 flex-1">
+                <div className="min-w-0">
                   <p className="font-semibold text-foreground">Localização do dispositivo <span aria-hidden="true" className="text-danger">*</span></p>
-                  {position ? <p role="status" className="mt-1 text-sm text-success">Localização obtida. Precisão: {accuracyFormat.format(position.accuracy)} metros.</p> : <p role="note" className="mt-1 text-sm leading-relaxed text-muted-foreground">Para enviar, é necessário permitir o acesso à localização. Toque no botão e autorize quando o navegador solicitar.</p>}
+                  {position ? <p role="status" className="mt-0.5 text-sm text-success">Localização obtida. Precisão: {accuracyFormat.format(position.accuracy)} metros.</p> : <p role="note" className="mt-0.5 text-sm leading-relaxed text-muted-foreground">Necessária para registrar. Autorize quando o navegador solicitar.</p>}
                 </div>
               </div>
-              <button type="button" onClick={locate} disabled={!ready||locating||sending} className="mt-4 inline-flex min-h-12 w-full items-center justify-center sm:w-auto rounded-xl bg-primary px-5 py-2.5 font-semibold text-primary-foreground transition hover:bg-primary focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-60">{locating?'Obtendo localização...':position?'Atualizar localização':'Obter localização'}</button>
+              <button type="button" onClick={locate} disabled={!ready||locating||sending} className="inline-flex min-h-11 w-full shrink-0 items-center justify-center rounded-xl bg-primary px-4 py-2 font-semibold text-primary-foreground transition hover:bg-primary focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto">{locating?'Obtendo localização...':position?'Atualizar localização':'Obter localização'}</button>
             </div>
           </fieldset>
 
           <div className="space-y-4 border-t border-border bg-background px-4 py-5 sm:px-8">
             {error&&<p role="alert" aria-label="Problema no envio" className="rounded-xl border border-warning/30 bg-warning-soft px-4 py-3 text-sm text-warning">{error}</p>}
-            {!locked&&<label className={`flex items-start gap-3 rounded-xl border p-4 text-sm ${photoFailed?'border-warning/30 bg-warning-soft text-warning':'border-border bg-surface text-foreground'}`}><input type="checkbox" className="mt-0.5 h-5 w-5 shrink-0 accent-primary" checked={withoutPhoto} required={!selectedPhoto} onChange={event=>{setWithoutPhoto(event.target.checked);if(event.target.checked)setPhotoAuthorized(false);attempt.current=null;setError('');}} disabled={sending}/> <span>Confirmo que desejo enviar esta ocorrência sem foto.{selectedPhoto&&<span className="mt-1 block text-xs">Ao marcar, a foto selecionada não será anexada.</span>}</span></label>}
-            <button type="submit" disabled={!ready||!position||locating||sending} className="block min-h-12 w-full rounded-xl bg-primary px-5 py-3 font-medium text-primary-foreground  transition hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:bg-surface-subtle disabled:text-muted-foreground disabled:shadow-none">{sending?'Registrando ocorrência...':'Enviar ocorrência'}</button>
+            <button type="submit" disabled={!ready||!position||locating||sending} className="block min-h-12 w-full rounded-xl bg-primary px-5 py-3 font-medium text-primary-foreground  transition hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:bg-surface-subtle disabled:text-muted-foreground disabled:shadow-none">{sending?'Registrando ocorrência...':withoutPhoto&&selectedPhoto?'Enviar sem foto':'Enviar ocorrência'}</button>
             <p className="text-center text-xs leading-relaxed text-muted-foreground">{position?'Localização obtida. O registro será confirmado com um protocolo.':'Sua localização é necessária para concluir o registro.'}</p>
           </div>
         </form>
       </section>}
+      {!result&&<dialog ref={photoSourceDialogRef} aria-labelledby="photo-source-title" aria-describedby="photo-source-description" className="m-auto w-[calc(100%-2rem)] max-w-sm rounded-2xl border border-border bg-surface p-5 text-foreground shadow-xl backdrop:bg-slate-950/45">
+        <h2 id="photo-source-title" className="text-lg font-semibold">Adicionar foto</h2>
+        <p id="photo-source-description" className="mt-1 text-sm leading-relaxed text-muted-foreground">Escolha como deseja anexar uma imagem à ocorrência.</p>
+        <div className="mt-4 grid gap-2">
+          <button type="button" onClick={()=>{photoSourceDialogRef.current?.close();cameraPickerRef.current?.click();}} className="inline-flex min-h-11 items-center justify-center rounded-xl bg-primary px-4 py-2.5 font-semibold text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Tirar uma foto</button>
+          <button type="button" onClick={()=>{photoSourceDialogRef.current?.close();photoPickerRef.current?.click();}} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-control-border bg-surface px-4 py-2.5 font-semibold text-foreground hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Escolher uma imagem</button>
+        </div>
+        <form method="dialog" className="mt-2"><button type="submit" className="min-h-10 w-full rounded-lg px-3 py-2 text-sm font-semibold text-muted-foreground hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Cancelar</button></form>
+      </dialog>}
       <section aria-label="Instituições de atendimento" className="mt-6 rounded-2xl border border-border bg-surface p-4 sm:p-6">
         <h2 className="text-center text-sm font-semibold text-foreground">Órgãos públicos</h2>
         <div className="mt-4 grid grid-cols-2 items-stretch gap-3 sm:grid-cols-3">

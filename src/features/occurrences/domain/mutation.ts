@@ -3,7 +3,7 @@ import { can } from '@/features/access/domain/permissions';
 import type { Priority, Status } from '../contracts';
 
 export type OccurrenceMutationCommand =
-  | { kind: 'climateEvent'; climateEventId: string | null; reason: string }
+  | { kind: 'climateEvent'; climateEventId: string | null; reason?: string }
   | { kind: 'edit'; type?: string; description?: string; groupId?: string }
   | { kind: 'transition'; target: Status; reason?: string }
   | { kind: 'reclassify'; priority: Priority; reason: string }
@@ -53,12 +53,13 @@ export function parseOccurrenceMutation(value: unknown): OccurrenceMutationPaylo
 
   const command = value.command;
   if (command.kind === 'climateEvent') {
+    const reason = typeof command.reason === 'string' ? command.reason.trim() : undefined;
     if (Object.keys(command).some(key => !['kind','climateEventId','reason'].includes(key)) ||
         (command.climateEventId !== null && (typeof command.climateEventId !== 'string' || !uuidPattern.test(command.climateEventId))) ||
-        typeof command.reason !== 'string' || command.reason.trim().length < 10 || command.reason.trim().length > 500) {
+        (command.reason !== undefined && typeof command.reason !== 'string') || (reason?.length ?? 0) > 500) {
       throw new OccurrenceMutationError(422, 'INVALID_INPUT');
     }
-    return { expectedVersion: Number(value.expectedVersion), command: { kind: 'climateEvent', climateEventId: command.climateEventId as string | null, reason: command.reason.trim() } };
+    return { expectedVersion: Number(value.expectedVersion), command: { kind: 'climateEvent', climateEventId: command.climateEventId as string | null, ...(reason ? { reason } : {}) } };
   }
   if (command.kind === 'edit') {
     const edit: Extract<OccurrenceMutationCommand, { kind: 'edit' }> = { kind: 'edit' };
@@ -142,11 +143,11 @@ export function authorizeOccurrenceMutation(
   if (command.kind === 'climateEvent') {
     if (!can(actor, 'reclassify', { municipalityId: actor.municipalityId, groupId: occurrence.groupId })) throw new OccurrenceMutationError(403, 'ACCESS_DENIED');
     if (occurrence.deletedAt) throw new OccurrenceMutationError(404, 'NOT_FOUND');
-    if (command.reason.trim().length < 10) throw new OccurrenceMutationError(422, 'REASON_REQUIRED');
     if ((occurrence.climateEventId ?? null) === command.climateEventId) throw new OccurrenceMutationError(422, 'NO_CHANGES');
+    const reason = command.reason?.trim() || null;
     return {
       changes: { climateEventId: { from: occurrence.climateEventId ?? null, to: command.climateEventId } },
-      eventKind: 'OCCURRENCE_CLIMATE_EVENT_LINK_CHANGED', reason: command.reason.trim(), groupId: occurrence.groupId,
+      eventKind: 'OCCURRENCE_CLIMATE_EVENT_LINK_CHANGED', reason, groupId: occurrence.groupId,
     };
   }
   if (occurrence.deletedAt) throw new OccurrenceMutationError(404, 'NOT_FOUND');

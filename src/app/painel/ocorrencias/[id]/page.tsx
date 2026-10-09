@@ -269,7 +269,6 @@ const statusLabels: Record<Status, string> = {
 
 function ClimateEventLinkForm({ detail, onReload }: { detail: OccurrenceDetail; onReload: () => Promise<boolean> }) {
   const [eventId, setEventId] = useState(detail.climateEvent?.id ?? '');
-  const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   async function save(event: React.FormEvent<HTMLFormElement>) {
@@ -277,20 +276,19 @@ function ClimateEventLinkForm({ detail, onReload }: { detail: OccurrenceDetail; 
     try {
       const response = await fetch(`/api/core/occurrences/${encodeURIComponent(detail.id)}`, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ expectedVersion: detail.version, command: { kind: 'climateEvent', climateEventId: eventId || null, reason } }),
+        body: JSON.stringify({ expectedVersion: detail.version, command: { kind: 'climateEvent', climateEventId: eventId || null } }),
       });
       const result = await response.json() as { error?: { message?: string } };
       if (!response.ok) throw new Error(result.error?.message ?? 'Não foi possível corrigir o vínculo.');
-      await onReload(); setReason(''); setMessage('Vínculo do evento atualizado e auditado.');
+      await onReload(); setMessage('Vínculo do evento atualizado e auditado.');
     } catch (error) { setMessage(error instanceof Error ? error.message : 'Não foi possível corrigir o vínculo.'); }
     finally { setBusy(false); }
   }
   const options = detail.climateEvents.filter(item => item.state !== 'PLANEJADO');
-  return <form onSubmit={save} className="mt-5 grid gap-3 rounded border border-control-border p-4 sm:grid-cols-2" aria-label="Corrigir evento climático da ocorrência">
-    <h3 className="text-sm font-semibold sm:col-span-2">Corrigir vínculo do evento</h3>
+  return <form onSubmit={save} className="mt-5 grid gap-3 rounded border border-control-border p-4 sm:grid-cols-2" aria-label="Vincular ocorrência a evento climático">
+    <h3 className="text-sm font-semibold sm:col-span-2">Vincular evento climático</h3>
     <label className="sm:col-span-2">Evento<select value={eventId} onChange={event => setEventId(event.target.value)} className="mt-1 block w-full rounded border border-control-border bg-background px-3 py-2"><option value="">Sem evento</option>{options.map(item => <option key={item.id} value={item.id}>{item.name} · {item.state.replaceAll('_', ' ')}</option>)}</select></label>
-    <label className="sm:col-span-2">Justificativa<input required minLength={10} maxLength={500} value={reason} onChange={event => setReason(event.target.value)} className="mt-1 block w-full rounded border border-control-border bg-background px-3 py-2" /></label>
-    <button disabled={busy || reason.trim().length < 10 || eventId === (detail.climateEvent?.id ?? '')} className="btn btn-secondary sm:col-span-2">Salvar correção</button>
+    <button disabled={busy || eventId === (detail.climateEvent?.id ?? '')} className="btn btn-secondary sm:col-span-2">Salvar vínculo</button>
     {message && <p role="status" className="text-sm sm:col-span-2">{message}</p>}
   </form>;
 }

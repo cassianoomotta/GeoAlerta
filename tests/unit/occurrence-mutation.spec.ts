@@ -79,17 +79,17 @@ test('RF-011 parser normalizes editable fields and rejects invalid versions, gro
   }
 });
 
-test('climate event link changes require an authorized manager, reason, current version and no deleted record', async () => {
-  const payload = parseOccurrenceMutation({ expectedVersion: 4, command: { kind: 'climateEvent', climateEventId: null, reason: 'Vínculo conferido no histórico.' } });
+test('climate event link changes require an authorized manager, current version and no deleted record, but no reason', async () => {
+  const payload = parseOccurrenceMutation({ expectedVersion: 4, command: { kind: 'climateEvent', climateEventId: null } });
   for(const command of [
-    {kind:'climateEvent',climateEventId:'bad',reason:'Motivo suficientemente longo.'},
-    {kind:'climateEvent',climateEventId:null,reason:'curto'},
-    {kind:'climateEvent',climateEventId:null,reason:'Justificativa válida não aceita campos extra.',actorId:userId},
+    {kind:'climateEvent',climateEventId:'bad'},
+    {kind:'climateEvent',climateEventId:null,reason:'x'.repeat(501)},
+    {kind:'climateEvent',climateEventId:null,actorId:userId},
   ])expect(()=>parseOccurrenceMutation({expectedVersion:4,command})).toThrow(OccurrenceMutationError);
   const fake = fakePorts(occurrence({ climateEventId: '90000000-0000-4000-8000-000000000035' }));
   const result = await mutateOccurrence(actor('GESTOR'), occurrenceId, payload.expectedVersion, payload.command, fake.ports);
   expect(result.version).toBe(5);
-  expect(fake.saved[0]).toMatchObject({ eventKind: 'OCCURRENCE_CLIMATE_EVENT_LINK_CHANGED', reason: 'Vínculo conferido no histórico.', changes: { climateEventId: { from: '90000000-0000-4000-8000-000000000035', to: null } } });
+  expect(fake.saved[0]).toMatchObject({ eventKind: 'OCCURRENCE_CLIMATE_EVENT_LINK_CHANGED', reason: null, changes: { climateEventId: { from: '90000000-0000-4000-8000-000000000035', to: null } } });
   await expect(mutateOccurrence(actor('OPERADOR'), occurrenceId, 4, payload.command, fakePorts(occurrence({ climateEventId: '90000000-0000-4000-8000-000000000035' })).ports)).rejects.toMatchObject({ code: 'ACCESS_DENIED' });
   await expect(mutateOccurrence(actor('GESTOR'), occurrenceId, 3, payload.command, fake.ports)).rejects.toMatchObject({ code: 'VERSION_CONFLICT' });
   await expect(mutateOccurrence(actor('GESTOR'), occurrenceId, 4, payload.command, fakePorts(occurrence({ deletedAt: new Date() })).ports)).rejects.toMatchObject({ code: 'NOT_FOUND' });
