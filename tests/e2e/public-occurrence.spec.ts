@@ -9,7 +9,6 @@ async function fill(page:import('@playwright/test').Page,medicalSupport:'true'|'
   await expect(page.getByRole('option',{name:'Alagamentos/Inundação',exact:true})).toBeAttached();
   await page.getByRole('textbox',{name:'Nome'}).fill('Cidadão teste');await page.getByRole('textbox',{name:'Contato'}).fill('(51) 99999-0000');await page.getByRole('combobox',{name:'Tipo de ocorrência'}).selectOption('Alagamentos/Inundação');await page.getByRole('textbox',{name:'Descrição'}).fill('<script>window.fixtureXss=true</script>');
   if(medicalSupport)await page.getByRole('radio',{name:medicalSupport==='true'?'Sim':'Não'}).check();
-  await page.getByRole('checkbox',{name:'Confirmo que desejo enviar esta ocorrência sem foto.'}).check();
 }
 test('formulário público usa seletor claro e exibe as marcas institucionais',async({page})=>{
   await page.goto('/');
@@ -30,6 +29,13 @@ test('formulário público usa seletor claro e exibe as marcas institucionais',a
   await expect(institutions.getByText('SEMOT', {exact:false})).toBeVisible();
   await expect(institutions.getByText('SMTDS', {exact:false})).toBeVisible();
 });
+test('registro público permanece claro sem mudar a preferência salva nem oferecer seletor de aparência',async({page})=>{
+  await page.addInitScript(()=>localStorage.setItem('geoalerta-theme','dark'));
+  await page.goto('/');
+  await expect.poll(()=>page.locator('html').getAttribute('data-theme')).toBe('light');
+  expect(await page.evaluate(()=>localStorage.getItem('geoalerta-theme'))).toBe('dark');
+  await expect(page.getByRole('combobox',{name:'Aparência'})).toHaveCount(0);
+});
 test('formulário informa falha ao carregar tipos e impede escolha sem catálogo',async({page})=>{
   await page.route('**/api/core/public/occurrence-types',route=>route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:{code:'SERVICE_UNAVAILABLE'}})}));
   await page.goto('/');
@@ -46,15 +52,33 @@ test('formulário bloqueia envio até escolha explícita de apoio médico',async
 });
 test('cidadão pode escolher um arquivo ou abrir a câmera traseira para anexar foto',async({page})=>{
   await page.goto('/');
-  await expect(page.getByRole('button',{name:'Escolher foto'})).toBeVisible();
-  await expect(page.getByRole('button',{name:'Tirar foto'})).toBeVisible();
+  await page.getByRole('button',{name:'Adicionar foto'}).click();
+  const dialog=page.getByRole('dialog',{name:'Adicionar foto'});
+  await expect(dialog.getByRole('button',{name:'Escolher foto'})).toBeVisible();
+  await expect(dialog.getByRole('button',{name:'Tirar foto'})).toBeVisible();
   const chooser=page.locator('input[name="photo"]:not([capture])');
   const camera=page.locator('input[name="photo"][capture="environment"]');
   await expect(chooser).toHaveCount(1);await expect(camera).toHaveCount(1);
-  const chooseDialog=page.waitForEvent('filechooser');await page.getByRole('button',{name:'Escolher foto'}).click();await (await chooseDialog).setFiles({name:'foto-escolhida.jpg',mimeType:'image/jpeg',buffer:Buffer.from('imagem sintética')});
+  const chooseDialog=page.waitForEvent('filechooser');await dialog.getByRole('button',{name:'Escolher foto'}).click();await (await chooseDialog).setFiles({name:'foto-escolhida.jpg',mimeType:'image/jpeg',buffer:Buffer.from('imagem sintética')});
   await expect(page.getByText('foto-escolhida.jpg')).toBeVisible();
-  const cameraDialog=page.waitForEvent('filechooser');await page.getByRole('button',{name:'Tirar foto'}).click();await (await cameraDialog).setFiles({name:'foto-camera.jpg',mimeType:'image/jpeg',buffer:Buffer.from('imagem sintética')});
+  await page.getByRole('button',{name:'Trocar foto'}).click();
+  const cameraDialog=page.waitForEvent('filechooser');await page.getByRole('dialog',{name:'Adicionar foto'}).getByRole('button',{name:'Tirar foto'}).click();await (await cameraDialog).setFiles({name:'foto-camera.jpg',mimeType:'image/jpeg',buffer:Buffer.from('imagem sintética')});
   await expect(page.getByText('foto-camera.jpg')).toBeVisible();
+});
+test('foto selecionada exige autorização destacada antes de habilitar o envio',async({page,context})=>{
+  await context.grantPermissions(['geolocation']);await context.setGeolocation({latitude:11,longitude:11,accuracy:8});
+  await page.goto('/');await expect(page.getByRole('button',{name:'Obter localização'})).toBeEnabled();
+  await expect(page.getByRole('checkbox',{name:'Autorizo o envio desta foto'})).toHaveCount(0);
+  const chooser=page.locator('input[name="photo"]:not([capture])');
+  await chooser.setInputFiles({name:'foto-autorizacao.jpg',mimeType:'image/jpeg',buffer:Buffer.from('imagem sintética')});
+  const authorization=page.getByRole('checkbox',{name:'Autorizo o envio desta foto'});
+  await expect(authorization).toBeVisible();await expect(authorization).toHaveAttribute('required','');
+  await fill(page,'false');
+  await page.getByRole('button',{name:'Obter localização'}).click();
+  const submit=page.getByRole('button',{name:'Enviar ocorrência'});
+  await expect(submit).toBeDisabled();
+  await authorization.check();
+  await expect(submit).toBeEnabled();
 });
 test('RF-001 GPS nativo e confirmação com protocolo no desktop e celular',async({page,context})=>{
   await context.grantPermissions(['geolocation']);await context.setGeolocation({latitude:11,longitude:11,accuracy:8});

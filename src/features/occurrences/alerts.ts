@@ -1,6 +1,7 @@
 import type {Priority,Status} from './contracts';
 
 export type CoreAlert={eventId:string;occurrenceId:string;groupId:string;priority:Priority;status:Status;at:string};
+export type AlertOccurrenceMetadata=Record<string,{protocol:string;type:string}>;
 
 const statuses:readonly Status[]=['NOVA','EM_TRIAGEM','EM_ATENDIMENTO','RESOLVIDA','CANCELADA'];
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -12,6 +13,18 @@ export function parseCoreAlert(value:unknown):CoreAlert|null{
     typeof row.group_id!=='string'||!uuid.test(row.group_id)||(row.priority!=='NORMAL'&&row.priority!=='ALTA')||
     typeof row.status!=='string'||!statuses.includes(row.status as Status)||typeof row.at!=='string'||!Number.isFinite(Date.parse(row.at)))return null;
   return {eventId:row.event_id,occurrenceId:row.occurrence_id,groupId:row.group_id,priority:row.priority,status:row.status as Status,at:new Date(row.at).toISOString()};
+}
+
+export function parseAlertOccurrenceMetadata(value:unknown):AlertOccurrenceMetadata{
+  if(!Array.isArray(value))return {};
+  const result:AlertOccurrenceMetadata={};
+  for(const item of value){
+    if(typeof item!=='object'||item===null||Array.isArray(item))continue;
+    const row=item as Record<string,unknown>;
+    if(typeof row.id!=='string'||!uuid.test(row.id)||typeof row.protocol!=='string'||!row.protocol.trim()||row.protocol.length>80||typeof row.type!=='string'||!row.type.trim()||row.type.length>200)continue;
+    result[row.id]={protocol:row.protocol.trim(),type:row.type.trim()};
+  }
+  return result;
 }
 
 export function mergeCoreAlerts(current:readonly CoreAlert[],incoming:readonly CoreAlert[],limit=20):CoreAlert[]{

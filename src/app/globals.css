@@ -15,6 +15,7 @@
   ::selection { background: var(--primary-soft); color: var(--text); }
   :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
   :where(input, select, textarea) { accent-color: var(--primary); caret-color: var(--primary); }
+  :where(select) { accent-color: #1769d2; }
   :where(input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]), select, textarea) {
     min-height: 40px;
     border: 1px solid var(--control-border);
@@ -33,6 +34,7 @@
     color: var(--disabled-text);
   }
   select option { background: var(--surface); color: var(--text); }
+  select option:checked { background-color: #1769d2; color: #fff; }
   :where(h1) { font-size: 24px; line-height: 32px; font-weight: 600; }
   :where(h2) { font-size: 18px; line-height: 26px; font-weight: 600; }
   :where(time, td) { font-variant-numeric: tabular-nums; }

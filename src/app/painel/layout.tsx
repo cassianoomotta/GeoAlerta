@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Building2, CloudRain, LayoutDashboard, List, MapPin, Menu, Plus, UserRound, X } from 'lucide-react';
+import { Building2, CloudRain, LayoutDashboard, List, MapPin, Menu, Plus, Settings2, UserRound, X } from 'lucide-react';
 import { CoreNotifications } from '@/features/occurrences/ui/CoreNotifications';
 import { getEnabledModules } from '@/modules/registry';
 import { ThemeSelect } from '@/components/theme/theme-select';
@@ -23,6 +23,10 @@ const contacts = [
 ];
 function isModuleActive(href: string, pathname: string) {
   if (href === '/painel/ocorrencias' && pathname === '/painel/ocorrencias/nova') return false;
+  if (href === '/painel/admin') {
+    const isDedicatedAdminSection = pathname.startsWith('/painel/admin/shelters') || pathname.startsWith('/painel/admin/climate-events');
+    return !isDedicatedAdminSection && (pathname === href || pathname.startsWith(`${href}/`));
+  }
   return href === '/painel' ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
 }
 
@@ -53,6 +57,7 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
     ...getEnabledModules().map(module => ({ href: module.href, label: module.label, icon: icons[module.slug] })),
     ...(canManageEvents ? [{ href: '/painel/admin/climate-events', label: 'Eventos climáticos', icon: <CloudRain size={18} aria-hidden="true" /> }] : []),
     ...(canAdminister ? [{ href: '/painel/admin/shelters', label: 'Abrigos', icon: <Building2 size={18} aria-hidden="true" /> }] : []),
+    ...(canAdminister ? [{ href: '/painel/admin', label: 'Gestão municipal', icon: <Settings2 size={18} aria-hidden="true" /> }] : []),
     { href: '/painel/perfil', label: 'Meu perfil', icon: <UserRound size={18} aria-hidden="true" /> },
   ];
   const navigation = <nav aria-label="Navegação do painel" className="flex flex-col gap-2">

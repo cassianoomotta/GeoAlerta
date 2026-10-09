@@ -21,7 +21,7 @@ test('RNF-001 grupos e município limitam capacidades inclusive com múltiplos g
   expect(canEnterPanel({...user,municipalityId:''})).toBe(false);
 });
 test('RNF-001 matriz de capacidades aplica o PRD a cada papel', () => {
-  const expected: Record<Role, Capability[]> = { CONSULTA:['read'], OPERADOR:['read','privateData','operate'], GESTOR:['read','privateData','operate','reclassify','export'], ADMINISTRADOR:['read','privateData','operate','reclassify','export','administer'] };
+  const expected: Record<Role, Capability[]> = { CONSULTA:['read'], VOLUNTARIO:['read'], OPERADOR:['read','privateData','operate'], GESTOR:['read','privateData','operate','reclassify','export'], ADMINISTRADOR:['read','privateData','operate','reclassify','export','administer'] };
   for (const role of Object.keys(expected) as Role[]) {
     for (const capability of ['read','privateData','operate','reclassify','export','administer'] as const) {
       expect(can(actor(role),capability,scope), `${role}:${capability}`).toBe(expected[role].includes(capability));
@@ -32,4 +32,13 @@ test('RNF-001 administrador tem escopo municipal sem conceder acesso a outro mun
   const user = {...actor('ADMINISTRADOR'),groupIds:[]};
   expect(can(user,'administer',scope)).toBe(true);
   expect(can(user,'read',{...scope,municipalityId:'municipality-b'})).toBe(false);
+});
+
+test('VOLUNTARIO pode apenas ler dados permitidos no grupo vinculado', () => {
+  const volunteer = actor('VOLUNTARIO' as Role);
+  expect(can(volunteer, 'read', scope)).toBe(true);
+  for (const capability of ['privateData', 'operate', 'reclassify', 'export', 'administer'] as const) {
+    expect(can(volunteer, capability, scope)).toBe(false);
+  }
+  expect(can(volunteer, 'read', { ...scope, groupId: 'outro-grupo' })).toBe(false);
 });

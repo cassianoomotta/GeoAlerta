@@ -14,11 +14,12 @@ export function isThemePreference(value: unknown): value is ThemePreference {
 }
 
 // Self-contained so the exact same function can run before React hydration.
-export function applyTheme(preference: ThemePreference, colors: typeof themeColors): void {
-  const theme = preference === 'system'
+export function applyTheme(preference: ThemePreference, colors: typeof themeColors, forceLight = window.location.pathname === '/'): void {
+  const theme = forceLight ? 'light' : preference === 'system'
     ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
     : preference;
   document.documentElement.dataset.theme = theme;
+  // Keep the user's saved preference intact while the public intake is light-only.
   document.documentElement.dataset.themePreference = preference;
   // React hoists metadata by content. Keep this dynamic tag outside its resource
   // matching, so the first-paint update cannot create a second light tag.
