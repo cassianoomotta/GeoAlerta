@@ -1,6 +1,8 @@
 import {test,expect} from '@playwright/test';
 import pg from 'pg';
+import {getSharp} from 'next/dist/server/image-optimizer.js';
 import {assertTestTarget} from '../fixtures/database';
+import {MAX_PHOTO_BYTES} from '../../src/features/occurrences/photos/contracts';
 test.beforeEach(async({page,request})=>{
   await request.post('/__fixture/rotate-origin');
   await page.route('**/*',route=>{const host=new URL(route.request().url()).hostname;return ['127.0.0.1','localhost'].includes(host)?route.continue():route.abort();});
@@ -55,6 +57,26 @@ test('cidadão pode escolher um arquivo ou abrir a câmera traseira para anexar 
   await expect(page.getByText('foto-escolhida.jpg')).toBeVisible();
   const cameraDialog=page.waitForEvent('filechooser');await page.getByRole('button',{name:'Tirar foto'}).click();await (await cameraDialog).setFiles({name:'foto-camera.jpg',mimeType:'image/jpeg',buffer:Buffer.from('imagem sintética')});
   await expect(page.getByText('foto-camera.jpg')).toBeVisible();
+});
+test('RF-004 foto maior que 5 MiB é comprimida antes do upload público',async({page,context})=>{
+  await context.grantPermissions(['geolocation']);await context.setGeolocation({latitude:11,longitude:11,accuracy:8});
+  const width=3000,height=3000,pixels=Buffer.allocUnsafe(width*height*3);let seed=0x12345678;
+  for(let i=0;i<pixels.length;i++){seed^=seed<<13;seed^=seed>>>17;seed^=seed<<5;pixels[i]=seed&255;}
+  const original=await getSharp(1,false)(pixels,{raw:{width,height,channels:3}}).jpeg({quality:100,chromaSubsampling:'4:4:4'}).toBuffer();
+  expect(original.length).toBeGreaterThan(MAX_PHOTO_BYTES);
+  let uploadBodySize=0;
+  await page.route('**/api/core/public/photos',async route=>{uploadBodySize=route.request().postDataBuffer()?.byteLength??0;await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({photoToken:'synthetic-photo-token'})});});
+  await page.route('**/api/core/public/occurrences',route=>route.fulfill({status:201,contentType:'application/json',body:JSON.stringify({id:'60000000-0000-4000-8000-000000000011',protocol:'9011',status:'NOVA',priority:'NORMAL',version:1})}));
+  await page.route('**/api/core/public/shelters',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({shelters:[]})}));
+  await page.goto('/');
+  await page.locator('input[name="photo"]:not([capture])').setInputFiles({name:'foto-grande.jpg',mimeType:'image/jpeg',buffer:original});
+  await expect(page.getByRole('status').filter({hasText:'Foto selecionada'})).toContainText('comprimida');
+  await expect(page.getByRole('img',{name:'Prévia da foto selecionada'})).toBeVisible();
+  await page.getByRole('textbox',{name:'Nome'}).fill('Cidadão teste');await page.getByRole('textbox',{name:'Contato'}).fill('(51) 99999-0000');
+  await page.getByRole('combobox',{name:'Tipo de ocorrência'}).selectOption('Alagamentos/Inundação');await page.getByRole('textbox',{name:'Descrição'}).fill('Foto de evidência');
+  await page.getByRole('radio',{name:'Não'}).check();await page.getByRole('button',{name:'Autorizar envio desta foto'}).click();await page.getByRole('button',{name:'Obter localização'}).click();
+  await expect(page.getByText('Localização obtida. Precisão: 8 metros.')).toBeVisible();await page.getByRole('button',{name:'Enviar ocorrência'}).click();
+  await expect(page.getByText('9011')).toBeVisible();expect(uploadBodySize).toBeGreaterThan(0);expect(uploadBodySize).toBeLessThanOrEqual(MAX_PHOTO_BYTES+16384);
 });
 test('RF-001 GPS nativo e confirmação com protocolo no desktop e celular',async({page,context})=>{
   await context.grantPermissions(['geolocation']);await context.setGeolocation({latitude:11,longitude:11,accuracy:8});

@@ -7,6 +7,8 @@ import {GeoAlertaLogo} from '@/components/brand/geoalerta-logo';
 import {validatePublicInput} from '@/features/occurrences/public-input';
 import type {GeoPosition,OpenResult} from '@/features/occurrences/contracts';
 import {photoMetadata} from '@/features/occurrences/photos/contracts';
+import {PhotoCompressionError,prepareOccurrencePhoto} from '@/features/occurrences/photos/compress';
+import {PhotoPreview} from '@/features/occurrences/ui/PhotoPreview';
 import {sendPublicAttempt, PhotoUploadFailure, type PhotoAttempt} from '@/features/occurrences/photos/public-attempt';
 import type {PublicShelter} from '@/features/shelters/contracts';
 import {buildShelterDirections} from '@/features/shelters/domain/directions';
@@ -26,7 +28,12 @@ export default function Home(){
   const photoPickerRef=useRef<HTMLInputElement|null>(null);
   const cameraPickerRef=useRef<HTMLInputElement|null>(null);
   const photoSourceDialogRef=useRef<HTMLDialogElement|null>(null);
+  const photoPreviewUrlRef=useRef<string|null>(null);
+  const [photoPreviewUrl,setPhotoPreviewUrl]=useState<string|null>(null);
   const [selectedPhoto,setSelectedPhoto]=useState<File|null>(null);
+  const [photoPreparing,setPhotoPreparing]=useState(false);
+  const [photoCompressed,setPhotoCompressed]=useState(false);
+  const [photoPreparationFailed,setPhotoPreparationFailed]=useState(false);
   const [photoFailed,setPhotoFailed]=useState(false);
   const [withoutPhoto,setWithoutPhoto]=useState(false);
   const [photoAuthorized,setPhotoAuthorized]=useState(false);
@@ -35,6 +42,11 @@ export default function Home(){
   const [occurrenceTypes,setOccurrenceTypes]=useState<string[]>([]);
   const [typesLoading,setTypesLoading]=useState(true);
   const [typesError,setTypesError]=useState(false);
+  function updatePhotoPreview(file:File|null){
+    if(photoPreviewUrlRef.current)URL.revokeObjectURL(photoPreviewUrlRef.current);
+    const url=file?URL.createObjectURL(file):null;
+    photoPreviewUrlRef.current=url;setPhotoPreviewUrl(url);
+  }
   function loadPublicShelters(){
     setShelters([]);setSheltersLoading(true);setSheltersError(false);
     fetch('/api/core/public/shelters',{cache:'no-store'}).then(async response=>{
@@ -44,14 +56,21 @@ export default function Home(){
       setShelters(payload.shelters as PublicShelter[]);
     }).catch(()=>{setSheltersError(true);}).finally(()=>{setSheltersLoading(false);});
   }
-  function selectPhoto(event:React.ChangeEvent<HTMLInputElement>){
+  async function selectPhoto(event:React.ChangeEvent<HTMLInputElement>){
     const input=event.currentTarget;
     const file=input.files?.[0];
     input.value='';
     if(!file)return;
-    setSelectedPhoto(file);attempt.current=null;setWithoutPhoto(false);setPhotoAuthorized(false);setPhotoFailed(false);
-    try{photoMetadata(file);setError('');}
-    catch{setPhotoFailed(true);setError('Selecione JPEG, PNG ou WebP de até 5 MiB, ou remova a foto para continuar sem ela.');}
+    updatePhotoPreview(null);
+    setSelectedPhoto(file);setPhotoPreparing(true);setPhotoCompressed(false);setPhotoPreparationFailed(false);attempt.current=null;setWithoutPhoto(false);setPhotoAuthorized(false);setPhotoFailed(false);setError('');
+    try{
+      const prepared=await prepareOccurrencePhoto(file);
+      photoMetadata(prepared.file);setSelectedPhoto(prepared.file);setPhotoCompressed(prepared.compressed);updatePhotoPreview(prepared.file);
+    }catch(error){
+      updatePhotoPreview(null);
+      setPhotoFailed(true);setPhotoPreparationFailed(true);
+      setError(error instanceof PhotoCompressionError?error.message:'Selecione JPEG, PNG ou WebP, ou remova a foto para continuar sem ela.');
+    }finally{setPhotoPreparing(false);}
   }
   useEffect(()=>{
     let current=true;
@@ -63,6 +82,7 @@ export default function Home(){
     }).catch(()=>{if(current)setTypesError(true);}).finally(()=>{if(current)setTypesLoading(false);});
     return ()=>{current=false;};
   },[]);
+  useEffect(()=>()=>{if(photoPreviewUrlRef.current)URL.revokeObjectURL(photoPreviewUrlRef.current);},[]);
   function locate(){
     setPosition(null);setError('');setLocating(true);
     if(!navigator.geolocation){setError('Localização não disponível neste navegador. Use um dispositivo com GPS.');setLocating(false);return;}
@@ -75,7 +95,9 @@ export default function Home(){
   }
   async function submit(event:React.FormEvent<HTMLFormElement>){
     event.preventDefault();if(sending)return;setError('');
+    if(photoPreparing){setError('Aguarde a preparação da foto antes de enviar.');return;}
     if(!position){setError('Obtenha sua localização antes de enviar.');return;}
+    if(selectedPhoto&&photoPreparationFailed&&!withoutPhoto){setError('A foto não pôde ser preparada. Escolha outra imagem ou continue sem foto.');return;}
     if(selectedPhoto&&!withoutPhoto&&!photoAuthorized&&!locked){setError('Autorize o envio da foto selecionada ou remova a foto para continuar sem ela.');return;}
     const form=new FormData(event.currentTarget);
     const file=selectedPhoto;
@@ -174,18 +196,20 @@ export default function Home(){
             </fieldset>
             <label className="block text-sm font-semibold text-foreground"><span>Endereço da ocorrência (opcional)</span><input name="address" maxLength={300} autoComplete="street-address" placeholder="Rua, número ou ponto de referência" className={inputClass} /><span className="mt-2 block text-sm font-normal leading-relaxed text-muted-foreground">Informe o endereço do local, especialmente se estiver sem sinal ou registrando para outra pessoa.</span></label>
             <div className="space-y-3">
-              <p className="text-sm font-semibold text-foreground">Foto <span className="font-normal text-muted-foreground">(opcional · JPEG, PNG ou WebP, até 5 MiB)</span></p>
+              <p className="text-sm font-semibold text-foreground">Foto <span className="font-normal text-muted-foreground">(opcional · JPEG, PNG ou WebP; fotos grandes são comprimidas automaticamente para até 5 MiB)</span></p>
               <div className="flex flex-wrap items-center gap-3">
                 <input ref={photoPickerRef} name="photo" type="file" accept="image/jpeg,image/png,image/webp" className="hidden" tabIndex={-1} onChange={selectPhoto} />
                 <input ref={cameraPickerRef} name="photo" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" className="hidden" tabIndex={-1} onChange={selectPhoto} />
-                <button type="button" onClick={()=>photoSourceDialogRef.current?.showModal()} disabled={sending||locked} className="inline-flex min-h-11 min-w-0 items-center justify-center rounded-xl border border-control-border bg-surface px-4 py-2.5 font-semibold text-foreground transition hover:bg-background focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-60">{selectedPhoto?'Trocar foto':'Adicionar foto'}</button>
+                <button type="button" onClick={()=>photoSourceDialogRef.current?.showModal()} disabled={sending||locked||photoPreparing} className="inline-flex min-h-11 min-w-0 items-center justify-center rounded-xl border border-control-border bg-surface px-4 py-2.5 font-semibold text-foreground transition hover:bg-background focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-60">{selectedPhoto?'Trocar foto':'Adicionar foto'}</button>
               </div>
-              {selectedPhoto&&<div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground"><p role="status" aria-live="polite" className="min-w-0 break-words [overflow-wrap:anywhere]">Foto selecionada: <span className="font-medium text-foreground">{selectedPhoto.name}</span></p><button type="button" disabled={sending||locked} onClick={()=>{setSelectedPhoto(null);setPhotoFailed(false);setPhotoAuthorized(false);setWithoutPhoto(false);attempt.current=null;setError('');}} className="min-h-9 rounded-lg px-2 font-semibold text-primary underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60">Remover foto</button></div>}
+              {photoPreparing&&<p role="status" aria-live="polite" className="text-sm text-muted-foreground">Preparando foto para envio…</p>}
+              {selectedPhoto&&!photoPreparing&&<div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground"><p role="status" aria-live="polite" className="min-w-0 break-words [overflow-wrap:anywhere]">Foto selecionada: <span className="font-medium text-foreground">{selectedPhoto.name}</span>{photoCompressed&&<span> · comprimida para {(selectedPhoto.size/1024/1024).toLocaleString('pt-BR',{maximumFractionDigits:1})} MiB</span>}</p><button type="button" disabled={sending||locked||photoPreparing} onClick={()=>{updatePhotoPreview(null);setSelectedPhoto(null);setPhotoFailed(false);setPhotoCompressed(false);setPhotoPreparationFailed(false);setPhotoAuthorized(false);setWithoutPhoto(false);attempt.current=null;setError('');}} className="min-h-9 rounded-lg px-2 font-semibold text-primary underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60">Remover foto</button></div>}
+              {selectedPhoto&&!photoPreparing&&!photoPreparationFailed&&photoPreviewUrl&&<PhotoPreview src={photoPreviewUrl} alt="Prévia da foto selecionada"/>}
               {selectedPhoto&&withoutPhoto&&<p role="status" className="text-sm text-muted-foreground">A foto selecionada não será enviada.</p>}
-              {selectedPhoto&&photoFailed&&!withoutPhoto&&<button type="button" disabled={sending||locked} onClick={()=>{setWithoutPhoto(true);setPhotoAuthorized(false);setError('');}} className="min-h-10 rounded-lg border border-warning/30 bg-warning-soft px-3 py-2 text-sm font-semibold text-warning focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60">Continuar sem foto</button>}
+              {selectedPhoto&&photoFailed&&!withoutPhoto&&<button type="button" disabled={sending||locked||photoPreparing} onClick={()=>{setWithoutPhoto(true);setPhotoAuthorized(false);setError('');}} className="min-h-10 rounded-lg border border-warning/30 bg-warning-soft px-3 py-2 text-sm font-semibold text-warning focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60">Continuar sem foto</button>}
               {selectedPhoto&&<div className="space-y-2 rounded-xl border border-border bg-background p-3">
                 <p id="photo-authorization-description" className="text-sm leading-relaxed text-muted-foreground">Autorize o envio desta imagem junto com a ocorrência para análise pelas equipes municipais. A foto será enviada ao registrar a ocorrência.</p>
-                <button type="button" aria-pressed={photoAuthorized&&!withoutPhoto} aria-describedby="photo-authorization-description" disabled={sending||locked} onClick={()=>{setPhotoAuthorized(!photoAuthorized||withoutPhoto);setWithoutPhoto(false);attempt.current=null;setPhotoFailed(false);setError('');}} className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary-soft px-4 py-2.5 font-semibold text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <button type="button" aria-pressed={photoAuthorized&&!withoutPhoto} aria-describedby="photo-authorization-description" disabled={sending||locked||photoPreparing||photoPreparationFailed} onClick={()=>{setPhotoAuthorized(!photoAuthorized||withoutPhoto);setWithoutPhoto(false);attempt.current=null;setPhotoFailed(false);setError('');}} className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary-soft px-4 py-2.5 font-semibold text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                   {photoAuthorized&&!withoutPhoto&&<CheckCircle2 aria-hidden="true" className="h-5 w-5 shrink-0"/>}
                   {withoutPhoto?'Incluir foto no envio':photoAuthorized?'Envio desta foto autorizado':'Autorizar envio desta foto'}
                 </button>
@@ -206,7 +230,7 @@ export default function Home(){
 
           <div className="space-y-4 border-t border-border bg-background px-4 py-5 sm:px-8">
             {error&&<p role="alert" aria-label="Problema no envio" className="rounded-xl border border-warning/30 bg-warning-soft px-4 py-3 text-sm text-warning">{error}</p>}
-            <button type="submit" disabled={!ready||!position||locating||sending} className="block min-h-12 w-full rounded-xl bg-primary px-5 py-3 font-medium text-primary-foreground  transition hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:bg-surface-subtle disabled:text-muted-foreground disabled:shadow-none">{sending?'Registrando ocorrência...':withoutPhoto&&selectedPhoto?'Enviar sem foto':'Enviar ocorrência'}</button>
+            <button type="submit" disabled={!ready||!position||locating||sending||photoPreparing} className="block min-h-12 w-full rounded-xl bg-primary px-5 py-3 font-medium text-primary-foreground  transition hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:bg-surface-subtle disabled:text-muted-foreground disabled:shadow-none">{photoPreparing?'Preparando foto...':sending?'Registrando ocorrência...':withoutPhoto&&selectedPhoto?'Enviar sem foto':'Enviar ocorrência'}</button>
             <p className="text-center text-xs leading-relaxed text-muted-foreground">{position?'Localização obtida. O registro será confirmado com um protocolo.':'Sua localização é necessária para concluir o registro.'}</p>
           </div>
         </form>
@@ -215,8 +239,8 @@ export default function Home(){
         <h2 id="photo-source-title" className="text-lg font-semibold">Adicionar foto</h2>
         <p id="photo-source-description" className="mt-1 text-sm leading-relaxed text-muted-foreground">Escolha como deseja anexar uma imagem à ocorrência.</p>
         <div className="mt-4 grid gap-2">
-          <button type="button" onClick={()=>{photoSourceDialogRef.current?.close();cameraPickerRef.current?.click();}} className="inline-flex min-h-11 items-center justify-center rounded-xl bg-primary px-4 py-2.5 font-semibold text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Tirar uma foto</button>
-          <button type="button" onClick={()=>{photoSourceDialogRef.current?.close();photoPickerRef.current?.click();}} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-control-border bg-surface px-4 py-2.5 font-semibold text-foreground hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Escolher uma imagem</button>
+          <button type="button" disabled={photoPreparing} onClick={()=>{photoSourceDialogRef.current?.close();cameraPickerRef.current?.click();}} className="inline-flex min-h-11 items-center justify-center rounded-xl bg-primary px-4 py-2.5 font-semibold text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60">Tirar uma foto</button>
+          <button type="button" disabled={photoPreparing} onClick={()=>{photoSourceDialogRef.current?.close();photoPickerRef.current?.click();}} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-control-border bg-surface px-4 py-2.5 font-semibold text-foreground hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60">Escolher uma imagem</button>
         </div>
         <form method="dialog" className="mt-2"><button type="submit" className="min-h-10 w-full rounded-lg px-3 py-2 text-sm font-semibold text-muted-foreground hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Cancelar</button></form>
       </dialog>}
