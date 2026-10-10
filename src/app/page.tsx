@@ -14,6 +14,10 @@ import type {PublicShelter} from '@/features/shelters/contracts';
 import {buildShelterDirections} from '@/features/shelters/domain/directions';
 const subscribe=()=>()=>{};
 const accuracyFormat=new Intl.NumberFormat('pt-BR',{maximumFractionDigits:1});
+type CitizenFormStage='contact_details'|'occurrence_type'|'description'|'medical_need'|'address_reference'|'photo'|'location';
+function trackCitizenFormEvent(event:'citizen_form_started'|'citizen_form_stage_reached'|'citizen_form_submission_failed',formStage?:CitizenFormStage){
+  void fetch('/api/analytics/event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({event,...(formStage?{formStage}:{})}),keepalive:true}).catch(()=>{});
+}
 export default function Home(){
   const ready=useSyncExternalStore(subscribe,()=>true,()=>false);
   const [position,setPosition]=useState<GeoPosition|null>(null);
@@ -140,7 +144,7 @@ export default function Home(){
         },
       });
       setResult(data);loadPublicShelters();
-    }catch(error){if(error instanceof PhotoUploadFailure){setPhotoFailed(true);setError(`${error.message} Tente novamente ou escolha continuar sem foto.`);}else setError(error instanceof Error?error.message:'Resposta não confirmada. Tente novamente com os mesmos dados; seu envio não será duplicado.');}
+    }catch(error){trackCitizenFormEvent('citizen_form_submission_failed');if(error instanceof PhotoUploadFailure){setPhotoFailed(true);setError(`${error.message} Tente novamente ou escolha continuar sem foto.`);}else setError(error instanceof Error?error.message:'Resposta não confirmada. Tente novamente com os mesmos dados; seu envio não será duplicado.');}
     finally{setSending(false);}
   }
   const inputClass='mt-2 block min-w-0 w-full max-w-full rounded-xl border border-control-border bg-surface px-4 py-3 text-base text-foreground  outline-none transition placeholder:text-muted-foreground focus:border-primary/30 focus:ring-2 focus:ring-ring disabled:bg-surface-subtle';
@@ -181,13 +185,19 @@ export default function Home(){
           <h2 className="text-xl font-semibold text-foreground">Informações da ocorrência</h2>
           <p className="mt-1 text-sm text-muted-foreground">Os campos marcados como opcionais podem ficar em branco.</p>
         </div>
-        <form onSubmit={submit}>
+        <form onSubmit={submit} onFocusCapture={event=>{
+          if(!publicFormStarted.current){publicFormStarted.current=true;trackCitizenFormEvent('citizen_form_started');}
+          const target=event.target;
+          if(!(target instanceof HTMLElement))return;
+          const stage=target.closest<HTMLElement>('[data-analytics-stage]')?.dataset.analyticsStage as CitizenFormStage|undefined;
+          if(stage&&!publicFormStages.current.has(stage)){publicFormStages.current.add(stage);trackCitizenFormEvent('citizen_form_stage_reached',stage);}
+        }}>
           <fieldset disabled={sending||locked} className="min-w-0 space-y-5 border-0 px-4 py-5 sm:px-8 sm:py-6">
-            <label className="block text-sm font-semibold text-foreground"><span>Nome <span aria-hidden="true" className="text-danger">*</span></span><input name="reporterName" required maxLength={120} autoComplete="name" className={inputClass} /></label>
-            <label className="block text-sm font-semibold text-foreground"><span>Contato <span aria-hidden="true" className="text-danger">*</span></span><input name="reporterContact" type="tel" inputMode="numeric" pattern="[0-9]+" value={reporterContact} onChange={event=>setReporterContact(event.target.value.replace(/\D/g,''))} required maxLength={40} autoComplete="tel" className={inputClass} /><span className="mt-2 block text-sm font-normal text-muted-foreground">Informe o telefone com DDD, somente números.</span></label>
-            <label className="block text-sm font-semibold text-foreground"><span>Tipo de ocorrência <span aria-hidden="true" className="text-danger">*</span></span><select name="type" required defaultValue="" disabled={typesLoading||typesError||occurrenceTypes.length===0} className={`${inputClass} public-intake-select truncate pr-8`}><option value="" disabled>{typesLoading?'Carregando tipos de ocorrência...':typesError?'Tipos temporariamente indisponíveis':'Selecione o tipo de ocorrência'}</option>{occurrenceTypes.map(type=><option key={type} value={type}>{type}</option>)}</select>{typesError&&<span role="status" className="mt-2 block text-sm font-normal text-warning">Não foi possível carregar os tipos. Atualize a página para tentar novamente.</span>}{!typesLoading&&!typesError&&occurrenceTypes.length===0&&<span role="status" className="mt-2 block text-sm font-normal text-muted-foreground">Nenhum tipo está disponível no momento.</span>}</label>
-            <label className="block text-sm font-semibold text-foreground"><span>Descrição <span aria-hidden="true" className="text-danger">*</span></span><textarea name="description" required maxLength={2000} placeholder="Conte o que aconteceu e indique um ponto de referência próximo. Inclua detalhes que ajudem as equipes a localizar e atender a ocorrência." className={`${inputClass} min-h-32 resize-y`} /></label>
-            <fieldset className="min-w-0 space-y-3">
+            <label data-analytics-stage="contact_details" className="block text-sm font-semibold text-foreground"><span>Nome <span aria-hidden="true" className="text-danger">*</span></span><input name="reporterName" required maxLength={120} autoComplete="name" className={inputClass} /></label>
+            <label data-analytics-stage="contact_details" className="block text-sm font-semibold text-foreground"><span>Contato <span aria-hidden="true" className="text-danger">*</span></span><input name="reporterContact" type="tel" inputMode="numeric" pattern="[0-9]+" value={reporterContact} onChange={event=>setReporterContact(event.target.value.replace(/\D/g,''))} required maxLength={40} autoComplete="tel" className={inputClass} /><span className="mt-2 block text-sm font-normal text-muted-foreground">Informe o telefone com DDD, somente números.</span></label>
+            <label data-analytics-stage="occurrence_type" className="block text-sm font-semibold text-foreground"><span>Tipo de ocorrência <span aria-hidden="true" className="text-danger">*</span></span><select name="type" required defaultValue="" disabled={typesLoading||typesError||occurrenceTypes.length===0} className={`${inputClass} public-intake-select truncate pr-8`}><option value="" disabled>{typesLoading?'Carregando tipos de ocorrência...':typesError?'Tipos temporariamente indisponíveis':'Selecione o tipo de ocorrência'}</option>{occurrenceTypes.map(type=><option key={type} value={type}>{type}</option>)}</select>{typesError&&<span role="status" className="mt-2 block text-sm font-normal text-warning">Não foi possível carregar os tipos. Atualize a página para tentar novamente.</span>}{!typesLoading&&!typesError&&occurrenceTypes.length===0&&<span role="status" className="mt-2 block text-sm font-normal text-muted-foreground">Nenhum tipo está disponível no momento.</span>}</label>
+            <label data-analytics-stage="description" className="block text-sm font-semibold text-foreground"><span>Descrição <span aria-hidden="true" className="text-danger">*</span></span><textarea name="description" required maxLength={2000} placeholder="Conte o que aconteceu e indique um ponto de referência próximo. Inclua detalhes que ajudem as equipes a localizar e atender a ocorrência." className={`${inputClass} min-h-32 resize-y`} /></label>
+            <fieldset data-analytics-stage="medical_need" className="min-w-0 space-y-3">
               <legend className="text-sm font-semibold text-foreground">Precisa de apoio médico? <span aria-hidden="true" className="text-danger">*</span></legend>
               <div className="flex flex-wrap gap-4">
                 <label className="flex min-h-11 items-center gap-2 text-sm text-foreground"><input type="radio" name="needsMedicalSupport" value="true" required className="h-4 w-4 accent-primary" />Sim</label>
@@ -216,7 +226,7 @@ export default function Home(){
               </div>}
             </div>
 
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-xl border border-primary/25 bg-primary-soft px-3 py-3 sm:px-4">
+            <div data-analytics-stage="location" className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-xl border border-primary/25 bg-primary-soft px-3 py-3 sm:px-4">
               <div className="flex min-w-[220px] flex-1 items-start gap-2.5">
                 <MapPin aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
                 <div className="min-w-0">
