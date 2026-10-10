@@ -8,6 +8,7 @@ import { CoreNotifications } from '@/features/occurrences/ui/CoreNotifications';
 import { getEnabledModules } from '@/modules/registry';
 import { ThemeSelect } from '@/components/theme/theme-select';
 import { GeoAlertaLogo } from '@/components/brand/geoalerta-logo';
+import { PanelPresence } from '@/features/analytics/PanelPresence';
 
 const icons: Record<string, React.ReactNode> = {
   dashboard: <LayoutDashboard size={18} aria-hidden="true" />,
@@ -93,7 +94,7 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
           <button type="button" aria-label="Abrir Menu" aria-haspopup="dialog" aria-expanded={mobileMenuOpen} onClick={() => setMobileMenuOpen(true)} className="btn btn-secondary shrink-0 px-3 lg:hidden"><Menu size={20} aria-hidden="true" /></button>
           <div className="min-w-0"><p className="text-sm font-medium">Central de Operações</p><p className="hidden text-sm text-muted-foreground sm:block">Prefeitura de Santo Antônio da Patrulha</p></div>
         </div>
-        <div className="flex shrink-0 items-center gap-4"><div className="hidden md:block"><ThemeSelect /></div><CoreNotifications /></div>
+        <div className="flex shrink-0 items-center gap-4"><PanelPresence /><div className="hidden md:block"><ThemeSelect /></div><CoreNotifications /></div>
       </header>
       <div id="panel-content" tabIndex={-1} className="min-w-0 flex-1 overflow-y-auto p-4 pb-24 sm:p-6 sm:pb-24 lg:p-8">{children}</div>
       <nav aria-label="Navegação rápida" className="fixed inset-x-0 bottom-0 z-20 flex min-h-16 justify-around border-t bg-surface px-2 pb-[env(safe-area-inset-bottom)] lg:hidden">
