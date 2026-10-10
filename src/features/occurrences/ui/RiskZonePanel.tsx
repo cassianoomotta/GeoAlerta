@@ -90,7 +90,7 @@ export function RiskZonePanel() {
   }
 
   return <main className="mx-auto w-full max-w-6xl space-y-6 p-4 sm:p-6" aria-labelledby="zones-title">
-    <header><h1 id="zones-title" className="text-2xl font-bold text-foreground">Administrar zonas de risco</h1><p className="mt-1 text-sm text-muted-foreground">Cada alteração cria uma versão nova. Classificações já registradas continuam vinculadas às versões originais.</p><Link href="/painel/admin" className="mt-3 inline-flex text-sm text-primary underline">Voltar à administração</Link></header>
+    <header><h1 id="zones-title" className="text-2xl font-bold text-foreground">Administrar zonas de risco</h1><p className="mt-1 text-sm text-muted-foreground">Cada alteração cria uma versão nova. Classificações já registradas continuam vinculadas às versões originais.</p><Link href="/painel/admin" className="mt-3 inline-flex text-sm text-primary underline">Voltar à Gestão municipal</Link></header>
     {error && <p role="alert" className="rounded border border-danger/30 bg-danger-soft p-3 text-danger">{error}</p>}
     {message && <p role="status" className="rounded border border-success/30 bg-success-soft p-3 text-success">{message}</p>}
     <section className="glass-card space-y-4 p-5" aria-labelledby="zone-form-title">

@@ -1,5 +1,6 @@
 import {expect,test} from '@playwright/test';
-import {isRealtimeAuthorizationFailure,mergeCoreAlerts,parseCoreAlert} from '../../src/features/occurrences/alerts';
+import {isRealtimeAuthorizationFailure,mergeCoreAlerts,parseCoreAlert,parseAlertOccurrenceMetadata} from '../../src/features/occurrences/alerts';
+import {transitionPresentation} from '../../src/features/occurrences/domain/transition-presentation';
 
 const first={event_id:'40000000-0000-4000-8000-000000000001',occurrence_id:'30000000-0000-4000-8000-000000000001',group_id:'20000000-0000-4000-8000-000000000001',priority:'ALTA',status:'NOVA',at:'2026-10-01T03:00:00.000Z'};
 
@@ -29,4 +30,17 @@ test('RF-007 falha de autorização encerra o canal e erros de transporte perman
   expect(isRealtimeAuthorizationFailure(new Error('Unauthorized'))).toBe(true);
   expect(isRealtimeAuthorizationFailure(new Error('row-level security denied'))).toBe(true);
   expect(isRealtimeAuthorizationFailure(new Error('WebSocket timed out'))).toBe(false);
+});
+
+test('metadados de alerta só aceitam ocorrência identificada com protocolo e tipo textuais',()=>{
+  expect(parseAlertOccurrenceMetadata([{id:first.occurrence_id,protocol:'SAP-42',type:'Alagamento'}])).toEqual({
+    [first.occurrence_id]:{protocol:'SAP-42',type:'Alagamento'},
+  });
+  expect(parseAlertOccurrenceMetadata([{id:first.occurrence_id,protocol:'',type:'x'.repeat(201)}])).toEqual({});
+});
+
+test('transições priorizam verbos claros e cores semânticas para triagem e cancelamento',()=>{
+  expect(transitionPresentation('EM_TRIAGEM','Em triagem')).toEqual({label:'Enviar para triagem',tone:'info'});
+  expect(transitionPresentation('CANCELADA','Cancelada')).toEqual({label:'Cancelar ocorrência',tone:'danger'});
+  expect(transitionPresentation('RESOLVIDA','Resolvida')).toEqual({label:'Marcar como Resolvida',tone:'primary'});
 });

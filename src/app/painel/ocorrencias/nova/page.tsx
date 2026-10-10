@@ -8,7 +8,7 @@ export default async function NewOccurrencePage() {
   let options: FormOptions | null;
   try {
     options = await withSession(async (tx, actor) => {
-      if (actor.role === 'CONSULTA') return null;
+      if (actor.role === 'CONSULTA' || actor.role === 'VOLUNTARIO') return null;
       const groups = await tx.$queryRaw<{ id: string; name: string }[]>`SELECT id,name FROM public.groups ORDER BY name,id`;
       const types = await tx.$queryRaw<{ name: string }[]>`SELECT name FROM public.occurrence_types WHERE active ORDER BY display_order,name`;
       return { groups, types: types.map(type => type.name) };

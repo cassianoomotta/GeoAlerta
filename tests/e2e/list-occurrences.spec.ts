@@ -43,6 +43,11 @@ test('RF-009 cada coluna ordena, protocolo não quebra, e identidade visual não
     const header=link.locator('xpath=..');
     await expect(header).toHaveAttribute('aria-sort');
     if(sort==='protocol')await expect(header).toHaveClass(/whitespace-nowrap/);
+    if(sort==='status'){
+      const statusCell=page.locator('tbody tr').first().locator('td').nth(2);
+      await expect(statusCell).toHaveClass(/whitespace-nowrap/);
+      await expect(statusCell.locator(':scope > span')).toHaveClass(/whitespace-nowrap/);
+    }
     await link.click();
     await expect(page).toHaveURL(new RegExp(`sort=${sort}(?:&|$)`));
   }
@@ -51,6 +56,19 @@ test('RF-009 cada coluna ordena, protocolo não quebra, e identidade visual não
   await expect(logo.locator('.geoalerta-logo-primary').first()).toHaveAttribute('fill','#087580');
   await expect(logo.locator('.geoalerta-logo-danger').first()).toHaveAttribute('fill','#A83F3F');
   await expect(page.locator('aside p span.whitespace-nowrap')).toContainText('· RS');
+});
+test('RF-009 filtros de colunas seguem o disclosure dos filtros da ocorrência',async({page})=>{
+  await page.goto(`/painel/ocorrencias?type=${listType()}`);
+  const columns=page.locator('details[aria-label="Filtros de colunas"]');
+  await expect(columns).toHaveJSProperty('open',false);
+  const summary=columns.locator('summary');
+  await expect(summary.getByText('Filtros de colunas',{exact:true})).toBeVisible();
+  await expect(summary.getByText('Mostrar filtros',{exact:true})).toBeVisible();
+  await expect(summary).toHaveClass(/list-none/);
+  await expect(summary.locator('svg')).toHaveCount(1);
+  await summary.click();
+  await expect(columns).toHaveJSProperty('open',true);
+  await expect(columns.locator('form')).toBeVisible();
 });
 test('RF-009 filtros começam recolhidos e o seletor de grupo só aparece quando há mais de um grupo autorizado',async({page,context})=>{
   await page.goto(`/painel/ocorrencias?type=${listType()}`);
@@ -96,11 +114,11 @@ test('RF-010 protocolo abre o detalhe autorizado da ocorrência',async({page})=>
   await expect(protocolLink).toHaveAttribute('href',/\/painel\/ocorrencias\/[0-9a-f-]{36}$/i);
   await protocolLink.click();
   await expect(page).toHaveURL(/\/painel\/ocorrencias\/[0-9a-f-]{36}$/i);
-  await expect(page.getByRole('heading',{name:'Detalhe da ocorrência'})).toBeVisible();
+  await expect(page.getByRole('heading',{level:1})).not.toHaveText('Detalhe da ocorrência');
   await expect(page.getByText(`Protocolo ${protocol}`,{exact:true})).toBeVisible();
 });
 test('RF-009 colunas pessoais são restauradas sem afetar Consulta e erro/vazio são recuperáveis',async({page,context})=>{
-  await page.goto(`/painel/ocorrencias?type=${listType()}`);await page.getByText('Minhas colunas',{exact:true}).click();
+  await page.goto(`/painel/ocorrencias?type=${listType()}`);await page.getByText('Filtros de colunas',{exact:true}).click();
   await page.getByLabel('Tipo',{exact:true}).last().uncheck();await page.getByLabel('Nome do cidadão',{exact:true}).check();await expect(page.getByRole('button',{name:'Salvar colunas'})).toBeEnabled();
   const saveResponse=page.waitForResponse(response=>response.url().includes('/api/core/preferences/columns')&&response.request().method()==='PUT');await page.getByRole('button',{name:'Salvar colunas'}).click();const saved=await saveResponse;expect(saved.status()).toBe(200);await expect(page.getByRole('columnheader',{name:/Ordenar por Nome do cidadão/})).toBeVisible();await expect(page.getByRole('columnheader',{name:/Ordenar por Tipo/})).toHaveCount(0);await page.reload();await expect(page.getByRole('columnheader',{name:/Ordenar por Nome do cidadão/})).toBeVisible();
   await context.clearCookies();await context.addCookies((await fixtureCookies('consulta')).map(c=>({...c,url:'http://127.0.0.1:3102'})));await page.goto(`/painel/ocorrencias?type=${listType()}`);

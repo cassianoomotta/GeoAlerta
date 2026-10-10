@@ -39,6 +39,7 @@ Este guia descreve os fluxos atualmente implementados no código revisado. A ref
 | Perfil | Acesso operacional descrito nesta versão |
 |---|---|
 | `CONSULTA` | Lê dados permitidos no escopo associado; não recebe dados privados nem executa operações. |
+| `VOLUNTARIO` | Lê dados permitidos nos grupos associados; não recebe dados privados nem executa operações. |
 | `OPERADOR` | Lê dados privados autorizados e executa operações permitidas nas ocorrências do seu escopo. |
 | `GESTOR` | Tem as capacidades de operação, pode reclassificar ocorrências e exportar CSV. |
 | `ADMINISTRADOR` | Tem as capacidades de gestor e administra acessos no escopo municipal autorizado. |
@@ -49,7 +50,7 @@ Os dados visíveis dependem do perfil e dos grupos autorizados. Uma pessoa sem g
 
 ## Painel e indicadores
 
-**Perfil:** `CONSULTA`, `OPERADOR`, `GESTOR` ou `ADMINISTRADOR` com acesso ao painel.
+**Perfil:** `CONSULTA`, `VOLUNTARIO`, `OPERADOR`, `GESTOR` ou `ADMINISTRADOR` com acesso ao painel.
 
 **Passos:** abra **Dashboard** na navegação. Use os atalhos de período disponíveis ou escolha um intervalo personalizado para atualizar indicadores e gráficos.
 

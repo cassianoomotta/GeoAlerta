@@ -8,6 +8,7 @@ import {validatePublicInput} from '@/features/occurrences/public-input';
 import type {GeoPosition,OpenResult} from '@/features/occurrences/contracts';
 import {photoMetadata} from '@/features/occurrences/photos/contracts';
 import {PhotoCompressionError,prepareOccurrencePhoto} from '@/features/occurrences/photos/compress';
+import {PhotoPreview} from '@/features/occurrences/ui/PhotoPreview';
 import {sendPublicAttempt, PhotoUploadFailure, type PhotoAttempt} from '@/features/occurrences/photos/public-attempt';
 import type {PublicShelter} from '@/features/shelters/contracts';
 import {buildShelterDirections} from '@/features/shelters/domain/directions';
@@ -31,8 +32,8 @@ export default function Home(){
   const photoPickerRef=useRef<HTMLInputElement|null>(null);
   const cameraPickerRef=useRef<HTMLInputElement|null>(null);
   const photoSourceDialogRef=useRef<HTMLDialogElement|null>(null);
-  const publicFormStarted=useRef(false);
-  const publicFormStages=useRef(new Set<string>());
+  const photoPreviewUrlRef=useRef<string|null>(null);
+  const [photoPreviewUrl,setPhotoPreviewUrl]=useState<string|null>(null);
   const [selectedPhoto,setSelectedPhoto]=useState<File|null>(null);
   const [photoPreparing,setPhotoPreparing]=useState(false);
   const [photoCompressed,setPhotoCompressed]=useState(false);
@@ -45,6 +46,11 @@ export default function Home(){
   const [occurrenceTypes,setOccurrenceTypes]=useState<string[]>([]);
   const [typesLoading,setTypesLoading]=useState(true);
   const [typesError,setTypesError]=useState(false);
+  function updatePhotoPreview(file:File|null){
+    if(photoPreviewUrlRef.current)URL.revokeObjectURL(photoPreviewUrlRef.current);
+    const url=file?URL.createObjectURL(file):null;
+    photoPreviewUrlRef.current=url;setPhotoPreviewUrl(url);
+  }
   function loadPublicShelters(){
     setShelters([]);setSheltersLoading(true);setSheltersError(false);
     fetch('/api/core/public/shelters',{cache:'no-store'}).then(async response=>{
@@ -59,11 +65,13 @@ export default function Home(){
     const file=input.files?.[0];
     input.value='';
     if(!file)return;
+    updatePhotoPreview(null);
     setSelectedPhoto(file);setPhotoPreparing(true);setPhotoCompressed(false);setPhotoPreparationFailed(false);attempt.current=null;setWithoutPhoto(false);setPhotoAuthorized(false);setPhotoFailed(false);setError('');
     try{
       const prepared=await prepareOccurrencePhoto(file);
-      photoMetadata(prepared.file);setSelectedPhoto(prepared.file);setPhotoCompressed(prepared.compressed);
+      photoMetadata(prepared.file);setSelectedPhoto(prepared.file);setPhotoCompressed(prepared.compressed);updatePhotoPreview(prepared.file);
     }catch(error){
+      updatePhotoPreview(null);
       setPhotoFailed(true);setPhotoPreparationFailed(true);
       setError(error instanceof PhotoCompressionError?error.message:'Selecione JPEG, PNG ou WebP, ou remova a foto para continuar sem ela.');
     }finally{setPhotoPreparing(false);}
@@ -78,6 +86,7 @@ export default function Home(){
     }).catch(()=>{if(current)setTypesError(true);}).finally(()=>{if(current)setTypesLoading(false);});
     return ()=>{current=false;};
   },[]);
+  useEffect(()=>()=>{if(photoPreviewUrlRef.current)URL.revokeObjectURL(photoPreviewUrlRef.current);},[]);
   function locate(){
     setPosition(null);setError('');setLocating(true);
     if(!navigator.geolocation){setError('Localização não disponível neste navegador. Use um dispositivo com GPS.');setLocating(false);return;}
@@ -195,8 +204,8 @@ export default function Home(){
                 <label className="flex min-h-11 items-center gap-2 text-sm text-foreground"><input type="radio" name="needsMedicalSupport" value="false" required className="h-4 w-4 accent-primary" />Não</label>
               </div>
             </fieldset>
-            <label data-analytics-stage="address_reference" className="block text-sm font-semibold text-foreground"><span>Endereço da ocorrência (opcional)</span><input name="address" maxLength={300} autoComplete="street-address" placeholder="Rua, número ou ponto de referência" className={inputClass} /><span className="mt-2 block text-sm font-normal leading-relaxed text-muted-foreground">Informe o endereço do local, especialmente se estiver sem sinal ou registrando para outra pessoa.</span></label>
-            <div data-analytics-stage="photo" className="space-y-3">
+            <label className="block text-sm font-semibold text-foreground"><span>Endereço da ocorrência (opcional)</span><input name="address" maxLength={300} autoComplete="street-address" placeholder="Rua, número ou ponto de referência" className={inputClass} /><span className="mt-2 block text-sm font-normal leading-relaxed text-muted-foreground">Informe o endereço do local, especialmente se estiver sem sinal ou registrando para outra pessoa.</span></label>
+            <div className="space-y-3">
               <p className="text-sm font-semibold text-foreground">Foto <span className="font-normal text-muted-foreground">(opcional · JPEG, PNG ou WebP; fotos grandes são comprimidas automaticamente para até 5 MiB)</span></p>
               <div className="flex flex-wrap items-center gap-3">
                 <input ref={photoPickerRef} name="photo" type="file" accept="image/jpeg,image/png,image/webp" className="hidden" tabIndex={-1} onChange={selectPhoto} />
@@ -204,7 +213,8 @@ export default function Home(){
                 <button type="button" onClick={()=>photoSourceDialogRef.current?.showModal()} disabled={sending||locked||photoPreparing} className="inline-flex min-h-11 min-w-0 items-center justify-center rounded-xl border border-control-border bg-surface px-4 py-2.5 font-semibold text-foreground transition hover:bg-background focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-60">{selectedPhoto?'Trocar foto':'Adicionar foto'}</button>
               </div>
               {photoPreparing&&<p role="status" aria-live="polite" className="text-sm text-muted-foreground">Preparando foto para envio…</p>}
-              {selectedPhoto&&!photoPreparing&&<div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground"><p role="status" aria-live="polite" className="min-w-0 break-words [overflow-wrap:anywhere]">Foto selecionada: <span className="font-medium text-foreground">{selectedPhoto.name}</span>{photoCompressed&&<span> · comprimida para {(selectedPhoto.size/1024/1024).toLocaleString('pt-BR',{maximumFractionDigits:1})} MiB</span>}</p><button type="button" disabled={sending||locked||photoPreparing} onClick={()=>{setSelectedPhoto(null);setPhotoFailed(false);setPhotoCompressed(false);setPhotoPreparationFailed(false);setPhotoAuthorized(false);setWithoutPhoto(false);attempt.current=null;setError('');}} className="min-h-9 rounded-lg px-2 font-semibold text-primary underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60">Remover foto</button></div>}
+              {selectedPhoto&&!photoPreparing&&<div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground"><p role="status" aria-live="polite" className="min-w-0 break-words [overflow-wrap:anywhere]">Foto selecionada: <span className="font-medium text-foreground">{selectedPhoto.name}</span>{photoCompressed&&<span> · comprimida para {(selectedPhoto.size/1024/1024).toLocaleString('pt-BR',{maximumFractionDigits:1})} MiB</span>}</p><button type="button" disabled={sending||locked||photoPreparing} onClick={()=>{updatePhotoPreview(null);setSelectedPhoto(null);setPhotoFailed(false);setPhotoCompressed(false);setPhotoPreparationFailed(false);setPhotoAuthorized(false);setWithoutPhoto(false);attempt.current=null;setError('');}} className="min-h-9 rounded-lg px-2 font-semibold text-primary underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60">Remover foto</button></div>}
+              {selectedPhoto&&!photoPreparing&&!photoPreparationFailed&&photoPreviewUrl&&<PhotoPreview src={photoPreviewUrl} alt="Prévia da foto selecionada"/>}
               {selectedPhoto&&withoutPhoto&&<p role="status" className="text-sm text-muted-foreground">A foto selecionada não será enviada.</p>}
               {selectedPhoto&&photoFailed&&!withoutPhoto&&<button type="button" disabled={sending||locked||photoPreparing} onClick={()=>{setWithoutPhoto(true);setPhotoAuthorized(false);setError('');}} className="min-h-10 rounded-lg border border-warning/30 bg-warning-soft px-3 py-2 text-sm font-semibold text-warning focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60">Continuar sem foto</button>}
               {selectedPhoto&&<div className="space-y-2 rounded-xl border border-border bg-background p-3">

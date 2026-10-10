@@ -60,7 +60,11 @@ function coordinatesFromMapUrl(value: unknown): [number, number] | null {
 
   const host = url.hostname.toLowerCase();
   let raw: string | null = null;
-  if (['waze.com', 'www.waze.com'].includes(host) && url.pathname === '/ul') {
+  if (host === 'maps.app.goo.gl' && url.pathname.length > 1) {
+    // Short links do not expose coordinates without following a user-supplied URL.
+    // Explicit validated coordinates remain the source of truth.
+    return null;
+  } else if (['waze.com', 'www.waze.com'].includes(host) && url.pathname === '/ul') {
     raw = url.searchParams.get('ll');
   } else if (['google.com', 'www.google.com', 'maps.google.com'].includes(host) && url.pathname.startsWith('/maps/')) {
     raw = url.searchParams.get('destination') ?? url.searchParams.get('query');

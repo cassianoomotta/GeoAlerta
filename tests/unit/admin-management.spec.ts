@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { provisionPendingUser } from '../../src/features/access/application/admin';
-import { parseCreateManagedUser, parseManagedGroup, parseUpdateManagedUser, AdminInputError } from '../../src/features/access/domain/admin';
+import { parseCreateGroupUser, parseCreateManagedUser, parseManagedGroup, parseUpdateManagedUser, AdminInputError } from '../../src/features/access/domain/admin';
 import { can } from '../../src/features/access/domain/permissions';
 import type { Actor } from '../../src/features/access/contracts';
 
@@ -10,8 +10,16 @@ const admin: Actor = { userId: '33333333-3333-4333-8333-333333333333', municipal
 
 test('RF-013 normaliza cadastro e aceita papéis, estados e grupos válidos', () => {
   expect(parseCreateManagedUser({ email: '  Ana@Exemplo.com ', name: ' Ana Costa ', phone: ' ', role: 'GESTOR', groupIds: [groupId] })).toEqual({ email: 'ana@exemplo.com', name: 'Ana Costa', phone: null, role: 'GESTOR', groupIds: [groupId] });
-  expect(parseUpdateManagedUser({ userId, role: 'OPERADOR', state: 'SUSPENSO', groupIds: [groupId] })).toEqual({ userId, role: 'OPERADOR', state: 'SUSPENSO', groupIds: [groupId] });
+  expect(parseCreateManagedUser({ email: 'voluntario@example.com', name: ' Ana Voluntária ', phone: '', role: 'VOLUNTARIO', groupIds: [groupId] })).toMatchObject({ role: 'VOLUNTARIO', groupIds: [groupId] });
+  expect(parseUpdateManagedUser({ userId, name: ' Ana Costa ', phone: ' (51) 99999-0000 ', role: 'OPERADOR', state: 'SUSPENSO', groupIds: [groupId] })).toEqual({ userId, name: 'Ana Costa', phone: '(51) 99999-0000', role: 'OPERADOR', state: 'SUSPENSO', groupIds: [groupId] });
   expect(parseManagedGroup({ name: ' Defesa Civil ', isDefault: true })).toEqual({ name: 'Defesa Civil', isDefault: true });
+});
+
+test('RF-013 novo cadastro feito dentro do grupo fica vinculado somente ao grupo selecionado', () => {
+  expect(parseCreateGroupUser({ email: 'nova@example.com', name: ' Nova pessoa ', phone: '', role: 'OPERADOR', groupId })).toEqual({
+    email: 'nova@example.com', name: 'Nova pessoa', phone: null, role: 'OPERADOR', groupIds: [groupId],
+  });
+  expect(() => parseCreateGroupUser({ email: 'nova@example.com', name: 'Nova pessoa', phone: '', role: 'OPERADOR', groupId: 'invalid' })).toThrow(AdminInputError);
 });
 
 test('RF-013 rejeita papel/estado desconhecido, grupo duplicado e campos de elevação de privilégio', () => {
@@ -21,6 +29,7 @@ test('RF-013 rejeita papel/estado desconhecido, grupo duplicado e campos de elev
     { email: 'x@example.com', name: 'X', phone: '', role: 'GESTOR', groupIds: [], state: 'ATIVO' },
   ]) expect(() => parseCreateManagedUser(input)).toThrow(AdminInputError);
   expect(() => parseUpdateManagedUser({ userId, role: 'GESTOR', state: 'UNKNOWN', groupIds: [] })).toThrow(AdminInputError);
+  expect(() => parseUpdateManagedUser({ userId, name: ' ', phone: null, role: 'GESTOR', state: 'ATIVO', groupIds: [] })).toThrow(AdminInputError);
   expect(() => parseManagedGroup({ name: 'Grupo', isDefault: true, municipalityId: 'outro' })).toThrow(AdminInputError);
 });
 

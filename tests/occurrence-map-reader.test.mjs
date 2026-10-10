@@ -45,3 +45,10 @@ test('map snapshot rejects inactive profiles before querying occurrences',async(
   assert.equal(fixture.statements.at(-1).sql,'ROLLBACK');
   assert.equal(fixture.isReleased(),true);
 });
+
+test('map snapshot permits read-only VOLUNTARIO with active municipal profile',async()=>{
+  const fixture=fakePool({role:'VOLUNTARIO',state:'ATIVO',municipality_id:'sa_patrulha'});
+  await readOccurrenceMapSnapshot(fixture.pool,'c66b30f3-57c0-4aa9-b62f-511083565672');
+  assert.equal(fixture.statements.some(item=>item.sql.includes('FROM public.occurrences')),true);
+  assert.equal(fixture.statements.at(-1).sql,'COMMIT');
+});

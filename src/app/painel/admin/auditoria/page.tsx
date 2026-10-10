@@ -57,7 +57,7 @@ export default async function AuditPage({ searchParams }: AuditPageProps) {
     <header>
       <h1 id="audit-title" className="text-2xl font-bold text-foreground">Trilha de auditoria</h1>
       <p className="mt-1 text-sm text-muted-foreground">Eventos do município ativo, em ordem cronológica inversa. Os detalhes pessoais e payloads completos ficam ocultos.</p>
-      <Link className="mt-3 inline-flex text-sm text-primary underline" href="/painel/admin">Voltar à Administração municipal</Link>
+      <Link className="mt-3 inline-flex text-sm text-primary underline" href="/painel/admin">Voltar à Gestão municipal</Link>
     </header>
     {error ? <p role="alert" className="rounded-lg border border-danger/30 bg-danger-soft p-3 text-sm text-danger">{error}</p> : events.length ? <>
       <div className="overflow-x-auto rounded-lg border border-border">

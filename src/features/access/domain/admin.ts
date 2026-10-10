@@ -1,6 +1,6 @@
 import type { AccessState, Role } from '../contracts';
 
-const roles: readonly Role[] = ['CONSULTA', 'OPERADOR', 'GESTOR', 'ADMINISTRADOR'];
+const roles: readonly Role[] = ['CONSULTA', 'VOLUNTARIO', 'OPERADOR', 'GESTOR', 'ADMINISTRADOR'];
 const states: readonly AccessState[] = ['PENDENTE', 'ATIVO', 'SUSPENSO', 'DESATIVADO'];
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -36,12 +36,22 @@ export function parseCreateManagedUser(value: unknown): CreateManagedUser {
   return { email, name, phone: phone || null, role: input.role as Role, groupIds: groupIds(input.groupIds) };
 }
 
-export type UpdateManagedUser = { userId: string; role: Role; state: AccessState; groupIds: string[] };
+export function parseCreateGroupUser(value: unknown): CreateManagedUser {
+  const input = record(value);
+  exactKeys(input, ['email', 'name', 'phone', 'role', 'groupId']);
+  if (typeof input.groupId !== 'string' || !uuid.test(input.groupId)) throw new AdminInputError();
+  return parseCreateManagedUser({ email: input.email, name: input.name, phone: input.phone, role: input.role, groupIds: [input.groupId] });
+}
+
+export type UpdateManagedUser = { userId: string; name: string; phone: string | null; role: Role; state: AccessState; groupIds: string[] };
 export function parseUpdateManagedUser(value: unknown): UpdateManagedUser {
   const input = record(value);
-  exactKeys(input, ['userId', 'role', 'state', 'groupIds']);
-  if (typeof input.userId !== 'string' || !uuid.test(input.userId) || typeof input.role !== 'string' || !roles.includes(input.role as Role) || typeof input.state !== 'string' || !states.includes(input.state as AccessState)) throw new AdminInputError();
-  return { userId: input.userId, role: input.role as Role, state: input.state as AccessState, groupIds: groupIds(input.groupIds) };
+  exactKeys(input, ['userId', 'name', 'phone', 'role', 'state', 'groupIds']);
+  if (typeof input.userId !== 'string' || !uuid.test(input.userId) || typeof input.name !== 'string' || (input.phone !== null && typeof input.phone !== 'string') || typeof input.role !== 'string' || !roles.includes(input.role as Role) || typeof input.state !== 'string' || !states.includes(input.state as AccessState)) throw new AdminInputError();
+  const name = input.name.trim();
+  const phone = typeof input.phone === 'string' ? input.phone.trim() : null;
+  if (!name || name.length > 120 || (phone !== null && phone.length > 40)) throw new AdminInputError();
+  return { userId: input.userId, name, phone: phone || null, role: input.role as Role, state: input.state as AccessState, groupIds: groupIds(input.groupIds) };
 }
 
 export type ManagedGroupInput = { id?: string; name: string; isDefault: boolean };

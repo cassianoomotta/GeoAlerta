@@ -28,9 +28,10 @@ export async function listActiveOccurrenceTypes():Promise<string[]>{
 }
 export async function listOpenShelters():Promise<PublicShelter[]>{
   const rows=await client().$queryRaw<{id:string;name:string;type:string;address:string;lat:number;lng:number;status:'Aberto'}[]>`
-    SELECT id::text,name,type,address,lat,lng,status
+    SELECT id::text,name,type,address,lat,lng,'Aberto'::text AS status
     FROM public.shelters
-    WHERE municipio='sa_patrulha' AND is_active AND status='Aberto'
+    WHERE municipio='sa_patrulha' AND is_active AND status<>'Encerrado'
+      AND (capacity=0 OR occupied<capacity)
       AND address IS NOT NULL AND btrim(address)<>''
       AND lat BETWEEN -90 AND 90 AND lng BETWEEN -180 AND 180
     ORDER BY name,id
