@@ -32,6 +32,8 @@ export default function Home(){
   const photoPickerRef=useRef<HTMLInputElement|null>(null);
   const cameraPickerRef=useRef<HTMLInputElement|null>(null);
   const photoSourceDialogRef=useRef<HTMLDialogElement|null>(null);
+  const publicFormStarted=useRef(false);
+  const publicFormStages=useRef(new Set<CitizenFormStage>());
   const photoPreviewUrlRef=useRef<string|null>(null);
   const [photoPreviewUrl,setPhotoPreviewUrl]=useState<string|null>(null);
   const [selectedPhoto,setSelectedPhoto]=useState<File|null>(null);
@@ -204,8 +206,8 @@ export default function Home(){
                 <label className="flex min-h-11 items-center gap-2 text-sm text-foreground"><input type="radio" name="needsMedicalSupport" value="false" required className="h-4 w-4 accent-primary" />Não</label>
               </div>
             </fieldset>
-            <label className="block text-sm font-semibold text-foreground"><span>Endereço da ocorrência (opcional)</span><input name="address" maxLength={300} autoComplete="street-address" placeholder="Rua, número ou ponto de referência" className={inputClass} /><span className="mt-2 block text-sm font-normal leading-relaxed text-muted-foreground">Informe o endereço do local, especialmente se estiver sem sinal ou registrando para outra pessoa.</span></label>
-            <div className="space-y-3">
+            <label data-analytics-stage="address_reference" className="block text-sm font-semibold text-foreground"><span>Endereço da ocorrência (opcional)</span><input name="address" maxLength={300} autoComplete="street-address" placeholder="Rua, número ou ponto de referência" className={inputClass} /><span className="mt-2 block text-sm font-normal leading-relaxed text-muted-foreground">Informe o endereço do local, especialmente se estiver sem sinal ou registrando para outra pessoa.</span></label>
+            <div data-analytics-stage="photo" className="space-y-3">
               <p className="text-sm font-semibold text-foreground">Foto <span className="font-normal text-muted-foreground">(opcional · JPEG, PNG ou WebP; fotos grandes são comprimidas automaticamente para até 5 MiB)</span></p>
               <div className="flex flex-wrap items-center gap-3">
                 <input ref={photoPickerRef} name="photo" type="file" accept="image/jpeg,image/png,image/webp" className="hidden" tabIndex={-1} onChange={selectPhoto} />
