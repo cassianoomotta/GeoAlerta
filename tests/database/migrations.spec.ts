@@ -79,6 +79,8 @@ test('RNF-007 Prisma baseline e expansão preservam registros IDs referências e
   const client = await connect(process.env.TEST_DATABASE_URL);
   try {
     await prepare(client,true);
+    await client.query(`CREATE FUNCTION public.set_occurrence_lifecycle() RETURNS trigger
+      LANGUAGE plpgsql AS $$ BEGIN RETURN NEW; END $$`);
     const legacyTableNames = (await client.query('SELECT table_name FROM information_schema.tables WHERE table_schema=$1',[scope])).rows.map(row => row.table_name);
     expect(legacyTableNames, `baseline tables in ${scope}`).toContain('occurrences');
     const occurrenceIds: string[] = [];
@@ -107,6 +109,16 @@ test('RNF-007 Prisma baseline e expansão preservam registros IDs referências e
     const beforeOccurrences = (await client.query('SELECT id,type,description,ST_AsEWKT(location::geometry) AS location,photo_url,reporter_name,assigned_to,created_at FROM public.occurrences ORDER BY id')).rows;
     prisma(['migrate','resolve','--applied','0_legacy'],process.env.TEST_DATABASE_URL!,process.env.SHADOW_DATABASE_URL!);
     prisma(['migrate','deploy'],process.env.TEST_DATABASE_URL!,process.env.SHADOW_DATABASE_URL!);
+    expect((await client.query(`SELECT prosecdef AS security_definer,proconfig FROM pg_proc
+      WHERE oid='public.set_occurrence_lifecycle()'::regprocedure`)).rows).toEqual([
+      {security_definer:true,proconfig:['search_path=pg_catalog, public']},
+    ]);
+    expect((await client.query(`SELECT has_function_privilege('anon','public.set_occurrence_lifecycle()','EXECUTE') AS anon,
+      has_function_privilege('authenticated','public.set_occurrence_lifecycle()','EXECUTE') AS authenticated,
+      has_function_privilege('geoalerta_runtime','public.set_occurrence_lifecycle()','EXECUTE') AS runtime,
+      has_function_privilege('geoalerta_ingest','public.set_occurrence_lifecycle()','EXECUTE') AS ingest`)).rows[0]).toEqual({
+      anon:false,authenticated:false,runtime:false,ingest:false,
+    });
     for (const table of Object.keys(before)) {
       const name = table.includes('.') ? table : `public.${table}`;
       const afterRows = (await client.query(`SELECT to_jsonb(t) AS row FROM ${name} t ORDER BY to_jsonb(t)::text`)).rows;

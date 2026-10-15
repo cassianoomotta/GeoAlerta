@@ -10,12 +10,12 @@ const headers=async(name:string)=>({Cookie:(await fixtureCookies(name)).map(c=>`
 async function query(request:APIRequestContext,name:string,params:Record<string,string>={}){return request.get(`${path}?${new URLSearchParams({type:listType(),...params})}`,{headers:await headers(name)});}
 async function database(){assertTestTarget(process.env.TEST_DATABASE_URL);const db=new pg.Client({connectionString:process.env.TEST_DATABASE_URL});await db.connect();return db;}
 test('RF-009 paginação default total estável desempate por ID e exclusão lógica',async({request})=>{
-  const pages=[];for(const page of ['1','2','3']){const r=await query(request,'operador',{page});expect(r.status()).toBe(200);pages.push(await r.json());}
-  expect(pages.map(p=>p.items.length)).toEqual([50,50,25]);expect(pages.every(p=>p.total===125)).toBe(true);
-  expect(pages.map(p=>p.page)).toEqual([1,2,3]);expect(pages.every(p=>p.pageSize===50)).toBe(true);expect(pages[0].items[0].version).toBe(1);expect(Number.isFinite(Date.parse(pages[0].items[0].updatedAt))).toBe(true);
+  const pages=[];for(const page of Array.from({length:7},(_,index)=>String(index+1))){const r=await query(request,'operador',{page});expect(r.status()).toBe(200);pages.push(await r.json());}
+  expect(pages.map(p=>p.items.length)).toEqual([20,20,20,20,20,20,5]);expect(pages.every(p=>p.total===125)).toBe(true);
+  expect(pages.map(p=>p.page)).toEqual([1,2,3,4,5,6,7]);expect(pages.every(p=>p.pageSize===20)).toBe(true);expect(pages[0].items[0].version).toBe(1);expect(Number.isFinite(Date.parse(pages[0].items[0].updatedAt))).toBe(true);
   const ids=pages.flatMap(p=>p.items.map((i:{id:string})=>i.id));expect(new Set(ids).size).toBe(125);
   const db=await database();try{expect(ids).toEqual((await db.query('SELECT id FROM public.occurrences WHERE type=$1 AND group_id=$2 AND deleted_at IS NULL ORDER BY created_at DESC,id ASC',[listType(),groupA])).rows.map(r=>r.id));}finally{await db.end();}
-  const beyond=await(await query(request,'operador',{page:'4'})).json();expect(beyond.items).toEqual([]);expect(beyond.total).toBe(125);
+  const beyond=await(await query(request,'operador',{page:'8'})).json();expect(beyond.items).toEqual([]);expect(beyond.total).toBe(125);
 });
 test('RF-008 filtros e ordenações coincidem com consulta independente no PostGIS',async({request})=>{
   const db=await database();
@@ -107,14 +107,14 @@ test('RNF-001 manipulação de grupo tamanho sort colunas e identidade não ampl
 test('RF-009 preferências persistem por conta e rebaixamento remove colunas privadas',async({request})=>{
   const operatorHeaders=await headers('operador'),gestorHeaders=await headers('gestor');const db=await database();const account=accounts.find(a=>a.name==='operador')!;
   try{
-    expect((await request.put('/api/core/preferences/columns',{headers:operatorHeaders,data:{columns:['protocol','reporterName']}})).status()).toBe(200);
+    expect((await request.put('/api/core/preferences/columns',{headers:operatorHeaders,data:{columns:['protocol','needsMedicalSupport','reporterName']}})).status()).toBe(200);
     expect((await request.put('/api/core/preferences/columns',{headers:gestorHeaders,data:{columns:['protocol','status']}})).status()).toBe(200);
-    expect((await(await query(request,'operador')).json()).columns).toEqual(['protocol','reporterName']);expect((await(await query(request,'gestor')).json()).columns).toEqual(['protocol','status']);
+    expect((await(await query(request,'operador')).json()).columns).toEqual(['protocol','needsMedicalSupport','reporterName']);expect((await(await query(request,'gestor')).json()).columns).toEqual(['protocol','status']);
     expect((await(await query(request,'consulta')).json()).columns).toEqual(publicColumns);
     expect((await request.put('/api/core/preferences/columns',{headers:operatorHeaders,data:{columns:['protocol'],userId:accounts[0].id}})).status()).toBe(422);
     expect((await request.put('/api/core/preferences/columns',{headers:await headers('consulta'),data:{columns:['protocol','reporterContact']}})).status()).toBe(422);
     expect((await request.put('/api/core/preferences/columns',{headers:operatorHeaders,data:{columns:['photo_url']}})).status()).toBe(422);
     await db.query("UPDATE public.admin_profiles SET role='CONSULTA' WHERE user_id=$1",[account.id]);
-    const downgraded=await(await query(request,'operador')).json();expect(downgraded.columns).toEqual(['protocol']);expect(JSON.stringify(downgraded)).not.toContain('reporterName');expect(JSON.stringify(downgraded)).not.toContain('Synthetic private');
+    const downgraded=await(await query(request,'operador')).json();expect(downgraded.columns).toEqual(['protocol','needsMedicalSupport']);expect(JSON.stringify(downgraded)).not.toContain('reporterName');expect(JSON.stringify(downgraded)).not.toContain('Synthetic private');
   }finally{await db.query("UPDATE public.admin_profiles SET role='OPERADOR' WHERE user_id=$1",[account.id]);for(const name of ['operador','gestor'])await request.put('/api/core/preferences/columns',{headers:await headers(name),data:{columns:publicColumns}});await db.end();}
 });

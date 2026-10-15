@@ -46,23 +46,24 @@ test('formulário bloqueia envio até escolha explícita de apoio médico',async
   await context.grantPermissions(['geolocation']);await context.setGeolocation({latitude:11,longitude:11,accuracy:8});
   let requests=0;page.on('request',request=>{if(request.url().endsWith('/api/core/public/occurrences')&&request.method()==='POST')requests++;});
   await page.goto('/');await expect(page.getByRole('button',{name:'Obter localização'})).toBeEnabled();await fill(page,null);await page.getByRole('button',{name:'Obter localização'}).click();
-  expect(await page.locator('form').evaluate(form=>(form as HTMLFormElement).checkValidity())).toBe(false);
+  const occurrenceForm=page.locator('form').first();
+  expect(await occurrenceForm.evaluate(form=>(form as HTMLFormElement).checkValidity())).toBe(false);
   await page.getByRole('button',{name:'Enviar ocorrência'}).click();expect(requests).toBe(0);
-  await page.getByRole('radio',{name:'Sim'}).check();expect(await page.locator('form').evaluate(form=>(form as HTMLFormElement).checkValidity())).toBe(true);
+  await page.getByRole('radio',{name:'Sim'}).check();expect(await occurrenceForm.evaluate(form=>(form as HTMLFormElement).checkValidity())).toBe(true);
 });
 test('cidadão pode escolher um arquivo ou abrir a câmera traseira para anexar foto',async({page})=>{
   await page.goto('/');
   await page.getByRole('button',{name:'Adicionar foto'}).click();
   const dialog=page.getByRole('dialog',{name:'Adicionar foto'});
-  await expect(dialog.getByRole('button',{name:'Escolher foto'})).toBeVisible();
-  await expect(dialog.getByRole('button',{name:'Tirar foto'})).toBeVisible();
+  await expect(dialog.getByRole('button',{name:'Escolher uma imagem'})).toBeVisible();
+  await expect(dialog.getByRole('button',{name:'Tirar uma foto'})).toBeVisible();
   const chooser=page.locator('input[name="photo"]:not([capture])');
   const camera=page.locator('input[name="photo"][capture="environment"]');
   await expect(chooser).toHaveCount(1);await expect(camera).toHaveCount(1);
-  const chooseDialog=page.waitForEvent('filechooser');await dialog.getByRole('button',{name:'Escolher foto'}).click();await (await chooseDialog).setFiles({name:'foto-escolhida.jpg',mimeType:'image/jpeg',buffer:Buffer.from('imagem sintética')});
+  const chooseDialog=page.waitForEvent('filechooser');await dialog.getByRole('button',{name:'Escolher uma imagem'}).click();await (await chooseDialog).setFiles({name:'foto-escolhida.jpg',mimeType:'image/jpeg',buffer:Buffer.from('imagem sintética')});
   await expect(page.getByText('foto-escolhida.jpg')).toBeVisible();
   await page.getByRole('button',{name:'Trocar foto'}).click();
-  const cameraDialog=page.waitForEvent('filechooser');await page.getByRole('dialog',{name:'Adicionar foto'}).getByRole('button',{name:'Tirar foto'}).click();await (await cameraDialog).setFiles({name:'foto-camera.jpg',mimeType:'image/jpeg',buffer:Buffer.from('imagem sintética')});
+  const cameraDialog=page.waitForEvent('filechooser');await page.getByRole('dialog',{name:'Adicionar foto'}).getByRole('button',{name:'Tirar uma foto'}).click();await (await cameraDialog).setFiles({name:'foto-camera.jpg',mimeType:'image/jpeg',buffer:Buffer.from('imagem sintética')});
   await expect(page.getByText('foto-camera.jpg')).toBeVisible();
 });
 test('foto selecionada exige autorização destacada antes de habilitar o envio',async({page,context})=>{
@@ -108,7 +109,9 @@ test('RF-004 falha ao carregar abrigos preserva protocolo e permite tentar de no
   await expect(page.getByText('9002')).toBeVisible();await expect(page.getByText('A ocorrência foi registrada, mas não foi possível carregar a lista de abrigos.')).toBeVisible();await page.getByRole('button',{name:'Tentar carregar abrigos novamente'}).click();
   await expect(page.getByText('No momento, não há abrigos ativos')).toBeVisible();await expect(page.getByText('9002')).toBeVisible();expect(catalogAttempts).toBe(2);
 });
-test('RF-002 GPS negado indisponível timeout ausente ou inválido impede envio recuperável',async({page})=>{
+test('RF-002 GPS negado indisponível timeout ausente ou inválido impede envio recuperável',async({page,context})=>{
+  await context.grantPermissions(['geolocation']);
+  await context.setGeolocation({latitude:11,longitude:11,accuracy:8});
   for(const scenario of [1,2,3,'missing','invalid'] as const){
     await page.goto('/');await expect(page.getByRole('button',{name:'Obter localização'})).toBeEnabled();
     await page.evaluate(value=>{

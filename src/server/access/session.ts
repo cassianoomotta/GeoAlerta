@@ -11,11 +11,11 @@ export async function sessionClient() {
     cookies:{getAll:()=>store.getAll(),setAll:values=>{ for(const {name,value,options} of values) { try {store.set(name,value,options);} catch { /* Server Component: Proxy persists refresh cookies. */ } } }},
   });
 }
-export async function withSession<T>(work:(tx:Prisma.TransactionClient,actor:Actor)=>Promise<T>):Promise<T> {
+export async function withSession<T>(work:(tx:Prisma.TransactionClient,actor:Actor)=>Promise<T>,options:{timeoutMs?:number}={}):Promise<T> {
   const client=await sessionClient();
   const {data,error}=await client.auth.getUser();
   if(error || !data.user) throw new AccessError(401,'UNAUTHENTICATED');
-  return withIdentity(data.user.id,work);
+  return withIdentity(data.user.id,work,options);
 }
 export function accessResponse(error:unknown) {
   if(!(error instanceof AccessError)){

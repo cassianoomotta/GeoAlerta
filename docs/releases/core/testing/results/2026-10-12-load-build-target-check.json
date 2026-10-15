@@ -1,0 +1,9 @@
+{
+  "checkedAt": "2026-10-12",
+  "artifact": ".next/server",
+  "localSupabaseHost": "127.0.0.1:54321",
+  "sharedSupabaseHostReferenceFound": false,
+  "filesWithLocalSupabaseUrl": 31,
+  "filesWithSharedSupabaseHost": 0,
+  "guard": "scripts/run-local-load.mjs refuses to start if the shared host appears or the local URL is absent"
+}

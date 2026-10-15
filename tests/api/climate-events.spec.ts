@@ -41,7 +41,7 @@ test('CLIMATE-API public intake binds the active event and replay preserves the 
   };
   const first=await create('Intake event A');const active=await start(first);
   const key=randomUUID();intakeKeys.push(key);
-  const input={type:'Alagamentos/Inundação',description:`Synthetic climate intake ${token}`,reporterName:'Synthetic citizen',reporterContact:'Synthetic contact',position:{latitude:11,longitude:11,accuracy:7}};
+  const input={type:'Alagamentos/Inundação',description:`Synthetic climate intake ${token}`,reporterName:'Synthetic citizen',reporterContact:'5550102',position:{latitude:11,longitude:11,accuracy:7}};
   try{
     const initial=await request.post('/api/core/public/occurrences',{headers:{'Idempotency-Key':key},data:input});expect(initial.status()).toBe(201);const result=await initial.json();intakeOccurrenceIds.push(result.id);
     const hiddenBlock=await request.post('/api/core/climate-events',{headers,data:{action:'close',id:first.id,expectedVersion:active.version}});
@@ -147,7 +147,7 @@ test('CLIMATE-API serializes active-event resolution with a concurrent event clo
   await closer.query("SELECT set_config('request.jwt.claim.sub',$1,true),set_config('request.jwt.claims',$2,true)",[ '10000000-0000-4000-8000-000000000003',JSON.stringify({sub:'10000000-0000-4000-8000-000000000003'}) ]);
   await closer.query("UPDATE public.climate_events SET state='ENCERRADO',version=version+1 WHERE id=$1 AND version=$2",[event.id,active.version]);
   const key=randomUUID();intakeKeys.push(key);
-  const input={type:'Alagamentos/Inundação',description:`Synthetic close race ${key.slice(0,8)}`,reporterName:'Synthetic citizen',reporterContact:'Synthetic contact',position:{latitude:11,longitude:11,accuracy:7}};
+  const input={type:'Alagamentos/Inundação',description:`Synthetic close race ${key.slice(0,8)}`,reporterName:'Synthetic citizen',reporterContact:'5550103',position:{latitude:11,longitude:11,accuracy:7}};
   const intake=request.post('/api/core/public/occurrences',{headers:{'Idempotency-Key':key},data:input});
   const observer=new pg.Client({connectionString:process.env.TEST_DATABASE_URL});await observer.connect();
   try{

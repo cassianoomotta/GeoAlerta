@@ -37,7 +37,7 @@ test.beforeAll(async () => {
 test('US-05 criação manual exige sessão e valida GPS antes da persistência', async ({ request }) => {
   const missingGps = await request.post('/api/core/occurrences', {
     headers: { ...(await headersFor('operador')), 'Idempotency-Key': randomUUID() },
-    data: { type: 'alagamento', description: 'Sem GPS', reporterName: 'Pessoa', reporterContact: '555-0100', groupId: groupA },
+    data: { type: 'alagamento', description: 'Sem GPS', reporterName: 'Pessoa', reporterContact: '5550100', groupId: groupA },
   });
   expect(missingGps.status()).toBe(422);
 
@@ -49,7 +49,7 @@ test('US-05 criação manual exige sessão e valida GPS antes da persistência',
 
   const consulta = await request.post('/api/core/occurrences', {
     headers: { ...(await headersFor('consulta')), 'Idempotency-Key': randomUUID() },
-    data: { type: 'alagamento', description: 'Sem permissão', reporterName: 'Pessoa', reporterContact: '555-0100', groupId: groupA, position: { latitude: -29.5, longitude: -50.5, accuracy: 8 } },
+    data: { type: 'alagamento', description: 'Sem permissão', reporterName: 'Pessoa', reporterContact: '5550100', groupId: groupA, position: { latitude: -29.5, longitude: -50.5, accuracy: 8 } },
   });
   expect(consulta.status()).toBe(403);
 });
@@ -60,7 +60,7 @@ test('US-05 criação manual valida grupo, classifica a zona e grava ator e audi
     type: 'alagamento',
     description: 'Água avançando na via',
     reporterName: 'Pessoa sintética',
-    reporterContact: '555-0101',
+    reporterContact: '5550101',
     address: 'Rua das Flores, 123',
     groupId: groupA,
     position: { latitude: -29.5, longitude: -50.5, accuracy: 8 },
@@ -108,7 +108,7 @@ test('US-05 criação manual valida grupo, classifica a zona e grava ator e audi
 test('RF-011 operador não pode escolher grupo fora do escopo nem criar parcialmente', async ({ request }) => {
   const response = await request.post('/api/core/occurrences', {
     headers: { ...(await headersFor('operador')), 'Idempotency-Key': randomUUID() },
-    data: { type: 'alagamento', description: 'Fora do grupo', reporterName: 'Pessoa', reporterContact: '555-0100', groupId: groupB, position: { latitude: -29.5, longitude: -50.5, accuracy: 8 } },
+    data: { type: 'alagamento', description: 'Fora do grupo', reporterName: 'Pessoa', reporterContact: '5550100', groupId: groupB, position: { latitude: -29.5, longitude: -50.5, accuracy: 8 } },
   });
   expect(response.status()).toBe(403);
 });

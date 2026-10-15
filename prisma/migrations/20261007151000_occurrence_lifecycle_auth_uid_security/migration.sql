@@ -1,16 +1,16 @@
 BEGIN;
 
--- The runtime role cannot use the auth schema, but this trigger must read the
--- authenticated actor from auth.uid(). Keep the function owned by postgres
--- and its search_path pinned so the trigger can read the JWT identity safely.
-ALTER FUNCTION public.set_occurrence_lifecycle()
-  SECURITY DEFINER;
-
-ALTER FUNCTION public.set_occurrence_lifecycle()
-  SET search_path = pg_catalog, public;
-
--- Trigger execution does not require callers to invoke this function directly.
-REVOKE ALL ON FUNCTION public.set_occurrence_lifecycle()
-  FROM PUBLIC, anon, authenticated, geoalerta_runtime, geoalerta_ingest;
+-- Some previously provisioned databases have this trigger function, but the
+-- repository's historical migrations do not create it. Harden it where present
+-- without making a clean install depend on an unversioned database object.
+DO $migration$
+BEGIN
+  IF to_regprocedure('public.set_occurrence_lifecycle()') IS NOT NULL THEN
+    EXECUTE 'ALTER FUNCTION public.set_occurrence_lifecycle() SECURITY DEFINER';
+    EXECUTE 'ALTER FUNCTION public.set_occurrence_lifecycle() SET search_path = pg_catalog, public';
+    EXECUTE 'REVOKE ALL ON FUNCTION public.set_occurrence_lifecycle() FROM PUBLIC, anon, authenticated, geoalerta_runtime, geoalerta_ingest';
+  END IF;
+END
+$migration$;
 
 COMMIT;

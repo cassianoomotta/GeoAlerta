@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import pg from 'pg';
+import { randomUUID } from 'node:crypto';
 import { occurrenceA, occurrenceB } from '../fixtures/access';
 import { fixtureCookies } from '../fixtures/session';
 
@@ -56,7 +57,7 @@ test.beforeEach(async ({ page, context }) => {
   });
   browserRequests = [];
   page.on('request', (request) => browserRequests.push(request.url()));
-  await context.addCookies((await fixtureCookies('operador')).map((cookie) => ({ ...cookie, url: 'http://127.0.0.1:3100' })));
+  await context.addCookies((await fixtureCookies('operador')).map((cookie) => ({ ...cookie, url: 'http://127.0.0.1:3102' })));
 });
 
 test('RF-010 detalhe apresenta protocolo, classificação, localização e histórico', async ({ page }) => {
@@ -86,22 +87,23 @@ test('RF-010 detalhe apresenta protocolo, classificação, localização e hist�
 });
 
 test('RF-010 histórico de edição mostra autor, horário e campos alterados sem dados privados', async ({ page }) => {
+  const editTarget = `E2E-${randomUUID()}`;
   await page.route(`**/api/core/occurrences/${occurrenceA}`, async (route) => {
     const response = await route.fetch();
     const body = await response.json();
     body.events.push({
-      id: '91000000-0000-4000-8000-000000000023',
+      id: randomUUID(),
       kind: 'OCCURRENCE_EDITED', actorId: '10000000-0000-4000-8000-000000000002', actorName: 'operador',
       at: '2026-10-09T15:30:00.000Z',
-      changes: { type: { from: 'fixture', to: 'Alagamento' }, groupId: { from: 'Triagem', to: 'Jipeiros' } },
+      changes: { type: { from: 'fixture', to: editTarget }, groupId: { from: 'Triagem', to: 'Jipeiros' } },
     });
     await route.fulfill({ response, json: body });
   });
   await page.goto(`/painel/ocorrencias/${occurrenceA}`);
 
-  const editEvent = page.getByRole('list', { name: 'Histórico' }).getByRole('listitem').filter({ hasText: 'Ocorrência editada' });
+  const editEvent = page.getByRole('list', { name: 'Histórico' }).locator(':scope > li').filter({ hasText: editTarget });
   await expect(editEvent).toContainText('Por operador');
-  await expect(editEvent).toContainText('Tipo/categoria: fixture → Alagamento');
+  await expect(editEvent).toContainText(`Tipo/categoria: fixture → ${editTarget}`);
   await expect(editEvent).toContainText('Grupo responsável: Triagem → Jipeiros');
   await expect(editEvent.locator('time')).toHaveAttribute('datetime', '2026-10-09T15:30:00.000Z');
 });
@@ -163,6 +165,8 @@ test('RF-011 edição salva apenas os campos da ocorrência, sem incluir atendim
 
 test('RF-010 salvar edição leva ao primeiro campo obrigatório quando falta uma opção de grupo', async ({ page }) => {
   let patchRequests = 0;
+  const pageErrors: string[] = [];
+  page.on('pageerror', (error) => pageErrors.push(error.message));
   page.on('request', (request) => { if (request.method() === 'PATCH' && request.url().includes(`/api/core/occurrences/${occurrenceA}`)) patchRequests += 1; });
   await page.route(`**/api/core/occurrences/${occurrenceA}`, async (route) => {
     const response = await route.fetch();
@@ -176,6 +180,7 @@ test('RF-010 salvar edição leva ao primeiro campo obrigatório quando falta um
   await page.getByRole('button', { name: 'Salvar edição' }).click();
   await expect(group).toBeFocused();
   await expect(group).toBeInViewport();
+  expect(pageErrors).toEqual([]);
   expect(patchRequests).toBe(0);
 });
 
@@ -199,7 +204,7 @@ test('RF-018 atendimento é salvo separadamente pelo botão do próprio bloco', 
 
 test('RF-015 Consulta não vê dados pessoais ou diferenças privadas', async ({ page, context }) => {
   await context.clearCookies();
-  await context.addCookies((await fixtureCookies('consulta')).map((cookie) => ({ ...cookie, url: 'http://127.0.0.1:3100' })));
+  await context.addCookies((await fixtureCookies('consulta')).map((cookie) => ({ ...cookie, url: 'http://127.0.0.1:3102' })));
   await page.goto(`/painel/ocorrencias/${occurrenceA}`);
   await expect(page.getByRole('heading', { name: 'fixture', exact: true })).toBeVisible();
   const content = await page.locator('body').innerText();

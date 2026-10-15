@@ -46,7 +46,7 @@ test('RF-011 exporta CSV completo com 50 mil registros filtrados sem alterar os 
     const csv = (await response.text()).replace(/^\uFEFF/u, '');
     const lines = csv.trimEnd().split('\r\n');
     expect(lines).toHaveLength(50001);
-    expect(lines[0]).toBe('"Protocolo"');
+    expect(lines[0]).toBe('"Protocolo";"ID do evento climático";"Evento climático"');
     expect(csv).toContain(`"${prefix}00001"`);
     expect(csv).toContain(`"${prefix}50000"`);
 

@@ -1,0 +1,200 @@
+{
+  "mode": "real",
+  "result": "failed",
+  "durationMs": 6344,
+  "tablesVerified": 35,
+  "tableEvidence": [
+    {
+      "name": "public._prisma_migrations",
+      "rows": 57,
+      "digest": "7090b54148f9f665228fbe71babfce4e"
+    },
+    {
+      "name": "public.admin_profiles",
+      "rows": 95,
+      "digest": "1cb07c0496db509e6616df399c0e9c16"
+    },
+    {
+      "name": "public.audit_events",
+      "rows": 625,
+      "digest": "c0e368abc5350b510fd43241647a16cb"
+    },
+    {
+      "name": "public.climate_events",
+      "rows": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "name": "public.groups",
+      "rows": 7,
+      "digest": "be2cca86d440a001e406224a3708cdb7"
+    },
+    {
+      "name": "public.idempotency_keys",
+      "rows": 532,
+      "digest": "dacd5fba167f046de17dc104bbe91869"
+    },
+    {
+      "name": "public.intake_rate_limits",
+      "rows": 308,
+      "digest": "f35eec2f9c0d4292b0b704b7f61ce982"
+    },
+    {
+      "name": "public.legacy_risk_zones",
+      "rows": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "name": "public.occurrence_alerts",
+      "rows": 532,
+      "digest": "b63caabc86c1d5f8082c5d08e54d0a57"
+    },
+    {
+      "name": "public.occurrence_classification_zones",
+      "rows": 6,
+      "digest": "6529b49e4d3a9e80e86163a70a3f3b95"
+    },
+    {
+      "name": "public.occurrence_damage_locations",
+      "rows": 17,
+      "digest": "75f7f1f056cbdc219aa3c1349c3d9d1b"
+    },
+    {
+      "name": "public.occurrence_events",
+      "rows": 604,
+      "digest": "229154fbbddf3864093bc5b8c21103d9"
+    },
+    {
+      "name": "public.occurrence_localities",
+      "rows": 50,
+      "digest": "2c4c7b5bcadc09ffb0176548bbdbc1f9"
+    },
+    {
+      "name": "public.occurrence_neighborhoods",
+      "rows": 12,
+      "digest": "94239f0e88e69f47f6472399cbeeee32"
+    },
+    {
+      "name": "public.occurrence_private_data",
+      "rows": 100580,
+      "digest": "b93e45881c28e9d19b2d281f367d14c3"
+    },
+    {
+      "name": "public.occurrence_registering_institutions",
+      "rows": 3,
+      "digest": "ed355314545b4d9c45a33c1867ce8ee4"
+    },
+    {
+      "name": "public.occurrence_service_agencies",
+      "rows": 8,
+      "digest": "410750047bffb2859e467dd28aa9af0a"
+    },
+    {
+      "name": "public.occurrence_service_records",
+      "rows": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "name": "public.occurrence_types",
+      "rows": 30,
+      "digest": "a78253cadff0fa409bf76b5c734b8c52"
+    },
+    {
+      "name": "public.occurrences",
+      "rows": 100580,
+      "digest": "e99a140ee695e302e00de5166c9ad541"
+    },
+    {
+      "name": "public.resource_movements",
+      "rows": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "name": "public.resources",
+      "rows": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "name": "public.risk_zones",
+      "rows": 7,
+      "digest": "7bf08131a7955d6efcb24f9ab841ff15"
+    },
+    {
+      "name": "public.settings",
+      "rows": 1,
+      "digest": "0a56590443cddb6928a483c43ee3a792"
+    },
+    {
+      "name": "public.shelter_people",
+      "rows": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "name": "public.shelters",
+      "rows": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "name": "public.spatial_ref_sys",
+      "rows": 8500,
+      "digest": "1d1085d385667bb83c89ae9b222e57b5"
+    },
+    {
+      "name": "public.status_presentations",
+      "rows": 5,
+      "digest": "dddf1eee8088315829eadf70f99b32e1"
+    },
+    {
+      "name": "public.status_transitions",
+      "rows": 8,
+      "digest": "6f04070d5a0a70c0d1e7848f3835ed0c"
+    },
+    {
+      "name": "public.team_locations",
+      "rows": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "name": "public.team_members",
+      "rows": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "name": "public.teams",
+      "rows": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "name": "public.user_group_memberships",
+      "rows": 95,
+      "digest": "d878d00e21af2c45a0da66fa854ff2f9"
+    },
+    {
+      "name": "public.user_preferences",
+      "rows": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "name": "public.volunteers",
+      "rows": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    }
+  ],
+  "sequenceEvidence": [
+    {
+      "name": "public.occurrence_protocol_seq",
+      "lastValue": "132"
+    }
+  ],
+  "sourceUnchanged": false,
+  "restoredMatchesSource": false,
+  "postgisPresent": false,
+  "invalidConstraints": 0,
+  "errorCode": "BACKUP_FAILED",
+  "limitations": [
+    "O backup PostgreSQL não comprova a recuperação de identidades do Supabase Auth.",
+    "Bytes de objetos do Supabase Storage exigem backup e restauração próprios.",
+    "Schemas gerenciados Auth/Storage e publicações Realtime exigem preparação e recuperação próprias.",
+    "Roles globais referenciadas pelos grants e políticas devem existir no destino."
+  ]
+}

@@ -14,7 +14,8 @@
   }
   ::selection { background: var(--primary-soft); color: var(--text); }
   :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
-  :where(input, select, textarea) { accent-color: var(--primary); caret-color: var(--primary); }
+  :where(input, select, textarea) { accent-color: var(--primary); caret-color: var(--primary); color-scheme: light; }
+  :root[data-theme="dark"] :where(input, select, textarea) { color-scheme: dark; }
   :where(select) { accent-color: #1769d2; }
   :where(input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]), select, textarea) {
     min-height: 40px;

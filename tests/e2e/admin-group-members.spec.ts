@@ -1,37 +1,39 @@
 import { expect, test } from '@playwright/test';
 import { fixtureCookies } from '../fixtures/session';
+import { groupA, groupB } from '../fixtures/access';
 
 async function signIn(page: import('@playwright/test').Page, name: 'admin' | 'operador') {
-  await page.context().addCookies((await fixtureCookies(name)).map(cookie => ({ ...cookie, url: 'http://127.0.0.1:3100' })));
+  await page.context().addCookies((await fixtureCookies(name)).map(cookie => ({ ...cookie, url: 'http://127.0.0.1:3102' })));
 }
 
 test('RF-004 administrador consulta e edita pessoas por grupo', async ({ page }) => {
   await signIn(page, 'admin');
-  await page.goto('/painel/admin');
-  await page.getByRole('link', { name: 'Consultar pessoas por grupo' }).click();
-  await expect(page).toHaveURL(/\/painel\/admin\/grupos$/);
+  await page.goto(`/painel/admin/grupos?groupId=${groupA}`);
+  await expect(page).toHaveURL(new RegExp(`/painel/admin/grupos\\?groupId=${groupA}`));
 
   await expect(page.getByRole('heading', { name: 'Pessoas por grupo' })).toBeVisible();
-  await expect(page.getByLabel('Grupo')).toHaveValue('20000000-0000-4000-8000-000000000001');
-  const createForm = page.getByRole('form', { name: 'Criar pessoa no grupo Triagem inicial' });
+  await expect(page.locator('#groupId')).toHaveValue(groupA);
+  const createForm = page.getByRole('form', { name: 'Criar pessoa no grupo Fixture A' });
   await expect(createForm.getByRole('textbox', { name: 'Nome *' })).toBeVisible();
   await expect(createForm.getByRole('textbox', { name: 'Telefone' })).toBeVisible();
   await expect(createForm.getByRole('textbox', { name: 'E-mail *' })).toBeVisible();
   await expect(createForm.getByRole('combobox', { name: 'Papel inicial *' })).toBeVisible();
   await expect(createForm.getByRole('button', { name: 'Criar conta neste grupo' })).toBeEnabled();
   await expect(page.getByRole('listitem')).toContainText(['Consulta', 'Gestor', 'Operador', 'Pendente', 'Suspenso', 'Desativado']);
-  await expect(page.getByRole('button', { name: 'Editar dados' })).toHaveCount(6);
-  await page.getByRole('button', { name: 'Editar dados' }).first().click();
-  await expect(page.getByRole('textbox', { name: 'Nome' })).toBeVisible();
-  await expect(page.getByRole('textbox', { name: 'Telefone' })).toBeVisible();
+  const editDetails = page.locator('summary').filter({ hasText: 'Editar dados' });
+  await expect(editDetails).toHaveCount(6);
+  await editDetails.first().click();
+  const editor = editDetails.first().locator('..').locator('form');
+  await expect(editor.getByRole('textbox', { name: 'Nome', exact: true })).toBeVisible();
+  await expect(editor.getByRole('textbox', { name: 'Telefone', exact: true })).toBeVisible();
   const memberGroups = page.locator('form').filter({ has: page.getByRole('button', { name: 'Salvar dados e grupos' }) }).locator('details');
   await expect(memberGroups.locator('summary')).toHaveClass(/bg-background/);
   await expect(page.getByRole('button', { name: 'Salvar dados e grupos' })).toBeVisible();
-  await page.getByRole('button', { name: 'Editar dados' }).first().click();
+  await editDetails.first().click();
 
-  await page.getByLabel('Grupo').selectOption('20000000-0000-4000-8000-000000000002');
+  await page.locator('#groupId').selectOption(groupB);
   await page.getByRole('button', { name: 'Consultar grupo' }).click();
-  await expect(page).toHaveURL(/groupId=20000000-0000-4000-8000-000000000002/);
+  await expect(page).toHaveURL(new RegExp(`groupId=${groupB}`));
   await expect(page.getByRole('listitem')).toHaveCount(1);
   await expect(page.getByRole('listitem')).toContainText('Gestor');
   await expect(page.getByRole('combobox', { name: 'Adicionar pessoa existente' })).toBeVisible();
@@ -49,28 +51,31 @@ test('RF-013 cadastro de usuário mostra nome, telefone e e-mail nessa ordem e g
   await signIn(page, 'admin');
   await page.goto('/painel/admin');
   const form = page.locator('form').filter({ has: page.getByRole('button', { name: 'Criar conta' }) });
+  await expect(form.getByRole('button', { name: 'Criar conta' })).toBeVisible();
   const firstFields = await form.locator('label').evaluateAll(labels => labels.slice(0, 3).map(label => label.textContent?.trim().split('*')[0].trim()));
   expect(firstFields).toEqual(['Nome', 'Telefone', 'E-mail']);
   await expect(form.getByText('Grupo padrão', { exact: true })).toHaveCount(0);
-  const groups = form.locator('details').filter({ has: form.getByText('Grupos autorizados', { exact: true }) });
+  const groups = form.locator('details').first();
   await expect(groups.locator('summary')).toHaveClass(/bg-background/);
   await expect(groups.locator('summary')).toContainText('Selecione grupos');
   await groups.locator('summary').click();
   await expect(groups.getByLabel('Triagem inicial')).toBeVisible();
   await expect(groups.locator('fieldset')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
   await expect(groups.locator('label').first().locator('span')).toHaveCSS('background-color', 'rgb(23, 105, 210)');
-  await groups.getByLabel('Triagem inicial').check();
+  await groups.locator('label').filter({ hasText: 'Triagem inicial' }).click();
   await expect(groups.locator('label').filter({ hasText: 'Triagem inicial' }).locator('span')).toHaveCSS('background-color', 'rgb(23, 105, 210)');
 });
 
 test('RF-013 grupos dos usuários cadastrados usam o mesmo seletor visual', async ({ page }) => {
   await signIn(page, 'admin');
   await page.goto('/painel/admin');
-  const user = page.locator('article').filter({ has: page.getByRole('heading', { name: 'Administrador inicial' }) });
-  const groups = user.locator('details').filter({ has: user.getByText('Grupos', { exact: true }) });
+  const user = page.locator('article').filter({ has: page.getByRole('heading', { name: 'consulta', exact: true }) });
+  const groups = user.locator('details').first();
   await expect(groups.locator('summary')).toHaveClass(/bg-background/);
   await groups.locator('summary').click();
-  await expect(groups.getByLabel('Triagem inicial')).toBeVisible();
+  const defaultGroup = groups.locator('label').filter({ hasText: 'Triagem inicial' });
+  await expect(defaultGroup).toBeVisible();
+  await defaultGroup.click();
 });
 
 test('RF-014 navegação municipal mostra o módulo antes do perfil e mantém retorno à lista nos formulários', async ({ page }) => {

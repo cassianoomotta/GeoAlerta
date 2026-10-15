@@ -11,5 +11,5 @@ test('RF-005 login ATIVO entra no painel e logout remove acesso',async({page})=>
 });
 test('RF-005 credenciais inválidas e sessão prévia não ativa recusadas',async({page,context})=>{
   await page.getByPlaceholder('operador@prefeitura.gov.br').fill('invalid@fixture.invalid');await page.getByPlaceholder('••••••••').fill('wrong');await page.getByRole('button',{name:'Entrar no Painel'}).click();await expect(page.getByText('E-mail ou senha incorretos.')).toBeVisible();
-  for(const name of ['pendente','suspenso','desativado','semgrupo']){await context.clearCookies();await context.addCookies((await fixtureCookies(name)).map(c=>({...c,url:'http://127.0.0.1:3100'})));for(const route of ['/painel','/painel/mapa']){await page.goto(route);await expect(page).toHaveURL(/\/login/);}}
+  for(const name of ['pendente','suspenso','desativado','semgrupo']){await context.clearCookies();await context.addCookies((await fixtureCookies(name)).map(c=>({...c,url:'http://127.0.0.1:3102'})));for(const route of ['/painel','/painel/mapa']){await page.goto(route);await expect(page).toHaveURL(/\/login/);}}
 });

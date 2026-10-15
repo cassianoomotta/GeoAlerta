@@ -1,0 +1,119 @@
+{
+  "result": "approved",
+  "runId": "local-20261012182341823-138bc958-7350-4584-b501-ec2bde49e4ab",
+  "target": {
+    "class": "disposable",
+    "hostname": "127.0.0.1"
+  },
+  "source": {
+    "revision": "b25ed1f4a153c095dd2ab2bb2ddb42cd26baeed2",
+    "workingTreeClean": false
+  },
+  "acceptanceFailures": [],
+  "alertsReceived": 100,
+  "socketAlertsReceived": 99,
+  "alertsRecovered": 8,
+  "startedAt": "2026-10-12T18:23:48.389Z",
+  "finishedAt": "2026-10-12T19:24:03.595Z",
+  "totalRequests": 2651,
+  "errors": 0,
+  "statusCounts": {
+    "200": 2450,
+    "201": 100,
+    "409": 1
+  },
+  "latencyMs": {
+    "alert.endToEnd": {
+      "count": 100,
+      "p50": 363,
+      "p95": 1338,
+      "max": 1959
+    },
+    "alert.recovery": {
+      "count": 1203,
+      "p50": 9,
+      "p95": 24,
+      "max": 150
+    },
+    "backoffice.conflictProbe.read": {
+      "count": 1,
+      "p50": 191,
+      "p95": 191,
+      "max": 191
+    },
+    "backoffice.conflictProbe.update": {
+      "count": 2,
+      "p50": 142,
+      "p95": 147,
+      "max": 147
+    },
+    "backoffice.csv": {
+      "count": 1,
+      "p50": 2088,
+      "p95": 2088,
+      "max": 2088
+    },
+    "backoffice.dashboard": {
+      "count": 610,
+      "p50": 1027,
+      "p95": 1566,
+      "max": 1963
+    },
+    "backoffice.detail": {
+      "count": 10,
+      "p50": 322,
+      "p95": 414,
+      "max": 414
+    },
+    "backoffice.list": {
+      "count": 610,
+      "p50": 783,
+      "p95": 1200,
+      "max": 1799
+    },
+    "backoffice.photo": {
+      "count": 1,
+      "p50": 440,
+      "p95": 440,
+      "max": 440
+    },
+    "backoffice.update": {
+      "count": 10,
+      "p50": 194,
+      "p95": 326,
+      "max": 326
+    },
+    "occurrence.create": {
+      "count": 100,
+      "p50": 115,
+      "p95": 662,
+      "max": 988
+    },
+    "occurrence.idempotencyReplay": {
+      "count": 2,
+      "p50": 25,
+      "p95": 29,
+      "max": 29
+    },
+    "photo.download": {
+      "count": 1,
+      "p50": 42,
+      "p95": 42,
+      "max": 42
+    }
+  },
+  "scenario": {
+    "applicationMode": "production",
+    "durationMinutes": 60,
+    "occurrenceCreates": 100,
+    "idempotencyReplays": 2,
+    "burstSize": 10,
+    "backofficeSessions": 10,
+    "successfulSyntheticUpdates": 10,
+    "expectedVersionConflicts": 1,
+    "minimumHistory": 50000,
+    "csvRows": 100580,
+    "photoReads": 1,
+    "realtimeSubscription": "SUBSCRIBED"
+  }
+}

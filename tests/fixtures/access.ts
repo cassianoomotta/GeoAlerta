@@ -43,6 +43,9 @@ export async function prepareAccessTests() {
     await db.query(`GRANT geoalerta_runtime,geoalerta_ingest,authenticated,anon TO ${role}`);
     const url=new URL(process.env.TEST_DATABASE_URL!); url.username=role;url.password=password;url.searchParams.set('options','-c role=geoalerta_runtime');
     await db.query(`INSERT INTO public.groups(id,municipality_id,name) VALUES ($1,'sa_patrulha','Fixture A'),($2,'sa_patrulha','Fixture B'),($3,'other','Fixture other') ON CONFLICT(id) DO NOTHING`,[groupA,groupB,groupOther]);
+    await db.query('DELETE FROM public.user_group_memberships WHERE user_id=ANY($1::uuid[])',[accounts.map(account=>account.id)]);
+    await db.query('DELETE FROM public.occurrence_alerts WHERE event_id IN (SELECT id FROM public.occurrence_events WHERE occurrence_id=ANY($1::uuid[]) AND kind=$2)',[[occurrenceA,occurrenceB,occurrenceOther],'fixture']);
+    await db.query('DELETE FROM public.occurrence_events WHERE occurrence_id=ANY($1::uuid[]) AND kind=$2',[[occurrenceA,occurrenceB,occurrenceOther],'fixture']);
     for(const a of accounts) {
       await db.query(`INSERT INTO public.admin_profiles(user_id,municipality_id,name,role,state) VALUES ($1,$2,$3,$4,$5) ON CONFLICT(user_id) DO UPDATE SET role=EXCLUDED.role,state=EXCLUDED.state`,[a.id,a.name==='outromunicipio'?'other':'sa_patrulha',a.name,a.role,a.state]);
       for(const g of a.groups) await db.query('INSERT INTO public.user_group_memberships(user_id,group_id) VALUES($1,$2) ON CONFLICT DO NOTHING',[a.id,g]);

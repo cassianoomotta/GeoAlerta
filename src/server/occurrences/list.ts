@@ -4,7 +4,9 @@ import type {Actor} from '@/features/access/contracts';
 import {availableColumns,validateColumns,ListInputError,OCCURRENCES_PAGE_SIZE,type Column,type ListFilters,type ListItem,type ListResult,type ListCatalogs} from '@/features/occurrences/list-input';
 import {getColumns} from '@/features/access/infrastructure/preferences';
 async function queryContext(tx:Prisma.TransactionClient,actor:Actor,filters:ListFilters){
-  const groups=await tx.$queryRaw<{id:string;name:string}[]>`SELECT id,name FROM public.groups ORDER BY name,id`;
+  const groups=actor.role==='ADMINISTRADOR'
+    ? await tx.$queryRaw<{id:string;name:string}[]>`SELECT id,name FROM public.groups WHERE municipality_id=${actor.municipalityId} ORDER BY name,id`
+    : await tx.$queryRaw<{id:string;name:string}[]>`SELECT id,name FROM public.groups WHERE municipality_id=${actor.municipalityId} AND id=ANY(${actor.groupIds}::uuid[]) ORDER BY name,id`;
   const climateEvents=await tx.$queryRaw<{id:string;name:string;state:string}[]>`SELECT id::text,name,state FROM public.climate_events WHERE municipality_id=${actor.municipalityId} ORDER BY name,id`;
   const statusRows=await tx.$queryRaw<{code:ListItem['status'];label:string;display_order:number}[]>`SELECT code,label,display_order FROM public.status_presentations ORDER BY display_order,code`;
   const occurrenceTypes=await tx.$queryRaw<{name:string;active:boolean}[]>`SELECT name,active FROM public.occurrence_types ORDER BY display_order,name`;

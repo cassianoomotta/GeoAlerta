@@ -20,7 +20,7 @@ test('quadro filtra todos os gráficos, apresenta dados exatos e diferencia ence
   const activity=page.getByRole('region',{name:'Abertas e encerradas por dia',exact:true});
   await activity.getByText('Consultar dados do gráfico').click();
   await expect(activity.getByRole('row').filter({hasText:'02/06/2024'})).toHaveText('02/06/202411');
-  await expect(page.getByText(/Última atualização:/)).toBeVisible();
+  await expect(page.getByText(/Última atualização:/).first()).toBeVisible();
   await page.getByLabel('Data final do dashboard').fill('2024-08-01');
   await expect(page.getByRole('alert').filter({hasText:'até 31 dias'})).toBeVisible();
   await expect(page.getByRole('img',{name:/Gráfico de/})).toHaveCount(0);

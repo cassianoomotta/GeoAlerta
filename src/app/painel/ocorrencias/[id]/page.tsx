@@ -84,7 +84,7 @@ function displayValue(value: string | null | undefined) {
 
 function focusFirstInvalidControl(event: React.FormEvent<HTMLFormElement>) {
   const invalid = Array.from(event.currentTarget.elements).find((element): element is HTMLElement =>
-    (element instanceof HTMLInputElement || element instanceof HTMLSelectElement || element instanceof HTMLTextAreaElement) && !element.checkValidity());
+    (element instanceof HTMLInputElement || element instanceof HTMLSelectElement || element instanceof HTMLTextAreaElement) && !element.validity.valid);
   if (!invalid) return;
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   invalid.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'center' });

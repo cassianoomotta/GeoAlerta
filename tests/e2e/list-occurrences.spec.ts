@@ -13,7 +13,7 @@ test('RF-009 lista filtra status e categoria pela barra preservando URL e pagina
   await expect(page.locator('aside').getByRole('link',{name:'Nova ocorrência',exact:true})).toHaveAttribute('href','/painel/ocorrencias/nova');
   await expect(page.getByRole('button',{name:'Obter localização GPS'})).toHaveCount(0);
   await expect(page.getByRole('link',{name:'Todos os status'})).toHaveCount(0);
-  await expect(page.getByText('125 ocorrências · Página 1 de 3',{exact:true})).toBeVisible();await expect(page.locator('tbody tr')).toHaveCount(50);
+  await expect(page.getByText('Exibindo 1–20 de 125 ocorrências',{exact:true})).toBeVisible();await expect(page.getByText('Página 1 de 7 · 20 por página',{exact:true})).toBeVisible();await expect(page.locator('tbody tr')).toHaveCount(20);
   const filters=page.locator('details[aria-label="Filtros de ocorrências"]');
   const showFilters=async()=>{
     if(!(await filters.evaluate(element=>(element as HTMLDetailsElement).open)))await filters.locator('summary').click();
@@ -23,13 +23,13 @@ test('RF-009 lista filtra status e categoria pela barra preservando URL e pagina
   const form=filters.locator('form[aria-label="Filtros de ocorrências"]');
   await expect(form.getByRole('combobox',{name:'Tipo'})).toHaveJSProperty('tagName','SELECT');
   await expect(form.getByRole('combobox',{name:'Situação da categoria'})).toHaveJSProperty('tagName','SELECT');
-  await page.getByRole('link',{name:'Próxima página'}).click();await expect(page).toHaveURL(/page=2/);await expect(page.locator('tbody tr')).toHaveCount(50);expect(new URL(page.url()).searchParams.get('type')).toBe(listType());
+  await page.getByRole('link',{name:'Próxima página'}).click();await expect(page).toHaveURL(/page=2/);await expect(page.locator('tbody tr')).toHaveCount(20);expect(new URL(page.url()).searchParams.get('type')).toBe(listType());
   await showFilters();
   await page.getByRole('link',{name:'Ordenar por Status'}).click();await expect(page).toHaveURL(/sort=status/);expect(new URL(page.url()).searchParams.get('page')).toBe('1');
   await showFilters();
-  await form.getByRole('combobox',{name:'Status'}).selectOption('NOVA');await page.getByRole('button',{name:'Aplicar filtros'}).click();await expect(page).toHaveURL(/status=NOVA/);expect(new URL(page.url()).searchParams.get('type')).toBe(listType());await expect(page.locator('tbody tr')).toHaveCount(25);
+  await form.getByRole('combobox',{name:'Status'}).selectOption('NOVA');await page.getByRole('button',{name:'Aplicar filtros'}).click();await expect(page).toHaveURL(/status=NOVA/);expect(new URL(page.url()).searchParams.get('type')).toBe(listType());await expect(page.locator('tbody tr')).toHaveCount(20);
   await showFilters();
-  await form.getByRole('combobox',{name:'Situação da categoria'}).selectOption('active');await page.getByRole('button',{name:'Aplicar filtros'}).click();await expect(page).toHaveURL(/categoryStatus=active/);await expect(page.locator('tbody tr')).toHaveCount(25);
+  await form.getByRole('combobox',{name:'Situação da categoria'}).selectOption('active');await page.getByRole('button',{name:'Aplicar filtros'}).click();await expect(page).toHaveURL(/categoryStatus=active/);await expect(page.locator('tbody tr')).toHaveCount(20);
   await showFilters();
   await form.getByRole('combobox',{name:/^Prioridade/}).selectOption('ALTA');await form.getByLabel('De (UTC)',{exact:true}).fill('2025-01-02');await form.getByLabel('Até (UTC)',{exact:true}).fill('2025-01-03');await page.getByRole('button',{name:'Aplicar filtros'}).click();
   await expect(page).toHaveURL(/priority=ALTA/);await showFilters();await expect(form.getByRole('combobox',{name:'Tipo'})).toHaveValue(listType());await page.reload();await showFilters();await expect(form.getByRole('combobox',{name:/^Prioridade/})).toHaveValue('ALTA');
@@ -78,7 +78,8 @@ test('RF-009 filtros começam recolhidos e o seletor de grupo só aparece quando
   await expect(filters).toHaveJSProperty('open',true);
   const form=filters.locator('form[aria-label="Filtros de ocorrências"]');
   await expect(form.getByRole('combobox',{name:'Tipo'})).toBeVisible();
-  await expect(form.getByRole('combobox',{name:'Grupo'})).toHaveCount(0);
+  const operatorGroups=form.getByRole('combobox',{name:'Grupo'});
+  await expect(operatorGroups).toHaveCount(0);
 
   await context.clearCookies();
   await context.addCookies((await fixtureCookies('gestor')).map(c=>({...c,url:'http://127.0.0.1:3102'})));
@@ -126,5 +127,5 @@ test('RF-009 colunas pessoais são restauradas sem afetar Consulta e erro/vazio 
   await page.goto('/painel/ocorrencias?columns=reporterName');await expect(page.getByRole('alert').filter({hasText:'Verifique os filtros'})).toBeVisible();await page.goto('/painel/ocorrencias?type=absent-fixture-type');await expect(page.getByText('Nenhuma ocorrência encontrada para estes filtros.')).toBeVisible();
 });
 test('RF-009 tabela antiga redireciona preservando filtros compatíveis',async({page})=>{
-  await page.goto(`/painel/tabela?type=${listType()}&status=Aberto&pageSize=25&sort=status&direction=asc`);await expect(page).toHaveURL(/\/painel\/ocorrencias\?/);expect(new URL(page.url()).searchParams.get('status')).toBe('NOVA');expect(new URL(page.url()).searchParams.get('type')).toBe(listType());await expect(page.locator('tbody tr')).toHaveCount(25);
+  await page.goto(`/painel/tabela?type=${listType()}&status=Aberto&pageSize=25&sort=status&direction=asc`);await expect(page).toHaveURL(/\/painel\/ocorrencias\?/);expect(new URL(page.url()).searchParams.get('status')).toBe('NOVA');expect(new URL(page.url()).searchParams.get('type')).toBe(listType());await expect(page.locator('tbody tr')).toHaveCount(20);
 });

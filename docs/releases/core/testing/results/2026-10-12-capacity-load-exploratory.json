@@ -1,0 +1,398 @@
+{
+  "schemaVersion": 1,
+  "result": "exploratory_partial",
+  "runId": "local-20261012201847744-506c3378-0287-4226-a472-dc33d24067fd",
+  "target": {
+    "class": "disposable",
+    "hostname": "127.0.0.1",
+    "appPort": 3100
+  },
+  "source": {
+    "revision": "b25ed1f4a153c095dd2ab2bb2ddb42cd26baeed2",
+    "workingTreeClean": false
+  },
+  "startedAt": "2026-10-12T20:18:58.83Z",
+  "updatedAt": "2026-10-12T20:29:13.79Z",
+  "machine": {
+    "os": "win32 10.0.26300",
+    "architecture": "x64",
+    "logicalCpus": 16,
+    "cpuModel": "AMD Ryzen 7 5700U with Radeon Graphics         ",
+    "totalMemoryBytes": 12191068160,
+    "node": "v24.14.0"
+  },
+  "profile": {
+    "type": "authenticated_backoffice_read_mix",
+    "mixPercent": {
+      "backoffice.list": 60,
+      "backoffice.dashboard": 30,
+      "backoffice.detail": 10
+    },
+    "sessions": 10,
+    "schedule": "constant-arrival-rate staircase; 2m per ramp stage, 90s per boundary search stage, then 5m confirmation soak",
+    "referenceRpm": 1667,
+    "referenceRequestsPerHour": 100000,
+    "hardCeilingRpm": 20000,
+    "maxInFlight": 2000,
+    "passCriteria": {
+      "maxUnexpectedErrorPercent": 1,
+      "minScheduledArrivalPercent": 95,
+      "maxReadP95Ms": 3000,
+      "maxPendingPercent": 1
+    },
+    "excluded": [
+      "public occurrence writes",
+      "photo uploads/downloads",
+      "hosted Vercel/Kong/CDN",
+      "distributed client hosts"
+    ]
+  },
+  "capacity": {
+    "highestPassingRpm": 845,
+    "highestPassingRequestsPerHour": 50700,
+    "totalScheduledRequests": 6602,
+    "totalStartedRequests": 6602,
+    "totalCompletedResponses": 6602,
+    "totalUnexpectedErrors": 381,
+    "peakObservedSuccessfulRpm": 1077.5,
+    "referenceReached": false,
+    "firstFailingRpm": 1268,
+    "ceilingReached": false,
+    "validatedSustainableRpm": null,
+    "stagesCompleted": 5
+  },
+  "stages": [
+    {
+      "targetRpm": 250,
+      "offeredRpm": 250,
+      "measuredRpm": 250,
+      "successfulRpm": 250,
+      "errorRatePercent": 0,
+      "scheduleFulfillmentPercent": 100,
+      "accepted": true,
+      "failures": [],
+      "latencyP95Ms": {
+        "backoffice.list": 331.76580000000104,
+        "backoffice.dashboard": 537.9402000000009,
+        "backoffice.detail": 174.58890000000247
+      },
+      "kind": "ramp",
+      "startedAt": "2026-10-12T20:18:58.835Z",
+      "finishedAt": "2026-10-12T20:20:58.843Z",
+      "durationSeconds": 120,
+      "scheduledRequests": 500,
+      "startedRequests": 500,
+      "completedResponses": 500,
+      "unexpectedErrors": 0,
+      "pendingAtDrain": 0,
+      "schedulerSkippedSlots": 0,
+      "maxInFlight": 5,
+      "statusCounts": {
+        "200": 500
+      },
+      "latencySummaryMs": {
+        "backoffice.list": {
+          "count": 300,
+          "p50": 238.98279999999795,
+          "p95": 331.76580000000104,
+          "max": 910.4718
+        },
+        "backoffice.dashboard": {
+          "count": 150,
+          "p50": 384.75909999999567,
+          "p95": 537.9402000000009,
+          "max": 1242.4448999999995
+        },
+        "backoffice.detail": {
+          "count": 50,
+          "p50": 139.01889999999912,
+          "p95": 174.58890000000247,
+          "max": 224.00670000000173
+        }
+      },
+      "resourcesAtEnd": {
+        "database": {
+          "container": "supabase_db_supabase-load",
+          "cpuPercent": "0.05%",
+          "memory": "201MiB / 5.465GiB"
+        },
+        "app": {
+          "cpuSeconds": 0.078125,
+          "workingSetBytes": 50749440
+        }
+      },
+      "driver": {
+        "cpuPercentOfOneCore": 1.47,
+        "eventLoopUtilizationPercent": 1.14,
+        "rssBytes": 78647296
+      }
+    },
+    {
+      "targetRpm": 375,
+      "offeredRpm": 375,
+      "measuredRpm": 375,
+      "successfulRpm": 375,
+      "errorRatePercent": 0,
+      "scheduleFulfillmentPercent": 100,
+      "accepted": true,
+      "failures": [],
+      "latencyP95Ms": {
+        "backoffice.list": 291.7318999999843,
+        "backoffice.dashboard": 449.6808000000019,
+        "backoffice.detail": 151.69200000001
+      },
+      "kind": "ramp",
+      "startedAt": "2026-10-12T20:21:01.801Z",
+      "finishedAt": "2026-10-12T20:23:01.943Z",
+      "durationSeconds": 120,
+      "scheduledRequests": 750,
+      "startedRequests": 750,
+      "completedResponses": 750,
+      "unexpectedErrors": 0,
+      "pendingAtDrain": 0,
+      "schedulerSkippedSlots": 0,
+      "maxInFlight": 4,
+      "statusCounts": {
+        "200": 750
+      },
+      "latencySummaryMs": {
+        "backoffice.list": {
+          "count": 454,
+          "p50": 234.25210000001243,
+          "p95": 291.7318999999843,
+          "max": 391.7356999999902
+        },
+        "backoffice.dashboard": {
+          "count": 222,
+          "p50": 380.16440000000875,
+          "p95": 449.6808000000019,
+          "max": 526.7666999999783
+        },
+        "backoffice.detail": {
+          "count": 74,
+          "p50": 133.27979999998934,
+          "p95": 151.69200000001,
+          "max": 161.16070000000764
+        }
+      },
+      "resourcesAtEnd": {
+        "database": {
+          "container": "supabase_db_supabase-load",
+          "cpuPercent": "0.06%",
+          "memory": "191.8MiB / 5.465GiB"
+        },
+        "app": {
+          "cpuSeconds": 0.078125,
+          "workingSetBytes": 50761728
+        }
+      },
+      "driver": {
+        "cpuPercentOfOneCore": 1.45,
+        "eventLoopUtilizationPercent": 1.29,
+        "rssBytes": 79118336
+      }
+    },
+    {
+      "targetRpm": 563,
+      "offeredRpm": 563,
+      "measuredRpm": 563,
+      "successfulRpm": 563,
+      "errorRatePercent": 0,
+      "scheduleFulfillmentPercent": 100,
+      "accepted": true,
+      "failures": [],
+      "latencyP95Ms": {
+        "backoffice.list": 281.6905000000261,
+        "backoffice.dashboard": 515.8412999999709,
+        "backoffice.detail": 170.01739999995334
+      },
+      "kind": "ramp",
+      "startedAt": "2026-10-12T20:23:03.825Z",
+      "finishedAt": "2026-10-12T20:25:03.955Z",
+      "durationSeconds": 120,
+      "scheduledRequests": 1126,
+      "startedRequests": 1126,
+      "completedResponses": 1126,
+      "unexpectedErrors": 0,
+      "pendingAtDrain": 0,
+      "schedulerSkippedSlots": 0,
+      "maxInFlight": 6,
+      "statusCounts": {
+        "200": 1126
+      },
+      "latencySummaryMs": {
+        "backoffice.list": {
+          "count": 678,
+          "p50": 246.35899999999674,
+          "p95": 281.6905000000261,
+          "max": 385.53960000001825
+        },
+        "backoffice.dashboard": {
+          "count": 336,
+          "p50": 427.84399999998277,
+          "p95": 515.8412999999709,
+          "max": 707.0264000000025
+        },
+        "backoffice.detail": {
+          "count": 112,
+          "p50": 144.28879999998026,
+          "p95": 170.01739999995334,
+          "max": 278.3552999999956
+        }
+      },
+      "resourcesAtEnd": {
+        "database": {
+          "container": "supabase_db_supabase-load",
+          "cpuPercent": "0.14%",
+          "memory": "211.6MiB / 5.465GiB"
+        },
+        "app": {
+          "cpuSeconds": 0.078125,
+          "workingSetBytes": 50864128
+        }
+      },
+      "driver": {
+        "cpuPercentOfOneCore": 2.31,
+        "eventLoopUtilizationPercent": 1.94,
+        "rssBytes": 85368832
+      }
+    },
+    {
+      "targetRpm": 845,
+      "offeredRpm": 845,
+      "measuredRpm": 845,
+      "successfulRpm": 845,
+      "errorRatePercent": 0,
+      "scheduleFulfillmentPercent": 100,
+      "accepted": true,
+      "failures": [],
+      "latencyP95Ms": {
+        "backoffice.list": 564.3838000000105,
+        "backoffice.dashboard": 950.8061999999918,
+        "backoffice.detail": 344.2368000000133
+      },
+      "kind": "ramp",
+      "startedAt": "2026-10-12T20:25:05.753Z",
+      "finishedAt": "2026-10-12T20:27:05.952Z",
+      "durationSeconds": 120,
+      "scheduledRequests": 1690,
+      "startedRequests": 1690,
+      "completedResponses": 1690,
+      "unexpectedErrors": 0,
+      "pendingAtDrain": 0,
+      "schedulerSkippedSlots": 0,
+      "maxInFlight": 17,
+      "statusCounts": {
+        "200": 1690
+      },
+      "latencySummaryMs": {
+        "backoffice.list": {
+          "count": 1018,
+          "p50": 316.46470000001136,
+          "p95": 564.3838000000105,
+          "max": 1110.5933000000077
+        },
+        "backoffice.dashboard": {
+          "count": 504,
+          "p50": 564.0856000000495,
+          "p95": 950.8061999999918,
+          "max": 1314.2431000000215
+        },
+        "backoffice.detail": {
+          "count": 168,
+          "p50": 175.65339999995194,
+          "p95": 344.2368000000133,
+          "max": 576.1964999999618
+        }
+      },
+      "resourcesAtEnd": {
+        "database": {
+          "container": "supabase_db_supabase-load",
+          "cpuPercent": "0.26%",
+          "memory": "257.2MiB / 5.465GiB"
+        },
+        "app": {
+          "cpuSeconds": 0.078125,
+          "workingSetBytes": 50843648
+        }
+      },
+      "driver": {
+        "cpuPercentOfOneCore": 4.68,
+        "eventLoopUtilizationPercent": 3.73,
+        "rssBytes": 91566080
+      }
+    },
+    {
+      "targetRpm": 1268,
+      "offeredRpm": 1268,
+      "measuredRpm": 1268,
+      "successfulRpm": 1077.5,
+      "errorRatePercent": 15.02,
+      "scheduleFulfillmentPercent": 100,
+      "accepted": false,
+      "failures": [
+        "ERROR_RATE_OVER_1_PERCENT",
+        "BACKOFFICE_LIST_P95_OVER_3000_MS",
+        "BACKOFFICE_DASHBOARD_P95_OVER_3000_MS",
+        "BACKOFFICE_DETAIL_P95_OVER_3000_MS"
+      ],
+      "latencyP95Ms": {
+        "backoffice.list": 5994.324199999915,
+        "backoffice.dashboard": 6447.207999999984,
+        "backoffice.detail": 5560.449000000022
+      },
+      "kind": "ramp",
+      "startedAt": "2026-10-12T20:27:07.787Z",
+      "finishedAt": "2026-10-12T20:29:11.928Z",
+      "durationSeconds": 120,
+      "scheduledRequests": 2536,
+      "startedRequests": 2536,
+      "completedResponses": 2536,
+      "unexpectedErrors": 381,
+      "pendingAtDrain": 0,
+      "schedulerSkippedSlots": 0,
+      "maxInFlight": 144,
+      "statusCounts": {
+        "200": 2155,
+        "503": 381
+      },
+      "latencySummaryMs": {
+        "backoffice.list": {
+          "count": 1524,
+          "p50": 5358.996099999989,
+          "p95": 5994.324199999915,
+          "max": 7014.404100000043
+        },
+        "backoffice.dashboard": {
+          "count": 760,
+          "p50": 5795.29449999996,
+          "p95": 6447.207999999984,
+          "max": 7368.454900000012
+        },
+        "backoffice.detail": {
+          "count": 252,
+          "p50": 5219.234699999914,
+          "p95": 5560.449000000022,
+          "max": 6430.287699999986
+        }
+      },
+      "resourcesAtEnd": {
+        "database": {
+          "container": "supabase_db_supabase-load",
+          "cpuPercent": "0.08%",
+          "memory": "264.9MiB / 5.465GiB"
+        },
+        "app": {
+          "cpuSeconds": 0.078125,
+          "workingSetBytes": 50860032
+        }
+      },
+      "driver": {
+        "cpuPercentOfOneCore": 9.32,
+        "eventLoopUtilizationPercent": 7.68,
+        "rssBytes": 109293568
+      }
+    }
+  ],
+  "disposition": "First ramp recorded 845 RPM accepted and 1268 RPM rejected; test stopped before boundary refinement to add early-stop protection."
+}

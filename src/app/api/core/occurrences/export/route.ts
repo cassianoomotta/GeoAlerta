@@ -13,7 +13,7 @@ export async function GET(request:Request){
     const result=await withSession(async(tx,actor)=>{
       if(!can(actor,'export',{municipalityId,groupId:actor.groupIds[0]}))throw new AccessError(403,'ACCESS_DENIED');
       return exportOccurrences(tx,actor,filters);
-    });
+    },{timeoutMs:30_000});
     const csv=buildOccurrencesCsv(result.items,result.columns);
     const date=new Date().toISOString().slice(0,10);
     return new Response(csv,{headers:{

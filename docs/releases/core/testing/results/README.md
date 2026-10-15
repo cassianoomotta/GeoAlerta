@@ -2,6 +2,11 @@
 
 Resumos sanitizados de verificações realmente executadas. Falhas, impedimentos e testes não executados permanecem explícitos. Relatórios detalhados ficam em `test-results/` e `playwright-report/`, ignorados pelo Git.
 
+## Rodada atual — 12/10/2026
+
+- [Relatório da bateria de testes — GeoAlerta](2026-10-12-test-battery-report.md): unitários 190/190, API 60/60, banco 34/34, migrations 4/4, design system 7/7, lint/TypeScript/build aprovados; matriz de navegadores 203 aprovados, 3 skips e um erro local `ERR_NO_BUFFER_SPACE` que passou na repetição isolada. Carga de 60 minutos aprovada em Docker local, 2.651 requisições e zero erros inesperados ([JSON sanitizado](2026-10-12-load-local.json)). Restauração adicional não executou por incompatibilidade de `pg_dump` 16.4 com servidor 17.11 ([relatório](2026-10-12-restore-local.json)).
+- **Capacidade e verificações finais:** perfil autenticado de leitura sustentou 1.268 RPM por cinco minutos (76.080/h por projeção), com 17.732 respostas concluídas em 11 estágios, zero erros e p95 abaixo de 3 s no soak. Os quatro testes unitários novos, lint focado, TypeScript e validação visual do PDF passaram; a limpeza deixou zero usuários/perfis/papéis temporários e `.env` intacto. O alvo de 100 mil/h (1.667 RPM) falhou em latência e taxa ofertada; o soak de 1.325 RPM também falhou. Consulte a [evidência por estágio](2026-10-12-capacity-load.json), o [ensaio exploratório preservado](2026-10-12-capacity-load-exploratory.json), o [relatório completo](2026-10-12-test-battery-report.md) e o PDF gráfico em `output/pdf/geoalerta-capacity-report-2026-10-12.pdf`. Perfil local, somente leituras autenticadas; não representa Vercel/produção nem um SLO comercial.
+
 ## Verificações atuais — 06/10/2026
 
 - [Task 34 — apoio médico nas ocorrências](ticket-34-medical-support-2026-10-06.md): formulário, persistência anulável, detalhe/listagem/CSV e regressões locais aprovados; suíte completa de banco 31/31.

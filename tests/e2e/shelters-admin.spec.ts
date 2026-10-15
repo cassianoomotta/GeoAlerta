@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { fixtureCookies } from '../fixtures/session';
 
 async function signIn(page: import('@playwright/test').Page, name: 'admin' | 'operador') {
-  await page.context().addCookies((await fixtureCookies(name)).map(cookie => ({ ...cookie, url: 'http://127.0.0.1:3100' })));
+  await page.context().addCookies((await fixtureCookies(name)).map(cookie => ({ ...cookie, url: 'http://127.0.0.1:3102' })));
 }
 
 test('RF-004 Administrador encontra Abrigos nos menus desktop e mobile', async ({ page }) => {
@@ -54,7 +54,8 @@ test('RF-004 Administrador cadastra, edita, desativa e exclui abrigo', async ({ 
   await expect(page).toHaveURL(new RegExp(`/painel/admin/shelters/.+/editar$`));
   await expect(page.getByRole('heading', { name: 'Editar abrigo', exact: true, level: 2 })).toBeVisible();
   await expect(page.getByLabel('Nome do abrigo *')).toHaveValue(name);
-  await page.getByLabel('Situação').selectOption('Lotado');
+  await page.getByRole('spinbutton', { name: 'Capacidade total' }).fill('10');
+  await page.getByRole('spinbutton', { name: 'Pessoas acolhidas' }).fill('10');
   await page.getByLabel('Ativo').uncheck();
   await page.getByRole('button', { name: 'Salvar alterações' }).click();
   await expect(page).toHaveURL(/\/painel\/admin\/shelters$/);
@@ -66,7 +67,7 @@ test('RF-004 Administrador cadastra, edita, desativa e exclui abrigo', async ({ 
 
 test('RF-004 Operador não acessa administração de abrigos', async ({ page, request }) => {
   const cookies = await fixtureCookies('operador');
-  await page.context().addCookies(cookies.map(cookie => ({ ...cookie, url: 'http://127.0.0.1:3100' })));
+  await page.context().addCookies(cookies.map(cookie => ({ ...cookie, url: 'http://127.0.0.1:3102' })));
   await page.goto('/painel/admin/shelters');
   await expect(page.getByRole('alert')).toContainText('somente para administradores');
   await page.goto('/painel/admin/shelters/novo');

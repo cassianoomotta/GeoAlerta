@@ -3,13 +3,21 @@ import { fixtureCookies } from '../fixtures/session';
 
 test('gestor cadastra, inicia e encerra evento climático sem ocorrências', async ({ page }) => {
   await page.context().addCookies((await fixtureCookies('gestor')).map(cookie => ({ ...cookie, url: 'http://127.0.0.1:3102' })));
+  const initialEvents = page.waitForResponse(response => response.url().endsWith('/api/core/climate-events') && response.request().method() === 'GET');
   await page.goto('/painel/admin/climate-events');
+  await initialEvents;
   await expect(page.getByRole('heading', { name: 'Gestão de eventos climáticos' })).toBeVisible();
   const name = `Evento browser ${Date.now()}`;
   await page.getByLabel('Nome', { exact: true }).fill(name);
-  await page.getByLabel('Início previsto').fill('2026-10-06');
-  await page.getByLabel('Fim previsto').fill('2026-10-07');
-  await page.getByRole('button', { name: 'Cadastrar como planejado' }).click();
+  const plannedStart = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
+  const plannedEnd = new Date(Date.now() + 2 * 86_400_000).toISOString().slice(0, 10);
+  await page.getByLabel('Início previsto').fill(plannedStart);
+  await page.getByLabel('Fim previsto').fill(plannedEnd);
+  const [response] = await Promise.all([
+    page.waitForResponse(candidate => candidate.url().endsWith('/api/core/climate-events') && candidate.request().method() === 'POST'),
+    page.getByRole('button', { name: 'Cadastrar como planejado' }).click(),
+  ]);
+  expect(response.status(), await response.text()).toBe(201);
   const card = page.getByRole('article').filter({ hasText: name });
   await expect(card.getByText('Planejado', { exact: true })).toBeVisible();
   page.on('dialog', dialog => dialog.accept());

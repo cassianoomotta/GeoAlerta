@@ -43,6 +43,9 @@ test('ações primária e destrutiva mantêm superfície sólida e contraste de 
   await page.goto('/design-system');
   for (const theme of ['light', 'dark']) {
     await page.getByLabel('Aparência').selectOption(theme);
+    await page.evaluate(() => Promise.all(document.getAnimations()
+      .filter(animation => animation.constructor.name === 'CSSTransition')
+      .map(animation => animation.finished.catch(() => undefined))));
     for (const name of ['Registrar ocorrência', 'Cancelar ocorrência']) {
       const colors = await page.getByRole('button', { name, exact: true }).evaluate(element => {
         const style = getComputedStyle(element);
@@ -74,14 +77,14 @@ test('catálogo mantém a leitura sem overflow nos dois temas e nas larguras de 
   }
 });
 
-test('formulário público acompanha o tema, mantém input mobile de 16px e envio dependente de GPS', async ({ page }) => {
+test('formulário público permanece claro, mantém input mobile de 16px e envio dependente de GPS', async ({ page }) => {
   await page.route('**/api/core/public/occurrence-types', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ types: ['Alagamentos/Inundação'] }) }));
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/design-system');
   for (const theme of ['dark', 'light']) {
     await page.getByLabel('Aparência').selectOption(theme);
     await page.getByRole('link', { name: 'Abrir registro de ocorrências' }).click();
-    await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
     await expect(page.getByRole('button', { name: 'Enviar ocorrência' })).toBeDisabled();
     const inputStyle = await page.getByRole('textbox', { name: 'Nome' }).evaluate(element => {
       const style = getComputedStyle(element);
@@ -89,9 +92,10 @@ test('formulário público acompanha o tema, mantém input mobile de 16px e envi
     });
     expect(inputStyle.fontSize).toBeGreaterThanOrEqual(16);
     expect(inputStyle.minHeight).toBeGreaterThanOrEqual(48);
-    expect(inputStyle.colorScheme).toBe(theme);
+    expect(inputStyle.colorScheme).toBe('light');
     await expect(page.getByRole('region', { name: 'Instituições de atendimento' }).getByRole('img', { name: 'Prefeitura de Santo Antônio da Patrulha' })).toBeVisible();
     await page.goto('/design-system');
+    await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
   }
 });
 

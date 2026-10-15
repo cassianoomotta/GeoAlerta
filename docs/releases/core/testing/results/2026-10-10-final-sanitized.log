@@ -1,0 +1,25 @@
+GeoAlerta - log sanitizado da rodada - 2026-10-10
+
+2026-10-09 21:50:41Z | PROD | START | GET /api/core/public/occurrence-types | intervalo=60s | concorrencia=1
+2026-10-09 23:20:41Z | PROD | END | requests=90 | http_200=90 | falhas=0 | p50_ms=981 | p95_ms=1066 | max_ms=2568
+2026-10-09 | LOCAL | PASS | npm run test:unit | passed=190
+2026-10-09 | LOCAL | PASS | lint; tsc --noEmit
+2026-10-09 | LOCAL | PARTIAL | test:design-system | passed=5 | failed=2 | causas=contraste 3.106<4.5; tema light vs dark esperado
+2026-10-09 | LOCAL | BLOCKED | test:api e test:db | alvo localhost:5433 indisponivel
+2026-10-10 | PROD | PASS | Playwright GET /, /login, /api/core/public/occurrence-types | status=200,200,200
+2026-10-10 | STAGING | PASS | contas de teste e perfis encontrados; matriz de capacidades verificada
+2026-10-10 | STAGING | BLOCKED | Playwright autenticado | login retornou Invalid login credentials | writes=0
+2026-10-10 | LOCAL | BLOCKED | localhost:5433 | porta indisponivel
+2026-10-10 | LOCAL | BLOCKED | Docker Desktop | daemon nao pronto apos 55s; nenhum Compose no repositorio
+2026-10-10 | STAGING | ACTION | senha tecnica geoalerta_runtime rotacionada; valor omitido; .env atualizado
+2026-10-10 | STAGING | RETRY | verificacao imediata pos-rotacao | PostgreSQL 28P01
+2026-10-10 | STAGING | FINDING | core_has_access('privateData') concede true para Voluntario; policy core_event_read usa essa funcao
+2026-10-10 | STAGING | BLOCKED | migration 20261007151000_occurrence_lifecycle_auth_uid_security | funcao set_occurrence_lifecycle ausente
+2026-10-10 | STAGING | NO_CHANGE | RLS espacial nao habilitado; role nao e dono de spatial_ref_sys
+2026-10-10 | STAGING | REVIEW_BLOCKED | consulta a pg_authid recusada por envolver hashes de credencial; nenhum hash lido
+2026-10-10 | PROD | SAFETY | nenhuma escrita, migracao, alteracao de permissao ou carga concorrente
+
+2026-10-10 | STAGING | PASS | retry pooler_project_user | SELECT current_user,current_database() | CORE_ACCESS_RUNTIME_URL configurada; valor omitido
+2026-10-10 | PROD | OBSERVED | pagina publica carregou tipos; /login redirecionou /painel por sessao Chrome existente | sem interacao em dados; aba fechada
+2026-10-10 | LOCAL | CONFIG | .env verificado sem exibir valores | gestor password preenchida; Supabase host uivqeioteftkbxygqqia.supabase.co
+2026-10-10 | VERCEL | BLOCKED | .env local nao configura o deployment; sem URL publicada apontando para Teste_GeoAlerta

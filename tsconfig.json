@@ -45,7 +45,9 @@
     ".cache/design-system-build/types/**/*.ts",
     ".cache/design-system-build/dev/types/**/*.ts",
     ".cache/next-public-form/types/**/*.ts",
-    ".cache/next-public-form/dev/types/**/*.ts"
+    ".cache/next-public-form/dev/types/**/*.ts",
+    ".cache/next-task26-hosted/types/**/*.ts",
+    ".cache/next-task26-hosted/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

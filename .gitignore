@@ -51,3 +51,17 @@ next-env.d.ts
 
 #founders
 /founder-skill/
+
+# Materiais comerciais, propostas e negociacoes privadas
+propostas/
+**/propostas/**
+negociacao/
+**/negociacao/**
+docs/presentations/
+**/presentations/**
+/docs/docs_furg/analise-parceria-furg-gov4change.md
+
+# Artefatos e dados brutos de testes de capacidade
+/docs/releases/core/testing/results/2026-10-12-test-battery-report.md
+/docs/releases/core/testing/results/2026-10-12-capacity-load.json
+/.chart-data-*/

@@ -50,7 +50,7 @@ export function parseListFilters(params:URLSearchParams):ListFilters{
   for(const key of params.keys())if(!keys.includes(key)||params.getAll(key).length!==1)throw new ListInputError();
   const get=(key:string)=>params.get(key)?.trim()||undefined;
   const integer=(key:string,fallback:number,max:number)=>{const v=get(key);if(!v)return fallback;if(!/^[1-9]\d*$/.test(v)||!Number.isSafeInteger(Number(v))||Number(v)>max)throw new ListInputError();return Number(v);};
-  integer('pageSize',OCCURRENCES_PAGE_SIZE,Number.MAX_SAFE_INTEGER);
+  integer('pageSize',OCCURRENCES_PAGE_SIZE,100);
   const sort=get('sort')??'createdAt',direction=get('direction')??'desc';
   const status=get('status'),priority=get('priority'),type=get('type'),registrationChannel=get('registrationChannel'),categoryStatus=get('categoryStatus'),groupId=get('groupId'),climateEventId=get('climateEventId');
   const code=(key:string):NullableFilter|undefined=>{
