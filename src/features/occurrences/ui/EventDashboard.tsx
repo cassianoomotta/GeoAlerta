@@ -107,7 +107,7 @@ export function EventDashboard(){
     {!view&&!error&&<div role="status" aria-label="Carregando indicadores de eventos" className="h-48 animate-pulse rounded-xl bg-surface-subtle"><span className="sr-only">Carregando eventos e indicadores…</span></div>}
     {view&&view.events.length===0&&<p className="rounded-xl border border-border bg-surface p-5 text-sm text-muted-foreground">Nenhum evento em andamento ou encerrado está disponível no seu escopo.</p>}
     {view&&view.events.length>0&&selectedEvents.length===0&&<p className="rounded-xl border border-border bg-surface p-5 text-sm text-muted-foreground">Nenhum evento em andamento. Selecione um evento encerrado para consultar o histórico.</p>}
-    {view&&selectedEvents.length>0&&<div className="grid min-w-0 gap-4 xl:grid-cols-2">{selectedEvents.map((event,index)=>{
+    {view&&selectedEvents.length>0&&<div className={`grid min-w-0 gap-4 ${selectedEvents.length>1?'xl:grid-cols-2':'grid-cols-1'}`}>{selectedEvents.map((event,index)=>{
       const metric=view.metrics.find(item=>item.event.id===event.id);
       return metric?<EventPanel key={event.id} metric={metric} index={index}/>:null;
     })}</div>}

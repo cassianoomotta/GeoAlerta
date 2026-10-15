@@ -10,9 +10,14 @@ export interface PrivatePhotoStorage {
   upload(key: string, photo: VerifiedPhoto): Promise<void>;
   sign(key: string, seconds: number): Promise<string>;
 }
-export function photoMetadata(file: {name: string; type: string; size: number}) {
+export function photoMime(file: {name: string; type: string}) {
   const extension = file.name.split('.').at(-1)?.toLowerCase();
   const mime = extension === 'jpg' || extension === 'jpeg' ? 'image/jpeg' : extension === 'png' ? 'image/png' : extension === 'webp' ? 'image/webp' : null;
-  if (!mime || mime !== file.type || file.size < 1 || file.size > MAX_PHOTO_BYTES) throw new PhotoError(422, 'INVALID_PHOTO');
+  if (!mime || mime !== file.type) throw new PhotoError(422, 'INVALID_PHOTO');
+  return mime;
+}
+export function photoMetadata(file: {name: string; type: string; size: number}) {
+  const mime = photoMime(file);
+  if (file.size < 1 || file.size > MAX_PHOTO_BYTES) throw new PhotoError(422, 'INVALID_PHOTO');
   return mime;
 }

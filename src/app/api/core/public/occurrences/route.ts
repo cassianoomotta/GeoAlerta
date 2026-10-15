@@ -4,6 +4,8 @@ import {resolveOrigin} from '@/server/occurrences/origin';
 import {PhotoError} from '@/features/occurrences/photos/contracts';
 import {photoResponse} from '@/features/occurrences/photos/http';
 import {reportPublicFailure} from '@/server/occurrences/public-failure';
+import {captureAggregatePostHogEvent} from '@/server/analytics/posthog';
+import {after} from 'next/server';
 export const runtime='nodejs';
 async function readBody(request:Request){
   if(!request.headers.get('content-type')?.toLowerCase().startsWith('application/json'))throw new PublicInputError();
@@ -18,6 +20,7 @@ export async function POST(request:Request){
     const key=validateIdempotencyKey(request.headers.get('Idempotency-Key'));
     const input=validatePublicInput(await readBody(request),{allowCustomType:true});
     const {result,replay}=await openOccurrence(input,key,resolveOrigin(request.headers));
+    if(!replay)after(()=>captureAggregatePostHogEvent('citizen_occurrence_completed'));
     return Response.json(result,{status:replay?200:201,headers:{'Cache-Control':'no-store'}});
   }catch(error){
     if(!(error instanceof PublicInputError)&&!(error instanceof IntakeError)&&!(error instanceof PhotoError))reportPublicFailure(error,'occurrence');
