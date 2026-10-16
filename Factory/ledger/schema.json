@@ -1,0 +1,427 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/factory/ledger/mission-cycle.schema.json",
+  "title": "Factory mission cycle record",
+  "description": "Local GeoAlerta change mission; tests, independent QA and explicit human acceptance.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "mission_id",
+    "mission_ref",
+    "status",
+    "started_at",
+    "updated_at",
+    "quality_gate",
+    "definition_of_done",
+    "human_review",
+    "ready_for_review_at",
+    "completed_at"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 2
+    },
+    "mission_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "enum": [
+        "in_progress",
+        "blocked",
+        "awaiting_review",
+        "completed"
+      ]
+    },
+    "started_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "work_type": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "complexity": {
+      "enum": [
+        "small",
+        "medium",
+        "large",
+        "unknown"
+      ]
+    },
+    "quality_gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tests_defined",
+        "tests_passed",
+        "evidence_ref",
+        "qa_independent",
+        "qa_passed",
+        "qa_evidence_ref"
+      ],
+      "properties": {
+        "tests_defined": {
+          "type": "boolean"
+        },
+        "tests_passed": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "evidence_ref": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^Factory/(?:[A-Za-z0-9_-]+/)*[A-Za-z0-9_-][A-Za-z0-9_.-]*(?:#[A-Za-z0-9_-]+)?$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "qa_independent": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "qa_passed": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "qa_evidence_ref": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^Factory/(?:[A-Za-z0-9_-]+/)*[A-Za-z0-9_-][A-Za-z0-9_.-]*(?:#[A-Za-z0-9_-]+)?$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "definition_of_done": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "rework": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "material",
+        "cause"
+      ],
+      "properties": {
+        "material": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "cause": {
+          "enum": [
+            "requirements",
+            "design",
+            "implementation",
+            "tests",
+            "process",
+            "none",
+            "unknown"
+          ]
+        }
+      }
+    },
+    "rubric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "scores_ref"
+      ],
+      "properties": {
+        "version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "scores_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "evals": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "suite_version",
+        "passed",
+        "total",
+        "result_ref"
+      ],
+      "properties": {
+        "suite_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "passed": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "total": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "result_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "duration_minutes": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "tokens_input": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "tokens_output": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "tokens_total": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "token_source": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "cost_usd": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "cost_source": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "cost_is_estimate": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "telemetry_trace_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "note": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 500
+    },
+    "ready_for_review_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "completed_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "mission_ref": {
+      "type": "string",
+      "pattern": "^Factory/missions/[A-Za-z0-9_-]+\\.md$"
+    },
+    "human_review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "approved_by_human",
+        "evidence_ref"
+      ],
+      "properties": {
+        "approved_by_human": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "evidence_ref": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^Factory/(?:[A-Za-z0-9_-]+/)*[A-Za-z0-9_-][A-Za-z0-9_.-]*(?:#[A-Za-z0-9_-]+)?$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "enum": [
+              "awaiting_review",
+              "completed"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "started_at": {
+            "type": "string"
+          },
+          "ready_for_review_at": {
+            "type": "string"
+          },
+          "definition_of_done": {
+            "const": true
+          },
+          "quality_gate": {
+            "properties": {
+              "tests_defined": {
+                "const": true
+              },
+              "tests_passed": {
+                "const": true
+              },
+              "qa_independent": {
+                "const": true
+              },
+              "qa_passed": {
+                "const": true
+              },
+              "evidence_ref": {
+                "type": "string",
+                "pattern": "^Factory/(?:[A-Za-z0-9_-]+/)*[A-Za-z0-9_-][A-Za-z0-9_.-]*(?:#[A-Za-z0-9_-]+)?$"
+              },
+              "qa_evidence_ref": {
+                "type": "string",
+                "pattern": "^Factory/(?:[A-Za-z0-9_-]+/)*[A-Za-z0-9_-][A-Za-z0-9_.-]*(?:#[A-Za-z0-9_-]+)?$"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "completed"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "completed_at": {
+            "type": "string"
+          },
+          "human_review": {
+            "properties": {
+              "approved_by_human": {
+                "const": true
+              },
+              "evidence_ref": {
+                "type": "string",
+                "pattern": "^Factory/(?:[A-Za-z0-9_-]+/)*[A-Za-z0-9_-][A-Za-z0-9_.-]*(?:#[A-Za-z0-9_-]+)?$"
+              }
+            }
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "completed_at": {
+            "type": "null"
+          },
+          "human_review": {
+            "properties": {
+              "approved_by_human": {
+                "enum": [
+                  false,
+                  null
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$comment": "Changes only. No prompts, transcripts, diffs, secrets or personal data. Completed requires local tests and independent QA evidence plus explicit human acceptance. No GitHub or merge milestones. Timestamp order is enforced by validate.py."
+}

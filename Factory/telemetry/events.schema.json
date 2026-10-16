@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/factory/telemetry/event.schema.json",
+  "title": "Factory telemetry event (proposed, inactive)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "event_name", "occurred_at", "mission_ref"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "event_name": {
+      "enum": ["mission.started", "delegation.completed", "quality_gate.completed", "mission.blocked", "mission.completed"]
+    },
+    "occurred_at": { "type": "string", "format": "date-time" },
+    "mission_ref": { "type": "string", "description": "Opaque, non-identifying correlation reference; no issue body or prompt." },
+    "stage": { "type": ["string", "null"] },
+    "agent_role": { "type": ["string", "null"], "description": "Role label only; do not use as an individual score." },
+    "outcome": { "enum": ["success", "failure", "blocked", "skipped", null] },
+    "duration_ms": { "type": ["integer", "null"], "minimum": 0 },
+    "tokens_input": { "type": ["integer", "null"], "minimum": 0 },
+    "tokens_output": { "type": ["integer", "null"], "minimum": 0 },
+    "tokens_total": { "type": ["integer", "null"], "minimum": 0 },
+    "cost_usd": { "type": ["number", "null"], "minimum": 0 },
+    "cost_source": { "type": ["string", "null"] },
+    "tool_name": { "type": ["string", "null"] },
+    "failure_category": { "type": ["string", "null"] }
+  },
+  "$comment": "Draft only; no emitter/exporter is enabled. Never include prompts, model/tool inputs or outputs, file contents, diffs, secrets, personal data, or raw traces."
+}

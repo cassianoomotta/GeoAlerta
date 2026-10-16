@@ -22,3 +22,7 @@ Os módulos legados de estoque/recursos, equipes e telemetria, voluntários e a 
 O guia se refere ao escopo GeoAlerta Core 0.1.0 na linha estável `geo-alerta-0-1-0`. Isso identifica a linha de trabalho; não afirma publicação de uma release nem aceite integrado final. A Task 20 está pausada e a Task 30 permanece em andamento. A trilha de auditoria ainda não integra o conjunto final documentado.
 
 O PRD e os requisitos são especificações de produto, não comprovação de funcionamento. Consulte o inventário de páginas e a revisão de estabilidade para estados conhecidos, evidências locais e limitações de integração. Não use este repositório como confirmação do estado de produção.
+
+## Fábrica de software
+
+[Fluxo da fábrica](Factory/README.md): demandas e evidências locais, especialistas conforme a necessidade e QA independente. Você controla revisão, commits e publicação.

@@ -65,3 +65,7 @@ docs/presentations/
 /docs/releases/core/testing/results/2026-10-12-test-battery-report.md
 /docs/releases/core/testing/results/2026-10-12-capacity-load.json
 /.chart-data-*/
+
+# Cache Python dos validadores da fábrica
+/Factory/**/__pycache__/
+/Factory/**/*.py[cod]

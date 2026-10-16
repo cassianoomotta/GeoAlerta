@@ -1,0 +1,36 @@
+# Catálogo de configurações. Não é carregado automaticamente pelo Codex.
+# Copie somente servidores escolhidos para [mcp_servers.*] em config.toml.
+
+[mcp_servers.github]
+enabled = false
+command = "docker"
+args = ["run", "-i", "--rm", "-e", "GITHUB_PERSONAL_ACCESS_TOKEN", "ghcr.io/github/github-mcp-server"]
+env_vars = ["GITHUB_PERSONAL_ACCESS_TOKEN"]
+default_tools_approval_mode = "prompt"
+
+[mcp_servers.context7]
+enabled = false
+url = "https://mcp.context7.com/mcp/oauth"
+default_tools_approval_mode = "prompt"
+
+[mcp_servers.supabase]
+enabled = false
+url = "https://mcp.supabase.com/mcp?project_ref=REPLACE_WITH_PROJECT_REF&read_only=true&features=database,docs"
+default_tools_approval_mode = "prompt"
+
+[mcp_servers.vercel]
+enabled = false
+url = "https://mcp.vercel.com"
+default_tools_approval_mode = "prompt"
+
+[mcp_servers.playwright]
+enabled = false
+command = "npx"
+args = ["-y", "@playwright/mcp@latest"]
+default_tools_approval_mode = "prompt"
+
+[mcp_servers.chrome_devtools]
+enabled = false
+command = "npx"
+args = ["-y", "chrome-devtools-mcp@latest"]
+default_tools_approval_mode = "prompt"
