@@ -10,3 +10,5 @@
 O escopo de referência é [GeoAlerta Core 0.1.0](releases/core/README.md). O guia operacional descreve os recursos verificados no código atual; as especificações descrevem requisitos e intenção, não comprovam implementação ou estado de produção. A Task 20 permanece pausada, e as Tasks 30 e 31 seguem em andamento. Cada pasta documental mantém um `README.md` como índice quando aplicável.
 
 As regras de negócio, ambiente e governança em [AGENTS.md](../AGENTS.md) prevalecem. Materiais antigos de `Core/` e da auditoria são referências históricas, não contratos da nova release.
+
+A [fábrica de software](../Factory/README.md) organiza demandas, decisões e validações locais para evoluir o GeoAlerta.

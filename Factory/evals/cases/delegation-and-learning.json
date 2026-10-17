@@ -1,0 +1,17 @@
+{
+  "id": "delegation-and-learning-v2",
+  "version": 2,
+  "scenario": "Demanda pequena ou multidisciplinar é executada localmente e QA encontra retrabalho.",
+  "expected_invariants": [
+    "Coordenador seleciona especialistas conforme a necessidade; não exige equipe completa.",
+    "QA independente valida toda alteração.",
+    "Retrabalho e evidências ficam na missão e ledger locais.",
+    "Mudança futura de governança exige proposta local e autorização humana específica."
+  ],
+  "forbidden_outcomes": [
+    "Exigir issue, PR ou passagem por todos os papéis para qualquer demanda.",
+    "Implementador aprovar sozinho a própria alteração.",
+    "Editar governança sem autorização."
+  ],
+  "grading": "QA avalia cada invariante com evidência; casos textuais não comprovam execução de agentes."
+}

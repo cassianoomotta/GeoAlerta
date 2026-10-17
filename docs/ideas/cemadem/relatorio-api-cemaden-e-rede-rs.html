@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Análise da API PED do Cemaden e da Rede Hidrometeorológica da Defesa Civil do Rio Grande do Sul para o GeoAlerta.">
+  <title>Chuva e nível dos rios | GeoAlerta</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #172d36;
+      --muted: #526a72;
+      --paper: #f4f8f6;
+      --surface: #fff;
+      --line: #d9e4e0;
+      --teal: #086c69;
+      --teal-soft: #e5f3f0;
+      --amber-soft: #fff5df;
+      --navy: #173d52;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; background: var(--paper); color: var(--ink); font: 16px/1.65 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    a { color: var(--teal); text-underline-offset: .18em; }
+    .hero { padding: clamp(3rem, 7vw, 6rem) 1.25rem 4rem; color: #f5fffc; background: radial-gradient(ellipse at 82% 5%, rgba(77,184,159,.35), transparent 34%), linear-gradient(125deg,#123b50,#086c69 76%,#0b8177); }
+    .hero-inner, main, footer { width: min(1120px,calc(100% - 2.5rem)); margin-inline: auto; }
+    .eyebrow { color: #bde7dc; font-size: .78rem; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
+    h1 { max-width: 850px; margin: .75rem 0 1rem; font-size: clamp(2.2rem,5vw,4.2rem); line-height: 1.05; letter-spacing: -.045em; }
+    .dek { max-width: 760px; margin: 0; color: #e1f1ed; font-size: clamp(1.05rem,2vw,1.25rem); }
+    .meta { display: flex; flex-wrap: wrap; gap: .65rem 1.2rem; margin-top: 2rem; color: #d4ebe5; font-size: .9rem; }
+    .meta span::before { content: "•"; padding-right: .55rem; color: #8cd0be; }
+    main { padding: 2rem 0 4rem; }
+    .cards { display: grid; grid-template-columns: repeat(3,1fr); gap: 1rem; margin-top: -4rem; position: relative; }
+    .card, .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; }
+    .card { padding: 1.2rem 1.3rem; box-shadow: 0 16px 48px rgba(25,58,65,.08); }
+    .card strong { display: block; color: var(--teal); margin-bottom: .3rem; }
+    .card p { margin: 0; color: var(--muted); font-size: .94rem; }
+    .layout { display: grid; grid-template-columns: 225px minmax(0,1fr); gap: 2rem; margin-top: 2.5rem; align-items: start; }
+    nav { position: sticky; top: 1rem; padding: 1rem; background: #edf4f1; border: 1px solid var(--line); border-radius: 14px; }
+    nav strong { display: block; margin-bottom: .5rem; font-size: .82rem; letter-spacing: .08em; text-transform: uppercase; }
+    nav a { display: block; padding: .3rem 0; color: var(--muted); font-size: .9rem; text-decoration: none; }
+    nav a:hover { color: var(--teal); text-decoration: underline; }
+    section { margin-bottom: 2.2rem; scroll-margin-top: 1rem; }
+    h2 { margin: 0 0 .8rem; color: var(--navy); font-size: clamp(1.45rem,3vw,1.9rem); line-height: 1.2; letter-spacing: -.025em; }
+    h3 { margin: 1.4rem 0 .5rem; color: var(--navy); font-size: 1.12rem; }
+    p { margin: .65rem 0; }
+    .panel { padding: clamp(1.1rem,3vw,1.75rem); }
+    .callout { margin: 1rem 0; border-left: 5px solid var(--teal); background: var(--teal-soft); padding: 1rem 1.1rem; border-radius: 0 12px 12px 0; }
+    .callout.caution { border-color: #cf9126; background: var(--amber-soft); }
+    .callout p:first-child { margin-top: 0; }
+    .callout p:last-child { margin-bottom: 0; }
+    .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+    table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+    th, td { padding: .78rem .82rem; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { background: #edf4f1; color: var(--navy); font-size: .82rem; letter-spacing: .035em; }
+    tr:last-child td { border-bottom: 0; }
+    code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    code { overflow-wrap: anywhere; background: #edf3f2; padding: .12em .3em; border-radius: 4px; font-size: .92em; }
+    pre { overflow-x: auto; padding: 1rem 1.1rem; border-radius: 12px; color: #e4f6f1; background: #17323b; font-size: .9rem; line-height: 1.55; }
+    ul, ol { padding-left: 1.3rem; }
+    li { margin: .42rem 0; }
+    footer { padding: 0 0 2rem; color: var(--muted); font-size: .86rem; }
+    @media (max-width: 820px) {
+      .cards { grid-template-columns: 1fr; margin-top: -2.5rem; }
+      .layout { grid-template-columns: 1fr; gap: 1.5rem; }
+      nav { position: static; }
+      nav div { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 0 .8rem; }
+    }
+    @media print {
+      body { background: #fff; font-size: 11pt; }
+      .hero { padding: 1.5rem; print-color-adjust: exact; }
+      .hero-inner, main, footer { width: 100%; }
+      .cards { margin-top: 1rem; }
+      .layout { display: block; }
+      nav { display: none; }
+      .card, .panel, .table-wrap { box-shadow: none; break-inside: avoid; }
+      a { color: inherit; }
+      a[href^="http"]::after { content: " (" attr(href) ")"; font-size: .8em; overflow-wrap: anywhere; }
+    }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="hero-inner">
+      <div class="eyebrow">GeoAlerta · análise de fontes de monitoramento</div>
+      <h1>Chuva e nível dos rios</h1>
+      <p class="dek">Avaliação da API PED do Cemaden e comparação com a Rede Hidrometeorológica da Defesa Civil do Rio Grande do Sul para integrar dados confiáveis ao painel do GeoAlerta.</p>
+      <div class="meta">
+        <span>13 de outubro de 2026</span>
+        <span>Acumulados de 24, 48 e 72 horas</span>
+        <span>Santo Antônio da Patrulha/RS</span>
+      </div>
+    </div>
+  </header>
+  <main>
+    <div class="cards" aria-label="Resumo executivo">
+      <div class="card"><strong>Cemaden para chuva</strong><p>A PED fornece acumulados de 24, 48 e 72 horas. O uso por API exige JWT e confirmação do fluxo de credenciamento.</p></div>
+      <div class="card"><strong>Rede estadual para rios</strong><p>A API GraphQL estadual documenta chuva, nível e tendência dos rios, com histórico e atualização em tempo real.</p></div>
+      <div class="card"><strong>Fontes complementares</strong><p>Não há evidência para afirmar qual rede é mais precisa. A estação, a distância e a atualidade dos dados importam.</p></div>
+    </div>
+    <div class="layout">
+      <nav aria-label="Navegação do relatório">
+        <strong>Neste relatório</strong>
+        <div>
+          <a href="#conclusao">Conclusão</a>
+          <a href="#ped">API PED do Cemaden</a>
+          <a href="#grafico">Gráfico e DevTools</a>
+          <a href="#municipio">Santo Antônio</a>
+          <a href="#comparacao">Comparação</a>
+          <a href="#assertividade">Assertividade</a>
+          <a href="#recomendacao">Recomendação</a>
+          <a href="#pendencias">Pendências</a>
+          <a href="#fontes">Fontes</a>
+        </div>
+      </nav>
+      <article>
+        <section id="conclusao">
+          <h2>Conclusão executiva</h2>
+          <div class="panel">
+            <p>A Plataforma de Entrega de Dados (PED) do Cemaden é adequada para fornecer chuva acumulada em 24, 48 e 72 horas. O Swagger documenta <code>/pcds-acum/acumulados-recentes</code> e <code>/pcds-acum/acumulados-historicos</code>, que retornam <code>acc24hr</code>, <code>acc48hr</code> e <code>acc72hr</code>. A consulta recente inclui também <code>datahora</code>.</p>
+            <p>A Rede Hidrometeorológica da Defesa Civil do RS oferece API GraphQL com chuva e dados de nível de rio. Para o GeoAlerta, a recomendação é combinar as fontes: Cemaden para complementar a chuva local; rede estadual para nível e tendência do rio, se houver estação adequada e atualizada.</p>
+            <div class="callout caution"><p><strong>Não é possível classificar uma rede como mais precisa com a evidência disponível.</strong> O Cemaden diz que os dados do Mapa Interativo são brutos e podem apresentar inconsistências. A documentação estadual consultada não publica métricas comparáveis de qualidade.</p></div>
+          </div>
+        </section>
+        <section id="ped">
+          <h2>API PED do Cemaden</h2>
+          <div class="panel">
+            <p>O <a href="https://sws.cemaden.gov.br/PED/api/ui/" target="_blank" rel="noopener noreferrer">Swagger oficial da PED</a> publica a especificação <a href="https://sws.cemaden.gov.br/PED/api/ui/swagger.json" target="_blank" rel="noopener noreferrer">OpenAPI/Swagger JSON</a>, versão 2.0.2, com base <code>/PED/rest/</code>.</p>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Objetivo</th><th>Endpoint</th><th>Parâmetros principais</th><th>Uso no GeoAlerta</th></tr></thead>
+                <tbody>
+                  <tr><td>Acumulados recentes</td><td><code>GET /PED/rest/pcds-acum/acumulados-recentes</code></td><td>Header <code>token</code>; <code>codibge</code> obrigatório; <code>codestacao</code> ou <code>idestacao</code> opcionais; JSON.</td><td>Painel com acumulados de 24/48/72 h, estação e horário.</td></tr>
+                  <tr><td>Acumulados históricos</td><td><code>GET /PED/rest/pcds-acum/acumulados-historicos</code></td><td>Header <code>token</code>; <code>codibge</code> e <code>data=aaaaMMddHHmm</code> obrigatórios; estação opcional.</td><td>Consultar os acumulados de uma estação em uma data/hora.</td></tr>
+                  <tr><td>Cadastro das estações</td><td><code>GET /PED/rest/pcds-cadastro/dados-cadastrais</code></td><td>Header <code>token</code>; filtros por UF, município, estação e tipo.</td><td>Obter coordenadas, nome, código e horário da última remessa.</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p>Os acumulados são janelas móveis baseadas na última leitura recebida (ou numa data de referência, no endpoint histórico), e não totais do dia civil. A interface deve mostrar a estação e o horário, diferenciando zero, ausência e dado desatualizado.</p>
+            <h3>Exemplo ilustrativo, sem credencial</h3>
+            <pre><code>GET /PED/rest/pcds-acum/acumulados-recentes?codibge=&lt;IBGE&gt;&amp;formato=JSON
+Host: sws.cemaden.gov.br
+token: &lt;JWT obtido pelo fluxo oficial&gt;</code></pre>
+            <p>As rotas documentadas exigem JWT no header <code>token</code>. O Swagger diz que o token vem de <code>/controle-token/tokens</code>, mas não descreve o fluxo de autenticação. O relatório oficial do Cemaden menciona cadastro/login e controle de token pelo portal; confirme credenciais de serviço, validade e cotas com o órgão.</p>
+          </div>
+        </section>
+        <section id="grafico">
+          <h2>Página do gráfico e DevTools</h2>
+          <div class="panel">
+            <p>O gráfico fornecido usa <code>grafico_pcds.php?idpcd=17732&amp;hr=24&amp;dia=860</code>. Esses parâmetros identificam a estação e as seleções do gráfico, mas não demonstram que a página consuma a PED. A captura da aba Network do DevTools não foi concluída; por isso, este relatório não afirma ter observado as chamadas internas dessa página.</p>
+            <p>A API PED está documentada separadamente e é o caminho recomendado para integração, em lugar de depender de scraping da interface.</p>
+            <div class="callout"><p><strong>Segurança:</strong> não copiar um JWT temporário do DevTools nem expô-lo no frontend. Credenciais e token de integração devem ficar no servidor, em variáveis do <code>.env</code> da raiz do GeoAlerta.</p></div>
+          </div>
+        </section>
+        <section id="municipio">
+          <h2>Evidência local: Santo Antônio da Patrulha</h2>
+          <div class="panel">
+            <p>O gráfico aberto para esta análise identifica a estação Cemaden <code>G2-431760801A</code> como pluviométrica e localizada em Santo Antônio da Patrulha/RS. A página mostrava atualização em <code>14/10/2026 02h UTC</code> — 23h de 13/10 no horário de Brasília — e acumulado de 24 horas.</p>
+            <p>Isso confirma uma leitura da rede no município, não uma média espacial de todo o território. Relevo, distância entre estações e localização na bacia podem produzir acumulados diferentes.</p>
+          </div>
+        </section>
+        <section id="comparacao">
+          <h2>Cemaden e Rede Hidrometeorológica do RS</h2>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Critério</th><th>Cemaden</th><th>Rede Hidrometeorológica do RS</th></tr></thead>
+              <tbody>
+                <tr><td><strong>Variáveis</strong></td><td>Chuva; a PED fornece acumulados de 24, 48 e 72 h.</td><td>Chuva, nível e tendência do rio, além de outras variáveis meteorológicas.</td></tr>
+                <tr><td><strong>Acesso programático</strong></td><td>API REST da PED, com JWT. O gráfico público é uma interface de visualização.</td><td>API GraphQL documentada no endpoint <code>https://redehidrometeorologica.defesacivil.rs.gov.br/graphql</code>, com subscriptions WebSocket.</td></tr>
+                <tr><td><strong>Santo Antônio</strong></td><td>A estação <code>G2-431760801A</code> aparece explicitamente no gráfico consultado.</td><td>A documentação acessada não confirma quais estações estão operacionais no município. O exemplo geográfico mostra filtro por UF, não por município.</td></tr>
+                <tr><td><strong>Atualização e qualidade</strong></td><td>Transmissão usualmente a cada 10 min durante chuva e 60 min sem chuva. O Cemaden alerta que os dados do Mapa Interativo são brutos e podem ter inconsistências.</td><td>A atualização depende da transmissão da estação; o menor intervalo varia por equipamento/sensor. Não encontrei especificação pública equivalente sobre qualidade e falhas.</td></tr>
+                <tr><td><strong>Uso indicado</strong></td><td>Complementar chuva local, mostrando acumulado, estação e horário.</td><td>Consultar nível/tendência do rio e combinar com chuva estadual, quando houver estação próxima e atualizada.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="panel">
+            <p>A dificuldade de filtrar por município no mapa estadual não prova que a API não aceite consultas geográficas. A documentação menciona filtros por localização e código da estação, mas o exemplo consultado demonstra apenas UF. A disponibilidade de um filtro municipal direto ainda precisa ser confirmada.</p>
+          </div>
+        </section>
+        <section id="assertividade">
+          <h2>Assertividade: limites da comparação</h2>
+          <div class="panel">
+            <p>Não há evidência pública suficiente para afirmar que uma rede mede com maior exatidão. O Cemaden reconhece que os dados do Mapa Interativo são brutos e podem conter inconsistências. A documentação estadual descreve campos e atualização, mas não fornece métricas de validação que permitam comparação direta.</p>
+            <p>Uma avaliação exigiria séries simultâneas de estações próximas. Para chuva, deve-se comparar a mesma unidade e janela. Para cotas de rio, é necessário confirmar o referencial vertical ou os limiares oficiais de cada estação. Também convém medir lacunas, atraso, valores fora de faixa e divergência entre instrumentos.</p>
+            <p>Distância e representatividade hidrológica importam: dois pluviômetros no mesmo município podem registrar chuvas diferentes; uma estação de nível deve representar o trecho ou a bacia da ocorrência.</p>
+          </div>
+        </section>
+        <section id="recomendacao">
+          <h2>Recomendação para o GeoAlerta</h2>
+          <div class="panel">
+            <ol>
+              <li>Solicitar ao Cemaden credenciais para uso institucional da PED e confirmar autenticação, renovação do JWT, limites e termos de uso.</li>
+              <li>Manter credenciais e JWT apenas no servidor, no <code>.env</code> da raiz; não os enviar ao navegador nem registrá-los em logs.</li>
+              <li>Sincronizar metadados e armazenar em cache as consultas para evitar chamadas repetidas ao abrir o painel.</li>
+              <li>Selecionar estações de chuva próximas às ocorrências por coordenadas e apresentar nome/código, distância, acumulados de 24/48/72 h e horário da leitura.</li>
+              <li>Consultar nível/tendência da estação estadual hidrologicamente relevante e seus limiares oficiais.</li>
+              <li>Distinguir dado atrasado, leitura ausente, erro do serviço e valor zero. Nunca converter ausência de dado em <code>0 mm</code>.</li>
+              <li>Usar os dados como apoio à triagem. Não gerar alerta oficial com um acumulado isolado antes de validar cobertura, qualidade e limiares com a Defesa Civil.</li>
+            </ol>
+            <div class="callout caution"><p>A documentação da API estadual pede confirmação das condições de uso antes de sua disponibilização em produção pública ou comercial.</p></div>
+          </div>
+        </section>
+        <section id="pendencias">
+          <h2>Pendências antes da implementação</h2>
+          <div class="panel">
+            <ul>
+              <li>Confirmar com o Cemaden o cadastro, emissão e renovação do JWT para uso servidor-servidor.</li>
+              <li>Confirmar cotas, frequência permitida e política de armazenamento/redistribuição nas duas fontes.</li>
+              <li>Capturar a Network do gráfico no DevTools para verificar se a interface usa um serviço legado ou a PED.</li>
+              <li>Com credenciais autorizadas, validar latência, fuso horário, valores nulos e divergências entre API e gráfico.</li>
+              <li>Identificar estações estaduais operacionais perto de Santo Antônio da Patrulha e verificar se há filtro municipal direto.</li>
+              <li>Comparar séries simultâneas antes de definir limiares automáticos.</li>
+            </ul>
+            <p><strong>Estado:</strong> avaliação documental concluída; captura de Network e comparação simultânea ainda pendentes.</p>
+          </div>
+        </section>
+        <section id="fontes">
+          <h2>Fontes</h2>
+          <div class="panel">
+            <ul>
+              <li><a href="https://sws.cemaden.gov.br/PED/api/ui/" target="_blank" rel="noopener noreferrer">Swagger UI da PED do Cemaden</a></li>
+              <li><a href="https://sws.cemaden.gov.br/PED/api/ui/swagger.json" target="_blank" rel="noopener noreferrer">Especificação OpenAPI/Swagger da PED</a></li>
+              <li><a href="https://www.gov.br/cemaden/pt-br/acesso-a-informacao/institucional-1/termo-de-compromisso-de-gestao/relatorio_tcg_2023-cemadenfim_240904_110253.pdf/%40%40download/file" target="_blank" rel="noopener noreferrer">Relatório de gestão do Cemaden 2023 (MCTI), seção sobre a PED</a></li>
+              <li><a href="https://www2.cemaden.gov.br/contato-cemaden/" target="_blank" rel="noopener noreferrer">FAQ e contato oficial do Cemaden</a></li>
+              <li><a href="https://www2.cemaden.gov.br/pluviometros-automatico/" target="_blank" rel="noopener noreferrer">Pluviômetros automáticos: frequência e qualidade dos dados</a></li>
+              <li><a href="https://www.gov.br/cemaden/pt-br/rede-observacional/perguntas-frequentes" target="_blank" rel="noopener noreferrer">Perguntas frequentes da rede observacional do Cemaden</a></li>
+              <li><a href="https://sistemas.defesacivil.rs.gov.br/api-redehidrometeorologica" target="_blank" rel="noopener noreferrer">Documentação da API da Rede Hidrometeorológica da Defesa Civil RS</a></li>
+              <li><a href="https://redehidrometeorologica.defesacivil.rs.gov.br/Mapa" target="_blank" rel="noopener noreferrer">Mapa da Rede Hidrometeorológica do RS</a></li>
+              <li><a href="https://github.com/governodegaropaba/defesacivil" target="_blank" rel="noopener noreferrer">Exemplo municipal de uso da PED (fonte secundária; validar com o Cemaden)</a></li>
+            </ul>
+          </div>
+        </section>
+      </article>
+    </div>
+  </main>
+  <footer>Relatório preparado para avaliação de integração no GeoAlerta. Disponibilidade operacional e condições de uso devem ser confirmadas com os órgãos responsáveis.</footer>
+</body>
+</html>
+

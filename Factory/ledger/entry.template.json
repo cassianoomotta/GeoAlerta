@@ -1,0 +1,50 @@
+{
+  "schema_version": 2,
+  "mission_id": "MISSION_ID",
+  "status": "in_progress",
+  "started_at": null,
+  "updated_at": "YYYY-MM-DDThh:mm:ssZ",
+  "work_type": null,
+  "complexity": "unknown",
+  "quality_gate": {
+    "tests_defined": true,
+    "tests_passed": null,
+    "evidence_ref": null,
+    "qa_independent": null,
+    "qa_passed": null,
+    "qa_evidence_ref": null
+  },
+  "definition_of_done": null,
+  "rework": {
+    "material": null,
+    "cause": "unknown"
+  },
+  "rubric": {
+    "version": null,
+    "scores_ref": null
+  },
+  "evals": {
+    "suite_version": null,
+    "passed": null,
+    "total": null,
+    "result_ref": null
+  },
+  "duration_minutes": null,
+  "tokens_input": null,
+  "tokens_output": null,
+  "tokens_total": null,
+  "token_source": null,
+  "cost_usd": null,
+  "cost_source": null,
+  "cost_is_estimate": null,
+  "telemetry_trace_id": null,
+  "evidence_refs": [],
+  "note": null,
+  "ready_for_review_at": null,
+  "completed_at": null,
+  "mission_ref": "Factory/missions/MISSION_ID.md",
+  "human_review": {
+    "approved_by_human": null,
+    "evidence_ref": null
+  }
+}
